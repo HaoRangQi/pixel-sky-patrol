@@ -1,0 +1,25 @@
+<!doctype html>
+<html><body style="margin:0;background:#111">
+<canvas id="c" width="604" height="340" style="width:100vw;height:100vh;image-rendering:pixelated"></canvas>
+<div id="log" style="position:fixed;top:0;left:0;color:#0f0;font:12px monospace;z-index:9"></div>
+<script>
+const c = document.getElementById('c');
+const gl = c.getContext('webgl2', {antialias:false, depth:true});
+const log = (m)=>{ document.getElementById('log').textContent += m + '\n'; console.log(m); };
+if (!gl) { log('NO WEBGL2'); } else {
+  const vs = `#version 300 es
+  in vec2 p; out vec2 uv; void main(){ uv=p*.5+.5; gl_Position=vec4(p,0.,1.); }`;
+  const fs = `#version 300 es
+  precision mediump float; in vec2 uv; out vec4 o;
+  void main(){ float b = step(uv.x, .5) * .35; o = vec4(uv.y*.8+.1, uv.x*.6+.2+b, 0.6+b, 1.0); }`;
+  function sh(t, s){ const x=gl.createShader(t); gl.shaderSource(x,s); gl.compileShader(x); if(!gl.getShaderParameter(x,gl.COMPILE_STATUS)) log('SHADER: '+gl.getShaderInfoLog(x)); return x; }
+  const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) log('LINK: '+gl.getProgramInfoLog(pr));
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,3,-1,-1,3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(pr,'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  gl.useProgram(pr); gl.viewport(0,0,c.width,c.height); gl.drawArrays(gl.TRIANGLES,0,3);
+  log('GL2 OK ' + gl.getParameter(gl.VERSION) + ' | ' + gl.getParameter(gl.RENDERER));
+  log('EXT float linear: ' + !!gl.getExtension('OES_texture_float_linear') + ' | frag depth: true');
+}
+</script></body></html>

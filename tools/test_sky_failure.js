@@ -1,0 +1,21 @@
+// 用真实地形伤害进入失败流程，再通过结果页重新起飞。
+if (!__PI.ready()) throw new Error('游戏未就绪');
+const check = (ok, message) => { if (!ok) throw new Error(message); };
+const settle = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+document.getElementById('sky-intercept').click();
+__PI.freeze(true);
+const G = __PI.G;
+G.player.shield = 0.1;
+G.player.pos.y = G.map.heightAt(G.player.pos.x, G.player.pos.z) - 20;
+__PI.step(3);
+await settle();
+check(G.mode === 'failed' && !document.getElementById('sky-result').hidden, '地形损毁没有进入结果页');
+check(!document.getElementById('sky-again').disabled, '失败后的重新出航不可用');
+check(document.activeElement?.id === 'sky-result-home', '结果页没有初始键盘焦点');
+document.getElementById('sky-again').click();
+await settle();
+__PI.freeze(true);
+check(G.mode === 'play' && !G.player.dead && G.player.shield === 100 && G.player.missiles === 4, '重新出航未重建飞机');
+check(document.getElementById('sky-result').hidden && G.enemies.length === 3, '结果页未关闭或截击未恢复');
+check(!__PI.errors.length && !__PI.exceptions.length, '失败重开产生异常');
+return { result: 'PASS', terrainDeath: true, resultFocus: true, retry: true, mode: G.mode, enemies: G.enemies.length, errors: __PI.errors };

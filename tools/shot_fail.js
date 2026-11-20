@@ -1,0 +1,12 @@
+if (!__PI.ready()) return { ready: false };
+__PI.start('chase');
+__PI.G.mode = 'failed';
+__PI.G.failTimer = 3;
+__PI.G.score = 12840;
+__PI.G.wave = 5;
+__PI.G.stats.kills = 37;
+__PI.G.missionTime = 214;
+__PI.G.highScore = 25600;
+__PI.G.newHigh = false;
+__PI.freeze(true);
+return { mode: __PI.G.mode };

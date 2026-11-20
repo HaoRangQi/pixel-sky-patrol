@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0912">
+<title>巡逻：截击</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: #0b0912; overflow: hidden;
+    touch-action: none; overscroll-behavior: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #stage { position: fixed; inset: 0; background: #0b0912; }
+  canvas {
+    position: absolute; inset: 0; display: block;
+    width: 100%; height: 100%;
+    image-rendering: pixelated;
+  }
+  #gl { z-index: 1; }
+  #ui { z-index: 2; pointer-events: none; }
+  body.playing { cursor: none; }
+  body.title { cursor: default; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  #bootfallback {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    color: #d9c48a; font: 12px/1.6 monospace; text-align: center; z-index: 3;
+  }
+</style>
+</head>
+<body class="title">
+<div id="stage">
+  <canvas id="gl" width="604" height="340"></canvas>
+  <canvas id="ui" width="604" height="340"></canvas>
+</div>
+<div id="bootfallback">巡逻：截击<br>初始化中…</div>
+<noscript><div style="color:#d9c48a;font:14px monospace;padding:24px">本游戏需要 JavaScript 与 WebGL2。</div></noscript>
+<script>
+(() => {
+'use strict';
+const $stage = document.getElementById('stage');
+const $bootfallback = document.getElementById('bootfallback');
