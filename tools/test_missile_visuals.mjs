@@ -17,7 +17,7 @@ function runtime() {
   const subject = vm.runInNewContext(`${implementation}\n({ G, buildCamera, projectToScreen, computeThreats, drawMissilesAndGlows });`, {
     VW, VH, TAU: Math.PI * 2,
     AudioSys: { missileWarning() {} },
-    ctx: { save() {}, restore() {}, fillRect(...args) { draws.push(args); } },
+    ctx: { save() {}, restore() {}, fillRect(...args) { draws.push([...args, this.fillStyle]); } },
   });
   subject.G.player = { pos: { x: 0, y: 0, z: 0 }, yaw: 0, dead: false };
   subject.G.camera = subject.buildCamera({
@@ -75,6 +75,20 @@ test('visible missile still draws when only its 8m orientation reference is off-
   assert.equal(reference.visible, false);
   drawMissilesAndGlows();
   assert.ok(draws.length > 0, 'off-screen reference must not cull the visible missile sprite');
+});
+
+test('远处的弹体收为暖色小亮点，不会因投影方向翻转而挥动黑棍', () => {
+  function sprite(depth, vertical) {
+    const { G, drawMissilesAndGlows, draws } = runtime(); G.player = null;
+    G.missiles = [{ pos: { x: 0, y: 0, z: -depth }, vel: { x: 0, y: vertical, z: -430 }, owner: 'player' }];
+    drawMissilesAndGlows(); assert(draws.length > 0);
+    const span = axis => Math.max(...draws.map(r => r[axis] + r[axis+2])) - Math.min(...draws.map(r => r[axis]));
+    return { span: Math.max(span(0), span(1)), inks: draws.map(r => r[4]) };
+  }
+  const close = sprite(30, -80), middle = sprite(130, -80), far = sprite(480, -80);
+  assert(close.span >= middle.span * 1.4 && middle.span > far.span, '离架到远点需要可读的透视收缩');
+  assert(far.span >= 1 && far.span <= 4 && !far.inks.includes('#0b0912'), '远点不应是有黑描边的长火柴');
+  assert.equal(far.span, sprite(480, 80).span, '几乎端视时不应因投影方向反转产生跳动');
 });
 
 test('orientation references behind the camera remain rejected', () => {

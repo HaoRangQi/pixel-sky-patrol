@@ -50,7 +50,7 @@
   button:not(:disabled):hover { border-color: var(--accent); background: oklch(0.32 0.016 70); }
   button:not(:disabled):active { background: oklch(0.37 0.025 70); }
   button:disabled { cursor: wait; color: var(--muted); }
-  button:focus-visible, a:focus-visible {
+  button:focus-visible, a:focus-visible, input:focus-visible {
     outline: 3px solid var(--accent);
     outline-offset: 4px;
   }
@@ -142,9 +142,9 @@
   .sky-primary:disabled { color: #684d34; }
   .sky-primary:not(:disabled):hover { background: #ffe1aa; border-color: #fff0ce; }
   .sky-primary:not(:disabled):active { background: #e8b375; }
-  #sky-cruise { background: rgb(28 29 31 / 86%); border-color: rgb(255 231 195 / 57%); color: #fff0d5; }
-  #sky-cruise:disabled { color: #d4c3aa; }
-  #sky-cruise:not(:disabled):hover { background: #393530; }
+  #sky-cruise, #sky-inland { background: rgb(28 29 31 / 86%); border-color: rgb(255 231 195 / 57%); color: #fff0d5; }
+  #sky-cruise:disabled, #sky-inland:disabled { color: #d4c3aa; }
+  #sky-cruise:not(:disabled):hover, #sky-inland:not(:disabled):hover { background: #393530; }
   #sky-telemetry {
     position: absolute;
     left: 26px;
@@ -167,19 +167,28 @@
   .sky-reading-label { color: #d1c5b6; font-size: 9px; }
   .sky-reading b { font-weight: 700; font-size: 11px; }
   .sky-unit { font-size: 9px; }
-  #sky-camera {
+  #sky-views {
     position: absolute;
     right: 26px;
     bottom: 18px;
     z-index: var(--z-hud);
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  #sky-views button {
+    position: relative;
     min-height: 40px;
-    padding: 10px 12px 10px 32px;
+    white-space: nowrap;
+    padding: 10px 12px;
     border-color: rgb(255 232 195 / 28%);
     background: var(--hud);
     color: #ffecd0;
     font: 11px/1.4 var(--mono);
     cursor: pointer;
   }
+  #sky-views #sky-camera { padding-left: 32px; }
+  #sky-chase[aria-pressed="true"] { border-color: #efc28b; color: #ffdcaa; }
   #sky-camera::before {
     content: "";
     position: absolute;
@@ -211,6 +220,35 @@
   .sky-combat-reading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; white-space: nowrap; }
   .sky-combat-reading > span { color: #d1c5b6; font: 9px/1.5 var(--sans); }
   .sky-combat-reading b { font-weight: 600; }
+  #sky-systems {
+    position: absolute;
+    left: calc(46 * var(--hud-unit, 1px));
+    top: calc(33 * var(--hud-unit, 1px));
+    z-index: var(--z-hud);
+    width: min(280px, calc(100% - 70 * var(--hud-unit, 1px)));
+    color: #ffedcf;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 1px 1px 0 #604344, -1px -1px 0 rgb(64 43 45 / 70%);
+  }
+  #sky-systems > p { display: flex; align-items: center; gap: 9px; margin: 0 0 10px; color: #f4c78f; font: 10px/1.3 var(--mono); letter-spacing: 1.5px; }
+  #sky-systems > p::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, #f4c78f, transparent); }
+  #sky-systems dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 16px; margin: 0; }
+  .sky-system-reading { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 6px; min-width: 0; padding: 3px 0; }
+  .sky-system-reading dt { display: flex; align-items: center; gap: 5px; color: #ffe5bf; font: 12px/1.3 var(--sans); white-space: nowrap; }
+  .sky-system-reading svg { width: 13px; height: 13px; flex: none; fill: currentColor; filter: drop-shadow(1px 1px 0 #604344); }
+  .sky-system-reading dd { margin: 0; font: 600 14px/1.35 var(--mono); white-space: nowrap; text-align: right; }
+  .sky-system-resource { --system-color: #f7cd8e; border-left: 2px solid rgb(247 205 142 / 65%); padding: 0 0 8px 9px; margin-bottom: 3px; }
+  #sky-system-shield { --system-color: #b8ded2; border-left-color: rgb(184 222 210 / 65%); }
+  .sky-system-resource dt { color: var(--system-color); }
+  .sky-system-resource dd { color: var(--system-color); font-size: 20px; letter-spacing: -.5px; }
+  .sky-system-reading meter { grid-column: 1 / -1; display: block; width: 100%; height: 8px; margin-top: 6px; border: 0; appearance: none; background: transparent; filter: drop-shadow(1px 1px 0 #604344); }
+  .sky-system-reading meter::-webkit-meter-bar { height: 8px; border: 0; border-radius: 0; background: repeating-linear-gradient(90deg, rgb(255 236 204 / 24%) 0 8px, transparent 8px 11px); }
+  .sky-system-reading meter::-webkit-meter-optimum-value { border-radius: 0; background: repeating-linear-gradient(90deg, var(--system-color) 0 8px, transparent 8px 11px); }
+  .sky-system-reading meter::-moz-meter-bar { background: repeating-linear-gradient(90deg, var(--system-color) 0 8px, transparent 8px 11px); }
+  .sky-system-reading[data-state="active"] { color: #ffd18d; }
+  .sky-system-reading[data-state="active"] dt { color: #ffd18d; }
+  #sky-systems [data-state="warn"] { --system-color: #ffac8e; color: #ffac8e; }
   #bootfallback {
     position: absolute;
     top: 50%;
@@ -232,11 +270,15 @@
     z-index: var(--z-modal);
     display: grid;
     place-items: center;
+    align-items: safe center;
     overflow: auto;
     padding: 24px;
     background: rgb(18 20 23 / 73%);
     cursor: auto;
+    touch-action: pan-y;
   }
+  #sky-app[data-mode="paused"] #stage,
+  #sky-app[data-mode="failed"] #stage { touch-action: pan-y; }
   .sky-dialog {
     width: min(100%, 350px);
     border: 1px solid #796c5c;
@@ -251,6 +293,17 @@
   .sky-dialog-actions button { min-height: 44px; }
   .sky-dialog-secondary { display: flex; gap: 10px; }
   .sky-dialog-secondary button { flex: 1; }
+  .sky-speed-settings { min-width: 0; margin: 6px 0; padding: 15px 0 5px; border: 0; border-top: 1px solid var(--line); }
+  .sky-speed-settings legend { padding: 0 9px 0 0; color: var(--muted); font-size: 12px; }
+  .sky-speed-row { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 0 12px; }
+  .sky-speed-row + .sky-speed-row { margin-top: 8px; }
+  .sky-speed-row label { font-size: 13px; }
+  .sky-speed-row output { color: var(--accent); font: 600 17px/1.5 var(--mono); font-variant-numeric: tabular-nums; }
+  .sky-speed-row input { grid-column: 1 / -1; width: 100%; min-width: 0; height: 32px; margin: 0; accent-color: var(--accent); cursor: pointer; touch-action: pan-y; }
+  .sky-dialog .sky-speed-hint { margin: 5px 0 12px; color: var(--muted); font-size: 12px; }
+  #sky-speed-reset { width: 100%; min-height: 36px; font-size: 12px; }
+  .sky-mouse-option { display: flex; align-items: center; gap: 10px; min-height: 40px; margin: 8px 0; font-size: 13px; cursor: pointer; }
+  .sky-mouse-option input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
   .sky-result-readings { display: flex; gap: 35px; margin: 23px 0 26px; }
   .sky-result-readings div { display: grid; gap: 5px; }
   .sky-result-readings dt { color: #cbbfab; font-size: 11px; }
@@ -272,6 +325,7 @@
   .sky-direction svg { width: 15px; height: 17px; color: var(--ink); }
   .sky-key { min-height: 40px; border-color: transparent; padding: 5px 0; background: transparent; color: var(--muted); font-size: 11px; }
   .sky-key:disabled { color: var(--muted); }
+  .sky-key[data-sky-action="flare"]:disabled { cursor: default; }
   .sky-key:not(:disabled):hover { border-color: transparent; background: transparent; color: var(--ink); }
   .sky-key:not(:disabled):hover kbd { border-color: var(--accent); color: var(--accent); }
   .sky-key:not(:disabled):active { background: transparent; }
@@ -287,7 +341,7 @@
   #sky-ammo [data-empty="true"], #sky-ammo .empty { opacity: 0.23; }
   #sky-ammo-count { min-width: 40px; color: var(--ink); font: 10px/1 var(--mono); font-variant-numeric: tabular-nums; }
   .sky-original { position: absolute; right: 0; bottom: -10px; padding-left: 7px; background: var(--page); color: oklch(0.7 0.009 270); font-size: 9px; line-height: 1.4; text-decoration: none; }
-  #sky-status { position: absolute; left: 0; bottom: -10px; max-width: 72%; margin: 0; padding-right: 7px; background: var(--page); color: var(--muted); font-size: 9px; line-height: 1.4; }
+  #sky-status { position: absolute; left: 0; bottom: -10px; max-width: 72%; margin: 0; padding-right: 7px; background: var(--page); color: var(--muted); font-size: 9px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #sky-status:empty { display: none; }
   #sky-app[data-mode="play"] #sky-brand,
   #sky-app[data-mode="paused"] #sky-brand,
@@ -314,11 +368,33 @@
   #sky-app[data-mode="waveclear"] #sky-mode-label::before,
   #sky-app[data-mode="dying"] #sky-mode-label::before,
   #sky-app[data-mode="failed"] #sky-mode-label::before { width: 14px; height: 2px; }
-  #sky-app[data-view="cockpit"] #sky-brand,
+  #sky-app:not([data-mode="title"]):not([data-mode="loading"]) #sky-brand { visibility: hidden; pointer-events: none; }
   #sky-app[data-view="cockpit"] #sky-telemetry { visibility: hidden; pointer-events: none; }
-  #sky-app[data-view="cockpit"] #sky-camera { top: 18px; bottom: auto; }
+  #sky-app[data-view="cockpit"] #sky-views { top: 18px; bottom: auto; }
   #sky-app[data-view="cockpit"] #sky-combat { top: 72px; }
+  #sky-app[data-view="chase"] #sky-combat,
+  #sky-app[data-view="top"] #sky-combat { top: 12px; right: 12px; grid-template-columns: auto; row-gap: 2px; padding: 5px 7px; font-size: 11px; }
+  #sky-app[data-view="chase"] #sky-combat .sky-combat-reading:nth-child(n+3),
+  #sky-app[data-view="top"] #sky-combat .sky-combat-reading:nth-child(n+3) { display: none; }
   #sky-app:fullscreen { background: var(--page); }
+  #sky-app[data-hud="flight"] #sky-telemetry,
+  #sky-app[data-hud="flight"] #sky-combat,
+  #sky-app[data-hud="flight"] #sky-systems,
+  #sky-app[data-hud="flight"] .sky-ammo-cluster {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+    pointer-events: none;
+  }
+  #sky-app[data-hud="flight"] #sky-views { top: 57%; right: 2%; bottom: auto; }
   noscript { position: fixed; inset: 35% 20px auto; z-index: var(--z-modal); padding: 20px; background: #23262b; color: #ffe4b7; text-align: center; }
   @media (max-width: 1100px) {
     #sky-app { padding-right: max(24px, env(safe-area-inset-right)); padding-left: max(24px, env(safe-area-inset-left)); }
@@ -344,9 +420,10 @@
     #sky-start .sky-primary { gap: 7px; }
     #sky-telemetry { left: 13px; bottom: 12px; gap: 8px; padding: 6px 8px; }
     .sky-reading + .sky-reading { padding-left: 8px; }
-    #sky-camera { right: 13px; bottom: 12px; font-size: 10px; padding-right: 9px; }
+    #sky-views { right: 13px; bottom: 12px; }
+    #sky-views button { font-size: 10px; padding-right: 9px; }
     #sky-combat { top: 18px; right: 13px; padding: 7px 9px; column-gap: 12px; }
-    #sky-controls { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding-bottom: 13px; }
+    #sky-controls { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding-bottom: 20px; }
     .sky-control-keys { grid-column: 1 / -1; gap: 0 12px; justify-content: space-between; }
     .sky-direction { justify-content: flex-start; }
     .sky-key { font-size: 11px; gap: 6px; }
@@ -360,8 +437,20 @@
     #sky-app[data-mode="waveclear"] #sky-brand,
     #sky-app[data-mode="dying"] #sky-brand,
     #sky-app[data-mode="failed"] #sky-brand { top: 21px; left: 16px; width: 112px; }
-    #sky-app[data-view="cockpit"] #sky-camera { top: 15px; }
+    #sky-app[data-view="cockpit"] #sky-views { top: 15px; }
     #sky-app[data-view="cockpit"] #sky-combat { top: 66px; }
+    #sky-app[data-hud="flight"] #sky-views { top: 27%; right: 3%; }
+    #sky-systems { padding: 0; }
+    #sky-systems > p { display: none; }
+    #sky-systems dl { gap: 4px 12px; }
+    .sky-system-reading { column-gap: 4px; padding: 2px 0; }
+    .sky-system-reading dt { font-size: 11px; gap: 4px; }
+    .sky-system-reading svg { width: 10px; height: 10px; }
+    .sky-system-reading dd { font-size: 12px; line-height: 1.25; }
+    .sky-system-resource { padding: 0 0 5px 7px; margin-bottom: 0; border-left-width: 1px; }
+    .sky-system-resource dd { font-size: 17px; line-height: 1.15; }
+    .sky-system-reading meter { height: 6px; margin-top: 5px; }
+    .sky-system-reading meter::-webkit-meter-bar { height: 6px; }
   }
   @media (max-width: 440px) {
     #sky-app { padding-right: max(12px, env(safe-area-inset-right)); padding-left: max(12px, env(safe-area-inset-left)); }
@@ -379,7 +468,9 @@
     .sky-reading-label { font-size: 8px; }
     .sky-reading b { font-size: 10px; }
     .sky-unit { font-size: 8px; }
-    #sky-camera { right: 10px; bottom: 10px; padding-left: 26px; font-size: 9px; }
+    #sky-views { right: 10px; bottom: 10px; }
+    #sky-views button { font-size: 9px; }
+    #sky-views #sky-camera { padding-left: 26px; }
     #sky-camera::before { left: 9px; }
     #sky-camera::after { left: 12px; }
     .sky-control-keys { gap: 0 9px; }
@@ -390,6 +481,7 @@
     .sky-dialog h2 { font-size: 22px; }
     #sky-combat { grid-template-columns: auto; gap: 2px; font-size: 10px; }
   }
+  @media (max-width: 350px) { #sky-views { flex-direction: column; } }
   @media (max-height: 600px) and (min-width: 600px) {
     #sky-app { grid-template-rows: 36px minmax(0, 1fr) auto; gap: 8px; padding: max(6px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
     #sky-brand { top: 27px; left: 22px; width: 180px; }
@@ -407,7 +499,19 @@
     .sky-ammo-cluster { gap: 7px; }
     #sky-status { bottom: -7px; font-size: 8px; }
     #sky-telemetry { left: 15px; bottom: 10px; }
-    #sky-camera { right: 15px; bottom: 10px; }
+    #sky-views { right: 15px; bottom: 10px; }
+    #sky-app[data-hud="flight"] #sky-views { top: 68%; right: 100px; }
+    #sky-systems { width: min(264px, calc(100% - 70 * var(--hud-unit, 1px))); padding: 0; }
+    #sky-systems > p { display: none; }
+    #sky-systems dl { gap: 4px 12px; }
+    .sky-system-reading { column-gap: 4px; padding: 2px 0; }
+    .sky-system-reading dt { font-size: 11px; gap: 4px; }
+    .sky-system-reading svg { width: 10px; height: 10px; }
+    .sky-system-reading dd { font-size: 12px; line-height: 1.25; }
+    .sky-system-resource { padding: 0 0 5px 7px; margin-bottom: 0; border-left-width: 1px; }
+    .sky-system-resource dd { font-size: 17px; line-height: 1.15; }
+    .sky-system-reading meter { height: 6px; margin-top: 5px; }
+    .sky-system-reading meter::-webkit-meter-bar { height: 6px; }
     .sky-modal { padding: 12px; }
     .sky-dialog { width: 330px; padding: 17px 22px; }
     .sky-dialog h2 { font-size: 21px; }
@@ -417,7 +521,7 @@
     .sky-result-readings { margin: 13px 0 16px; }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
-  @media (forced-colors: active) { button, #stage, .sky-dialog, kbd { border-color: ButtonText; } button:focus-visible, a:focus-visible { outline-color: Highlight; } }
+  @media (forced-colors: active) { button, #stage, .sky-dialog, kbd { border-color: ButtonText; } button:focus-visible, a:focus-visible, input:focus-visible { outline-color: Highlight; } }
 </style>
 </head>
 <body class="title">
@@ -467,10 +571,11 @@
         </svg>
       </h1>
       <p class="sky-brand-cn">天际巡航</p>
-      <p class="sky-location"><svg viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M3 1h6v2h2v6H9v2H7v2H5v-2H3V9H1V3h2Z" fill="currentColor"/><path d="M4 4h4v4H4Z" fill="#8c6656"/></svg>秋林湖区 · 雪线空域</p>
+      <p class="sky-location"><svg viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M3 1h6v2h2v6H9v2H7v2H5v-2H3V9H1V3h2Z" fill="currentColor"/><path d="M4 4h4v4H4Z" fill="#8c6656"/></svg>秋日湖谷 · 湖岸巡航</p>
       <div id="sky-start" aria-label="选择飞行模式">
         <button id="sky-intercept" class="sky-primary" type="button" disabled>开始截击 <svg width="10" height="12" viewBox="0 0 10 12" fill="none" aria-hidden="true"><path d="M1 1h3v2h2v2h2v2H6v2H4v2H1V8h2V4H1Z" fill="currentColor"/></svg></button>
         <button id="sky-cruise" type="button" disabled>自由巡航</button>
+        <button id="sky-inland" type="button" disabled>秋林低飞</button>
       </div>
     </div>
 
@@ -478,7 +583,10 @@
       <span class="sky-reading"><span class="sky-reading-label">高度</span><b id="sky-alt">1,500</b><span class="sky-unit">FT</span></span>
       <span class="sky-reading"><span class="sky-reading-label">速度</span><b id="sky-speed">200</b><span class="sky-unit">KT</span></span>
     </div>
-    <button id="sky-camera" type="button" disabled aria-label="切换视角，当前追尾视角">追尾视角</button>
+    <div id="sky-views" role="group" aria-label="飞行视角">
+      <button id="sky-chase" type="button" disabled hidden aria-pressed="false">斜后追踪</button>
+      <button id="sky-camera" type="button" disabled aria-label="切换视角，当前追尾视角">追尾视角</button>
+    </div>
 
     <div id="sky-combat" hidden aria-label="作战状态">
       <div class="sky-combat-reading"><span>波次</span><b id="sky-wave">01</b></div>
@@ -486,6 +594,18 @@
       <div class="sky-combat-reading"><span>护盾</span><b><span id="sky-shield">100</span>%</b></div>
       <div class="sky-combat-reading"><span>燃油</span><b><span id="sky-fuel">100</span>%</b></div>
     </div>
+
+    <aside id="sky-systems" hidden aria-label="机载系统实时监控">
+      <p>机载系统 / SYS</p>
+      <dl>
+        <div id="sky-system-fuel" class="sky-system-reading sky-system-resource"><dt><svg viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M3 1h7v3h2v2h2v7h-2V7h-2v8H1V3h2Zm1 2v4h4V3Z" fill-rule="evenodd"/></svg>燃油</dt><dd id="sky-system-fuel-value">100%</dd><meter id="sky-system-fuel-meter" aria-label="燃油剩余" min="0" max="100" value="100"></meter></div>
+        <div id="sky-system-shield" class="sky-system-reading sky-system-resource"><dt><svg viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M2 2h4V1h4v1h4v7h-1v2h-2v2H9v2H7v-2H5v-2H3V9H2Zm2 2v5h1v2h2v1h2v-1h2V9h1V4Z" fill-rule="evenodd"/></svg>护盾</dt><dd id="sky-system-shield-value">100%</dd><meter id="sky-system-shield-meter" aria-label="护盾剩余" min="0" max="100" value="100"></meter></div>
+        <div id="sky-system-gun" class="sky-system-reading"><dt><svg viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M1 5h8V3h2v2h5v3h-6v2H7v3H4V9H1Z"/></svg>机炮</dt><dd id="sky-system-gun-value">待发</dd></div>
+        <div id="sky-system-missile" class="sky-system-reading"><dt><svg viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M11 1h4v4h-2v2h-2v2H9v3H6v3H1v-5h3V7h3V5h2V3h2Zm-8 10v2h2v-2Z" fill-rule="evenodd"/></svg>导弹</dt><dd id="sky-system-missile-value">4/4</dd></div>
+        <div id="sky-system-boost" class="sky-system-reading"><dt><svg viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M7 0h2v4h2v3h2v2h1v4h-2v2H4v-2H2V9h2V6h2v5h1Z"/></svg>加力</dt><dd id="sky-system-boost-value">待命</dd></div>
+        <div id="sky-system-flare" class="sky-system-reading"><dt><svg viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M1 4h3v8H1Zm5-3h3v11H6Zm5 3h3v8h-3ZM2 14h1v2H2Zm5-1h1v3H7Zm5 1h1v2h-1Z"/></svg>干扰</dt><dd id="sky-system-flare-value">3</dd></div>
+      </dl>
+    </aside>
 
     <div id="bootfallback" role="status">正在准备空域…</div>
 
@@ -495,6 +615,27 @@
         <p>云与远山，等你继续。<br>按 Esc 或选择下方按钮返回飞行。</p>
         <div class="sky-dialog-actions">
           <button id="sky-resume" class="sky-primary" type="button" disabled>继续飞行</button>
+          <fieldset class="sky-speed-settings">
+            <legend>飞行设置</legend>
+            <div class="sky-speed-row">
+              <label for="sky-cruise-speed">巡航速度</label>
+              <output id="sky-cruise-speed-value" for="sky-cruise-speed">218 节</output>
+              <input id="sky-cruise-speed" type="range" min="100" max="500" step="1" value="218" aria-describedby="sky-speed-hint" disabled>
+            </div>
+            <div class="sky-speed-row">
+              <label for="sky-burn-speed">加力上限</label>
+              <output id="sky-burn-speed-value" for="sky-burn-speed">500 节</output>
+              <input id="sky-burn-speed" type="range" min="268" max="500" step="1" value="500" aria-describedby="sky-speed-hint" disabled>
+            </div>
+            <p id="sky-speed-hint" class="sky-speed-hint">继续后平滑生效。Shift 加力；巡航 500 节时已达上限。</p>
+            <div class="sky-speed-row">
+              <label for="sky-enemy-speed">敌机速度</label>
+              <output id="sky-enemy-speed-value" for="sky-enemy-speed">65%</output>
+              <input id="sky-enemy-speed" type="range" min="30" max="120" step="5" value="65" disabled>
+            </div>
+            <label class="sky-mouse-option" for="sky-mouse-steering"><input id="sky-mouse-steering" type="checkbox" disabled>鼠标控制方向</label>
+            <button id="sky-speed-reset" type="button" disabled>恢复默认</button>
+          </fieldset>
           <div class="sky-dialog-secondary">
             <button id="sky-restart" type="button" disabled>重新出航</button>
             <button id="sky-home" type="button" disabled>返回待命</button>
@@ -506,7 +647,7 @@
     <div id="sky-result" class="sky-modal" hidden role="dialog" aria-modal="true" aria-labelledby="sky-result-title" tabindex="-1">
       <div class="sky-dialog">
         <h2 id="sky-result-title">本次航程结束</h2>
-        <p>雪线之外，还有下一片天空。</p>
+        <p>夕照之下，航线仍在延伸。</p>
         <dl class="sky-result-readings">
           <div><dt>本次得分</dt><dd id="sky-result-score">00000</dd></div>
           <div><dt>击落目标</dt><dd id="sky-result-kills">00</dd></div>
@@ -521,11 +662,12 @@
 
   <footer id="sky-controls" aria-label="飞行操作提示">
     <div class="sky-control-keys">
-      <span class="sky-direction"><svg viewBox="0 0 15 17" fill="none" aria-hidden="true"><path d="M3 1v12l3-3 3 5 2-1-3-5h5Z" fill="currentColor"/></svg><span>鼠标 / WASD 转向</span></span>
+      <span class="sky-direction" title="A / D 按住2秒，松开后双击同键：180°翻转；重复可翻回"><svg viewBox="0 0 15 17" fill="none" aria-hidden="true"><path d="M3 1v12l3-3 3 5 2-1-3-5h5Z" fill="currentColor"/></svg><span id="sky-direction-label">WASD / 方向键转向</span></span>
       <button class="sky-key" data-sky-action="roll" type="button" disabled aria-label="桶滚，Q"><kbd>Q</kbd><span>桶滚</span></button>
       <button class="sky-key" data-sky-action="boost" type="button" disabled aria-label="加速，按住Shift；单次激活短加速1.2秒"><kbd>Shift</kbd><span>加速</span></button>
       <button class="sky-key" data-sky-action="gun" type="button" disabled aria-label="机炮，鼠标左键或 F"><span class="sky-key-pair"><kbd>左键</kbd><span>/</span><kbd>F</kbd></span><span>机炮</span></button>
       <button class="sky-key" data-sky-action="missile" type="button" disabled aria-label="导弹，鼠标右键或 E"><span class="sky-key-pair"><kbd>右键</kbd><span>/</span><kbd>E</kbd></span><span>导弹</span></button>
+      <button class="sky-key" data-sky-action="flare" type="button" disabled aria-label="干扰弹，C 或 X"><kbd>C</kbd><span>干扰弹 3</span></button>
       <button class="sky-key" data-sky-action="view" type="button" disabled aria-label="切换视角，Space"><kbd>Space</kbd><span>视角</span></button>
       <button class="sky-key" data-sky-action="pause" type="button" disabled aria-label="暂停，Esc"><kbd>Esc</kbd><span>暂停</span></button>
     </div>
@@ -568,8 +710,8 @@ let UI_DPR = 1;
 
 const TAU = Math.PI * 2;
 const DEG = Math.PI / 180;
-const SUN_AZ = -0.62;               // light azimuth (radians, x/z); the sun itself stays hidden
-const SUN_EL = 0.30;                // soft alpine light, ~17 deg above the horizon
+const SUN_AZ = 0.12;                // 夕阳位于湖谷起始航线右侧
+const SUN_EL = 0.12;                // soft alpine light, ~17 deg above the horizon
 const SUN_DIR = (() => {
   const ce = Math.cos(SUN_EL);
   return { x: Math.sin(SUN_AZ) * ce, y: Math.sin(SUN_EL), z: -Math.cos(SUN_AZ) * ce };
@@ -1613,6 +1755,262 @@ function findFlatSpot(map, cx, cz, radiusMin, radiusMax, maxSlope = 0.32, hMin =
 }
 
 
+// ===== 25_lake_world.js =====
+// Independent SKY terrain adapter; arrays retain WorldMap's 8192m periodic grid.
+function skyApplyLakeValley(map, seed, onProgress) {
+  const N = map.N, cell = WORLD_SIZE / N;
+  const { heights, forest, tint, shadow } = map;
+  const report = (fraction, label) => { if (typeof onProgress === 'function') onProgress(fraction, label); };
+  const reportEvery = Math.max(1, Math.floor(N / 10));
+  seed |= 0;
+  const smooth = (a, b, x) => {
+    const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+  function hash(x, z, salt) {
+    let h = Math.imul(x, 374761393) ^ Math.imul(z, 668265263) ^ Math.imul(seed ^ salt, 2147483647);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+  function noise(u, v, period, salt) {
+    const x = u * period, z = v * period, ix = Math.floor(x), iz = Math.floor(z);
+    const tx = smooth(0, 1, x - ix), tz = smooth(0, 1, z - iz);
+    const x0 = (ix % period + period) % period, z0 = (iz % period + period) % period;
+    const x1 = (x0 + 1) % period, z1 = (z0 + 1) % period;
+    const a = hash(x0, z0, salt), b = hash(x1, z0, salt), c = hash(x0, z1, salt), d = hash(x1, z1, salt);
+    return (a + (b - a) * tx) * (1 - tz) + (c + (d - c) * tx) * tz;
+  }
+  // 两岸各有自己的控制点；周期样条在地图接缝处保留水路宽度和切线。
+  const banks = [
+    [2480, 3610], [2570, 3840], [2280, 4840], [2050, 4620],
+    [2600, 4100], [3080, 5060], [3250, 5970], [3650, 6320],
+    [3590, 5640], [3850, 4560], [3040, 4900], [2430, 5400],
+    [2720, 5760], [3340, 5450], [3320, 4730], [2840, 4420],
+  ];
+  function bankAt(v, side) {
+    const k = v * banks.length, j = Math.floor(k), t = k - j;
+    const at = off => banks[(j + off + banks.length) % banks.length][side];
+    const a = at(-1), b = at(0), c = at(1), d = at(2);
+    return b + 0.5 * t * ((c - a) + t * ((2*a - 5*b + 4*c - d) + t * (3*(b - c) + d - a)));
+  }
+  // 长轴错开的山脊与岛脊，不随距湖心的距离抬升。参数：中心、两轴半径、倾斜、相对高度。
+  const spines = [
+    [1270, 5110, 1390, 1980, -0.36, 825], [2070, 3980, 1030, 1400, -0.57, 540],
+    [1680, 4560, 860, 1200, 0.45, 670],
+    [1080, 2640, 950, 1330, 0.44, 670], [1270, 770, 1560, 1600, 0.50, 1070],
+    [440, 7350, 900, 1140, -0.45, 570], [7100, 5930, 1110, 1940, 0.55, 610],
+    [7050, 3190, 1450, 2010, -0.40, 930], [6570, 2710, 1260, 1150, 0.40, 740],
+    [5940, 1740, 1040, 1340, -0.55, 825],
+    [5200, 7900, 950, 1130, -0.65, 725], [7840, 600, 1000, 1150, 0.32, 640],
+    [3980, 6110, 655, 420, 0.55, 165], [4310, 5960, 400, 320, -0.38, 132],
+    [4730, 5460, 250, 365, -0.58, 125], [5080, 3580, 465, 675, 0.56, 199],
+    [4810, 3360, 310, 310, 0.35, 154], [3960, 2860, 300, 255, -0.75, 127],
+    [3220, 1280, 290, 460, -0.55, 178], [3520, 7320, 265, 230, 0.48, 132],
+  ];
+  const wrapDelta = d => d - WORLD_SIZE * Math.round(d / WORLD_SIZE);
+  // 东部内陆：林地沿斜出的丘肩探入草谷，支谷则切开更高的外脊。两端在地图接缝前接回旧地形。
+  const rows = [], inlandWood = new Uint8Array(N * N);
+  const shoulders = [[-1, 6710, -0.40, 275, 116], [1, 5630, 0.34, 325, 139],
+    [-1, 4440, 0.37, 310, 128], [1, 3230, -0.34, 265, 151]];
+  const ravines = [[-1, 6100, -0.42, 275], [-1, 3650, 0.34, 240]];
+  for (let z = 0; z < N; z++) {
+    const wz = z * cell, t = (7200 - wz) / 5600, a = t * 2 * Math.PI;
+    rows.push({ mix: smooth(1450, 2000, wz) * (1 - smooth(7300, 7750, wz)),
+      axis: 6898 + 100*t + 80*Math.sin(a*1.15+.55) + 35*Math.sin(a*2.7+2.1),
+      floor: 100 + 30*Math.sin(a*.9+.4) + 13*Math.sin(a*2.35+1.7),
+      ridges: [724 + 151*Math.sin(a*1.05+2.2) + 45*Math.sin(a*2.5+1.4), 763 + 171*Math.sin(a*1.3+1.1) + 54*Math.sin(a*2.9+.6)],
+      crests: [371 + 90*Math.sin(a*1.15+.2) + 72*Math.sin(a*2.6+2), 346 + 104*Math.sin(a*.8+1.9) + 77*Math.sin(a*2.2+.3)],
+      belt: a*3.1 });
+  }
+  const inlandWeight = (row, dx) => row.mix * (1 - smooth(690, dx < 0 ? 1150 : 1080, Math.abs(dx)));
+  let minH = Infinity, maxH = -Infinity;
+  for (let z = 0; z < N; z++) {
+    const v = z / N, wz = z * cell, left = bankAt(v, 0), right = bankAt(v, 1);
+    const braid = smooth(1450, 2250, wz) * (1 - smooth(2380, 3360, wz));
+    const crossSections = [];
+    for (const [cx, cz, rx, rz, tilt, top] of spines) {
+      const dz = wrapDelta(wz - cz), slice = 1 - (dz / rz) ** 2;
+      if (slice > 0) crossSections.push({ x: cx + tilt * dz, width: rx * Math.sqrt(slice), top: top * slice * slice });
+    }
+    for (let x = 0; x < N; x++) {
+      const u = x / N, i = z * N + x, wx = x * cell;
+      const broad = noise(u, v, 7, 11), detail = noise(u, v, 19, 23);
+      const warp = (broad - 0.5) * 340 + (detail - 0.5) * 105;
+      const shoreX = wx + warp;
+      let shore = Math.max(left - shoreX, shoreX - right);
+      // 西汊从主水道分出，绕过林地长洲，再从下一处河口汇入。
+      shore = Math.min(shore, Math.max(left + 170 - 1480 * braid - shoreX, shoreX - (left + 540 - 1080 * braid)));
+      const dry = smooth(30, 1150, shore);
+      let h = -55 + 52 * smooth(-620, -46, shore) + 30 * smooth(-64, 220, shore);
+      h += dry * (29 + 89 * broad + 25 * detail);
+      let relief = 0;
+      for (const section of crossSections) {
+        const dx = Math.abs(wrapDelta(wx + warp * 0.66 - section.x)) / section.width;
+        if (dx >= 1) continue;
+        const edge = 1 - dx * dx;
+        relief = Math.max(relief, section.top * edge * edge * (1 - dx * 0.35));
+      }
+      // 把沟壑刻进实体坡面；岛、谷口和平地不共享一圈统一的山肩。
+      const crease = Math.abs(noise(u, v, 14, 31) * 2 - 1);
+      h += relief * (0.79 + 0.24 * broad - 0.17 * crease + 0.09 * detail);
+      const row = rows[z], dx = wx - row.axis, weight = inlandWeight(row, dx);
+      if (weight > 0) {
+        const side = dx < 0 ? -1 : 1, k = dx < 0 ? 0 : 1, d = Math.abs(dx);
+        const bank = d + (broad-.5)*94, ridge = row.ridges[k];
+        // 宽脊有内外两个下坡方向；副脊与主脊斜交而非阶梯式同时封顶。
+        const crest = (bank-ridge)/(355+100*broad), shoulder = (bank-.68*ridge)/(225+55*detail);
+        let rise = smooth(115,560,bank) * ((k ? .97 : .76)*row.crests[k]*Math.exp(-crest*crest)*(.79+.38*broad-.10*crease+.10*detail)
+          + 74*Math.exp(-shoulder*shoulder) + 30*smooth(210,895,bank));
+        let wood = 0;
+        for (const [which,cz,tilt,width,peak] of shoulders) {
+          if (which !== side && d > 230) continue;
+          const lateral = dx*which, across = (wz-cz-tilt*(lateral-240) + (detail-.5)*100)/width;
+          const finger = Math.exp(-across*across) * smooth(-135,220,lateral) * (1-smooth(660,880,lateral));
+          rise += peak*finger;
+          wood = Math.max(wood, .84*smooth(.16,.61,finger));
+        }
+        let cut = 0;
+        for (const [which,cz,tilt,width] of ravines) if (side === which) {
+          cut = Math.max(cut, (1-smooth(105,width,Math.abs(wz-cz-tilt*(d-260)))) * smooth(210,330,d));
+        }
+        rise = rise*(1-.72*cut) + 55*cut*smooth(280,900,d);
+        if (side > 0) {
+          // 东北向侧谷从内部整片草场越过中脊，谷口边缘缓升至两座独立的山肩。
+          const offset = wz - (4820 - .47*(wx-6970));
+          const window = Math.exp(-((offset/350)**2)) * smooth(260,530,d);
+          rise = rise*(1-.89*window) + 53*window*smooth(340,1050,d);
+        }
+        const floor = row.floor + (broad-.5)*18 + (detail-.5)*14;
+        h += (floor + rise - h) * weight;
+        const belt = smooth(.24,.67,.5+.5*Math.sin(row.belt+(k?1.4:3.9)+(broad-.5)*2.3));
+        wood = Math.max(wood, smooth(5,32,rise)*(1-smooth(245,365,rise))*(.14+.67*belt));
+        inlandWood[i] = Math.round(255 * (.035 + wood*(.83+.16*detail)));
+      }
+      heights[i] = h;
+      minH = Math.min(minH, heights[i]); maxH = Math.max(maxH, heights[i]);
+      tint[i] = Math.round(85 + noise(u + 0.13, v + 0.29, 9, 88) * 160);
+    }
+    if ((z + 1) % reportEvery === 0) report((z + 1) / N * 0.22, '绘制湖湾、汊口与断续山脊');
+  }
+  map.minH = minH; map.maxH = maxH;
+
+  for (let z = 0; z < N; z++) {
+    for (let x = 0; x < N; x++) {
+      const i = z * N + x, h = heights[i];
+      forest[i] = 0;
+      if (h < 8 || h > 640) continue;
+      let dry = true;
+      // A one-texel dry margin also prevents bilinear forest interpolation into the lake.
+      for (let dz = -1; dz <= 1 && dry; dz++) for (let dx = -1; dx <= 1; dx++) {
+        if (heights[((z + dz + N) % N) * N + (x + dx + N) % N] < 8) { dry = false; break; }
+      }
+      if (!dry) continue;
+      const left = heights[z * N + (x + N - 1) % N], right = heights[z * N + (x + 1) % N];
+      const down = heights[((z + N - 1) % N) * N + x], up = heights[((z + 1) % N) * N + x];
+      const slope = Math.hypot(right - left, up - down) / (cell * 2);
+      const grove = smooth(0.34, 0.65, noise(x / N + 0.37, z / N + 0.71, 10, 55));
+      const patch = noise(x / N, z / N, 24, 66);
+      const copse = smooth(0.30, 0.65, 0.64 * patch + 0.36 * noise(x / N, z / N, 8, 103));
+      const cover = Math.min(0.84, 0.09 + copse * 0.59 + grove * (0.22 + 0.15 * patch));
+      const shores = 255 * cover * smooth(8, 29, h) * (1 - smooth(370, 640, h)) * (1 - smooth(0.36, 0.68, slope));
+      const weight = inlandWeight(rows[z], x * cell - rows[z].axis);
+      const woods = Math.min(218, inlandWood[i]) * (1-smooth(.36,.50,slope)) * (1-smooth(490,640,h));
+      forest[i] = Math.round(shores + (woods - shores)*weight);
+    }
+    if ((z + 1) % reportEvery === 0) report(0.22 + (z + 1) / N * 0.20, '播种湖岸疏林');
+  }
+
+  // Bake the engine's 92 x 26m sun rays against the finished, bilinear periodic field.
+  const rays = [];
+  for (let s = 1; s <= 92; s++) {
+    const t = s * 26, dx = SUN_DIR.x * t / cell, dz = SUN_DIR.z * t / cell;
+    const ix = Math.floor(dx), iz = Math.floor(dz);
+    rays.push({ ix, iz, tx: dx - ix, tz: dz - iz, rise: 3 + SUN_DIR.y * t });
+  }
+  for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
+    const i = z * N + x, h = heights[i];
+    shadow[i] = 0;
+    if (h < 0) continue;
+    for (const ray of rays) {
+      if (h + ray.rise > maxH) break;
+      const x0 = (x + ray.ix + N) % N, x1 = (x0 + 1) % N;
+      const z0 = (z + ray.iz + N) % N, z1 = (z0 + 1) % N;
+      const a = heights[z0 * N + x0], b = heights[z0 * N + x1];
+      const c = heights[z1 * N + x0], d = heights[z1 * N + x1];
+      const blocker = (a + (b - a) * ray.tx) * (1 - ray.tz) + (c + (d - c) * ray.tx) * ray.tz;
+      if (blocker > h + ray.rise) { shadow[i] = 255; break; }
+    }
+    if (x === N - 1 && (z + 1) % reportEvery === 0) report(0.42 + (z + 1) / N * 0.58, '重算湖谷地形阴影');
+  }
+  report(1, '湖谷地形与阴影就绪');
+  return map;
+}
+const SKY_LAKE_APPLY_SOURCE = skyApplyLakeValley.toString();
+
+async function skyApplyLakeValleyOffThread(map, seed, onProgress) {
+  if (typeof Worker !== 'function') return skyApplyLakeValley(map, seed, onProgress);
+  if (typeof Blob !== 'function' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+    throw new Error('Lake terrain worker requires Blob URLs');
+  }
+  const source = `const WORLD_SIZE = 8192; let SUN_DIR;\nconst skyApplyLakeValley = ${SKY_LAKE_APPLY_SOURCE};\n` +
+    `self.onmessage = ({ data }) => {\n  SUN_DIR = data.sun;\n  const map = { N: data.N, heights: new Float32Array(data.heights), forest: new Uint8Array(data.forest), tint: new Uint8Array(data.tint), shadow: new Uint8Array(data.shadow) };\n` +
+    `  try {\n    skyApplyLakeValley(map, data.seed, (fraction, label) => self.postMessage({ type: 'progress', fraction, label }));\n` +
+    `    self.postMessage({ type: 'done', minH: map.minH, maxH: map.maxH, heights: map.heights.buffer, forest: map.forest.buffer, tint: map.tint.buffer, shadow: map.shadow.buffer }, [map.heights.buffer, map.forest.buffer, map.tint.buffer, map.shadow.buffer]);\n` +
+    `  } catch (error) { self.postMessage({ type: 'error', message: error && error.message || String(error) }); }\n};`;
+  const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+  let worker;
+  try { worker = new Worker(url); }
+  catch (error) { URL.revokeObjectURL(url); throw error; }
+  const arrays = { heights: map.heights.slice(), forest: map.forest.slice(), tint: map.tint.slice(), shadow: map.shadow.slice() };
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (error, message) => {
+      if (settled) return;
+      settled = true;
+      worker.terminate(); URL.revokeObjectURL(url);
+      if (error) { reject(error); return; }
+      const result = Object.fromEntries(Object.keys(arrays).map(key => [key,
+        key === 'heights' ? new Float32Array(message[key]) : new Uint8Array(message[key])]));
+      for (const key of Object.keys(arrays)) {
+        if (result[key].length !== map[key].length) { reject(new Error(`Lake worker returned an invalid ${key} array`)); return; }
+      }
+      for (const key of Object.keys(arrays)) map[key].set(result[key]);
+      map.minH = message.minH; map.maxH = message.maxH;
+      resolve(map);
+    };
+    worker.onmessage = event => {
+      const message = event.data;
+      if (message.type === 'progress') {
+        try { onProgress?.(Math.max(0, Math.min(1, message.fraction)), message.label); }
+        catch (error) { finish(error); }
+      } else if (message.type === 'error') finish(new Error(message.message));
+      else if (message.type === 'done') finish(null, message);
+    };
+    worker.onerror = event => finish(event.error || new Error(event.message || 'Lake terrain worker failed'));
+    try {
+      worker.postMessage({ type: 'apply', N: map.N, seed, sun: { x: SUN_DIR.x, y: SUN_DIR.y, z: SUN_DIR.z },
+        heights: arrays.heights.buffer, forest: arrays.forest.buffer, tint: arrays.tint.buffer, shadow: arrays.shadow.buffer },
+      [arrays.heights.buffer, arrays.forest.buffer, arrays.tint.buffer, arrays.shadow.buffer]);
+    } catch (error) { finish(error); }
+  });
+}
+
+// Preserve the engine's worker-built map and replace its landscape only after it resolves.
+const skyGenerateBaseWorld = generateWorld;
+generateWorld = async function (seed, onProgress) {
+  let progress = 0;
+  const report = (fraction, label) => {
+    progress = Math.max(progress, Math.max(0, Math.min(1, Number(fraction) || 0)));
+    if (typeof onProgress === 'function') onProgress(progress, label);
+  };
+  const map = await skyGenerateBaseWorld(seed, typeof onProgress === 'function'
+    ? (fraction, label) => report((Number(fraction) || 0) * 0.7, label) : undefined);
+  await skyApplyLakeValleyOffThread(map, seed, typeof onProgress === 'function'
+    ? (fraction, label) => report(0.7 + Math.max(0, Math.min(1, fraction)) * 0.3, label) : undefined);
+  return map;
+};
+
+
 // ===== 30_shaders.js =====
 // ---------------------------------------------------------------------------
 // GLSL shaders — WebGL2 (GLSL ES 3.00). Low-res, dithered, no AA.
@@ -1645,7 +2043,7 @@ float cloudDensity(vec3 p) {
   return smoothstep(0.555, 0.705, n) * vert;
 }`;
 
-const SCENE_FS = `#version 300 es
+let SCENE_FS = `#version 300 es
 precision highp float;
 precision highp int;
 precision highp sampler3D;
@@ -1918,7 +2316,7 @@ void main() {
   fragColor = vec4(max(col, 0.0), 1.0);
 }`;
 
-const CLOUD_FS = `#version 300 es
+let CLOUD_FS = `#version 300 es
 precision highp float;
 precision highp int;
 precision highp sampler3D;
@@ -2016,7 +2414,7 @@ void main() {
   fragColor = c;
 }`;
 
-const MESH_VS = `#version 300 es
+let MESH_VS = `#version 300 es
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNor;
 layout(location = 2) in vec3 aCol;
@@ -2075,7 +2473,7 @@ void main() {
   vCol = mix(vCol, vec3(0.54, 0.61, 0.70), fog * 0.55);
 }`;
 
-const MESH_FS = `#version 300 es
+let MESH_FS = `#version 300 es
 precision highp float;
 uniform float uAlpha;
 in vec3 vCol;
@@ -2085,7 +2483,7 @@ void main() {
   fragColor = vec4(vCol, uAlpha);
 }`;
 
-const POST_FS = `#version 300 es
+let POST_FS = `#version 300 es
 precision highp float;
 out vec4 fragColor;
 uniform sampler2D uScene;
@@ -2125,6 +2523,409 @@ void main() {
   c = mix(c, vec3(0.030, 0.040, 0.060), uFade);
   fragColor = vec4(c, 1.0);
 }`;
+
+
+// ===== 35_autumn_pixels.js =====
+// 独立入口的夕照像素材质；精确锚点令共享 shader 漂移时明确失败。
+{
+  const __skyReplaceExactlyOnce = (source, before, after, shader) => {
+    const first = source.indexOf(before);
+    if (first < 0 || first !== source.lastIndexOf(before)) {
+      throw new Error(`[autumn pixels] ${shader}: expected exactly one source anchor; shader changed`);
+    }
+    return source.slice(0, first) + after + source.slice(first + before.length);
+  };
+  let __skyScene = SCENE_FS;
+  let __skyCloud = CLOUD_FS;
+  let __skyPost = POST_FS;
+  let __skyMesh = __skyReplaceExactlyOnce(MESH_VS, `out float vEmi;`, `out float vEmi;
+out vec4 vLeaf;`, 'MESH_VS');
+  __skyMesh = __skyReplaceExactlyOnce(__skyMesh, `  vec3 base;`, `  vec3 base;
+  vLeaf = vec4(0.0);`, 'MESH_VS');
+  __skyMesh = __skyReplaceExactlyOnce(__skyMesh,
+    `    base = aCol * uTint * aVariation.w * treeTone * canopyOcclusion;`,
+    `    vec3 leafColor = aCol;
+    if (aEmi < -0.5) {
+      float nearLeaves = 1.0 - smoothstep(270.0, 920.0, distance(wp.xyz, uCamPos));
+      vLeaf = vec4(aPos, aEmi < -1.5 ? -nearLeaves : nearLeaves);
+    }
+    if (aEmi < -0.5 && aEmi > -1.5) {
+      // 只读实例的周期坐标；斜穿山坡的一片枫林从赤红过渡到铜橙和浅金。
+      vec2 cell = floor(mod(aInstance.xz, vec2(8192.0)) / 20.48);
+      float grove = 0.50 + 0.24 * sin(dot(cell, vec2(3.0, 2.0)) * 0.0314159265)
+                         + 0.18 * sin(dot(cell, vec2(-2.0, 7.0)) * 0.0314159265)
+                         + 0.10 * sin(dot(cell, vec2(8.0, -3.0)) * 0.0314159265);
+      grove += (aVariation.w - 0.96) * 1.20 + aVariation.y * 0.04;
+      vec3 pigment = mix(vec3(0.91, 0.37, 0.63), vec3(1.02, 0.82, 0.76), smoothstep(0.22, 0.52, grove));
+      pigment = mix(pigment, vec3(1.01, 1.18, 0.98), smoothstep(0.50, 0.76, grove));
+      leafColor *= pigment;
+    }
+    base = leafColor * uTint * aVariation.w * treeTone * canopyOcclusion;`, 'MESH_VS');
+  let __skyMeshFrag = __skyReplaceExactlyOnce(MESH_FS, `in float vEmi;`, `in float vEmi;
+in vec4 vLeaf;
+float leafHash(vec2 i) {
+  vec3 p = fract(vec3(i.xyx) * vec3(0.1031, 0.1137, 0.0973));
+  p += dot(p, p.yzx + 33.33);
+  return fract((p.x + p.y) * p.z);
+}
+float leafLobes(vec2 q) {
+  vec2 i = floor(q), t = fract(q);
+  t = t * t * (3.0 - 2.0 * t);
+  return mix(mix(leafHash(i), leafHash(i + vec2(1,0)), t.x),
+             mix(leafHash(i + vec2(0,1)), leafHash(i + vec2(1)), t.x), t.y);
+}`, 'MESH_FS');
+  __skyMeshFrag = __skyReplaceExactlyOnce(__skyMeshFrag, `  fragColor = vec4(vCol, uAlpha);`,
+    `  vec3 color = vCol;
+  if (abs(vLeaf.w) > 0.01) {
+    // 在树自己的斜轴上画叶簇；色阶只有在团边才变化，不在天空或树皮上播噪点。
+    vec2 uv = vec2(vLeaf.x + 0.42 * vLeaf.z + 0.28 * vLeaf.y, vLeaf.z - 0.42 * vLeaf.x + 0.68 * vLeaf.y);
+    float footprint = max(fwidth(uv.x), fwidth(uv.y));
+    float coverage = 1.0 - smoothstep(0.75, 2.8, footprint);
+    vec2 dab = (floor(uv * 2.0) + .5) * .5;
+    float broad = leafLobes(uv * .26 + vec2(11.7, 4.1));
+    float blade = leafLobes(dab * .90 + broad * 1.8);
+    float clump = broad + (blade - .5) * .90 * (1.0 - smoothstep(.42, 1.35, footprint));
+    float notch = 1.0 - smoothstep(0.29, 0.40, clump);
+    float tips = smoothstep(0.59, 0.69, clump + 0.09 * smoothstep(10.0, 23.0, vLeaf.y));
+    vec3 ink = mix(vCol * .92, vCol * vec3(.59,.57,.74) + vec3(.018,.009,.022), notch);
+    vec3 light = vLeaf.w > 0.0 ? vec3(.080,.057,.028) : vec3(.043,.070,.041);
+    ink = mix(ink, vCol * vec3(1.07,1.07,1.01) + light, tips);
+    ink *= .88 + .22 * smoothstep(8.0, 23.0, vLeaf.y);
+    color = mix(vCol, ink, abs(vLeaf.w) * coverage);
+  }
+  fragColor = vec4(color, uAlpha);`, 'MESH_FS');
+
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `vec3 alpineHaze(vec3 rd) {
+  vec2 az = normalize(rd.xz + vec2(1e-4, 0.0));
+  vec2 sa = normalize(uSunDir.xz);
+  float face = pow(dot(az, sa) * 0.5 + 0.5, 2.0);
+  vec3 away = vec3(0.44, 0.52, 0.60);
+  vec3 lit  = vec3(0.65, 0.72, 0.77);
+  vec3 c = mix(away, lit, face * 0.7);
+  c = mix(c, vec3(0.56, 0.64, 0.72), smoothstep(0.0, 0.30, rd.y) * 0.24);
+  return c;
+}`,
+    `// 天顶光没有水平分量，避免 normalize(vec2(0)) 污染整片天空。
+vec2 autumnSunAz() {
+  vec2 horizontal = uSunDir.xz;
+  return length(horizontal) > 1e-4 ? normalize(horizontal) : vec2(0.0, -1.0);
+}
+
+vec3 alpineHaze(vec3 rd) {
+  vec2 az = normalize(rd.xz + vec2(1e-4, 0.0));
+  float face = pow(dot(az, autumnSunAz()) * 0.5 + 0.5, 2.0);
+  vec3 c = mix(vec3(0.49, 0.42, 0.53), vec3(0.82, 0.62, 0.59), face * 0.76);
+  return mix(c, vec3(0.73, 0.58, 0.66), smoothstep(0.0, 0.28, rd.y) * 0.22);
+}`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `vec3 skyColor(vec3 rd, out float disc) {
+  float el = rd.y;
+  float sunDot = max(dot(rd, uSunDir), 0.0);
+  vec2 az = normalize(rd.xz + vec2(1e-4, 0.0));
+  vec2 sa = normalize(uSunDir.xz);`,
+    `// 远云只占天空深度；用世界方位沿同一云体取样，近处可穿过的积云仍由体积通道绘制。
+vec3 autumnCloudBank(vec3 sky, vec2 az, float elevation, float level, float reach, float thickness, float face) {
+  vec2 q = uCamPos.xz / uWorldSize + az * reach + uWind.xz;
+  float mass = texture(uCloud, vec3(q.x, level, q.y)).r;
+  float billow = texture(uCloud, vec3(q.x * 2.0 + 0.31, level + 0.19, q.y * 2.0 - 0.17)).r;
+  float body = smoothstep(0.36, 0.61, mass * 0.75 + billow * 0.25);
+  float base = level - uCamPos.y / 22000.0 + (mass - 0.5) * 0.030 + (billow - 0.5) * 0.009;
+  float depth = 0.006 + thickness * body * (0.61 + 0.70 * billow);
+  float h = (elevation - base) / depth;
+  float cover = smoothstep(-0.05, 0.08, h) * (1.0 - smoothstep(0.88, 1.03, h)) * smoothstep(0.07, 0.40, body);
+  vec3 underside = mix(vec3(0.48, 0.41, 0.54), vec3(0.61, 0.46, 0.59), face);
+  vec3 middle = mix(underside, vec3(0.90, 0.69, 0.70), 0.65);
+  vec3 crest = mix(vec3(0.91, 0.76, 0.73), vec3(1.0, 0.85, 0.72), face);
+  vec3 cloud = mix(underside, middle, smoothstep(0.14, 0.53, h + (billow - 0.5) * 0.20));
+  cloud = mix(cloud, crest, smoothstep(0.50, 0.77, h + (billow - 0.5) * 0.35));
+  return mix(sky, cloud, cover * 0.92);
+}
+
+vec3 skyColor(vec3 rd, out float disc) {
+  float el = rd.y;
+  float sunDot = max(dot(rd, normalize(uSunDir)), 0.0);
+  vec2 az = normalize(rd.xz + vec2(1e-4, 0.0));
+  vec2 sa = autumnSunAz();`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  // cold alpine sky: pale blue-grey at the horizon, deep slate overhead.
+  // No sun disc and no warm band anywhere.
+  vec3 horizon = mix(vec3(0.50, 0.58, 0.66), vec3(0.68, 0.74, 0.79), face);
+  vec3 midcol  = mix(vec3(0.32, 0.41, 0.52), vec3(0.44, 0.53, 0.62), pow(dot(az, sa) * 0.5 + 0.5, 1.6));
+  vec3 zenith  = vec3(0.13, 0.19, 0.30);
+  float up = max(el, 0.0);
+  vec3 c = mix(horizon, midcol, smoothstep(0.0, 0.19, up));
+  c = mix(c, zenith, smoothstep(0.13, 0.72, up));
+
+  // pale grey cloud shelf layered over the horizon
+  float band = smoothstep(0.02, 0.10, up) * (1.0 - smoothstep(0.20, 0.38, up));
+  float streak = texture(uCloud, vec3(az.x * 0.11 + uWind.x * 3.0, 0.86 + up * 0.04, az.y * 0.11 + uWind.z * 3.0)).r;
+  float hi = smoothstep(0.54, 0.74, streak + 0.10) * band;
+  c = mix(c, vec3(0.72, 0.77, 0.82), hi * 0.50);
+
+  // cold low haze, brightest toward the light azimuth only very subtly
+  float haze = pow(1.0 - clamp(up, 0.0, 1.0), 9.0) * pow(dot(az, sa) * 0.5 + 0.5, 2.0);
+  c = mix(c, vec3(0.66, 0.72, 0.77), haze * 0.42);
+  c += vec3(0.07, 0.08, 0.09) * pow(sunDot, 6.0);
+
+  // thin high streaks, neutral grey-blue
+  float streak2 = texture(uCloud, vec3(az.x * 0.07 - 0.23, 0.93, az.y * 0.07 + 0.41)).r;
+  float st = smoothstep(0.60, 0.78, streak2) * smoothstep(0.18, 0.35, up) * (1.0 - smoothstep(0.55, 0.75, up));
+  c = mix(c, vec3(0.67, 0.72, 0.78), st * 0.30);
+
+  disc = 0.0;
+  return c;`,
+    `  // 桃色地平线和薰衣草高空；颜色取自同一套柔和夕照色板。
+  vec3 horizon = mix(vec3(0.79, 0.59, 0.65), vec3(0.95, 0.72, 0.61), face);
+  vec3 midcol = mix(vec3(0.64, 0.50, 0.64), vec3(0.82, 0.62, 0.67), face);
+  vec3 zenith = vec3(0.53, 0.45, 0.63);
+  float up = max(el, 0.0);
+  vec3 c = mix(horizon, midcol, smoothstep(0.0, 0.34, up));
+  c = mix(c, zenith, smoothstep(0.24, 0.90, up));
+  float haze = pow(1.0 - clamp(up, 0.0, 1.0), 9.0) * face;
+  c = mix(c, vec3(0.98, 0.75, 0.65), haze * 0.28);
+  c += vec3(0.055, 0.030, 0.008) * pow(sunDot, 12.0);
+  if (el > -0.09 && el < 0.44) {
+    c = autumnCloudBank(c, az, el, 0.151, 0.49, 0.073, face);
+    c = autumnCloudBank(c, az, el, 0.282, 0.39, 0.055, face);
+  }
+  c = floor(c * 31.0 + 0.5) / 31.0;
+
+  // 大奶油色日轮跟随真实光向量，不固定在相机或屏幕上。
+  float discAngle = acos(clamp(dot(rd, normalize(uSunDir)), -1.0, 1.0));
+  float discCore = 1.0 - smoothstep(0.063, 0.084, discAngle);
+  float discHalo = 1.0 - smoothstep(0.075, 0.125, discAngle);
+  c = mix(c, vec3(1.0, 0.86, 0.67), discHalo * 0.24);
+  c = mix(c, vec3(1.0, 0.92, 0.73), discCore);
+  disc = discCore;
+  return c;`, 'SCENE_FS');
+
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  float tone = 0.62 + 0.38 * smoothstep(0.0, 0.92, ndl);`,
+    `  float tone = 0.82 + 0.28 * smoothstep(0.0, 0.92, ndl);`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  float snowLine = 560.0 + (tintv - 0.5) * 90.0;`,
+    `  float snowLine = 9000.0 + (tintv - 0.5) * 90.0;`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  vec3 meadow = mix(vec3(0.22, 0.29, 0.17), vec3(0.30, 0.36, 0.22), meadowVar);
+  meadow = mix(meadow, vec3(0.37, 0.35, 0.23), clearings * 0.16);`,
+    `  // 开阔地由成片草场、晒黄的坡肩与贴坡越过林缘的红褐蕨带组成。
+  vec2 fold = vec2(p.x + p.z, p.x - p.z) + vec2(h * 1.6, -h * 0.8);
+  float field = terrainNoise(fold + vec2(174.0, 293.0) * broad, 34.0);
+  float pasture = smoothstep(0.40, 0.60, meadowVar + (field - 0.5) * 0.20);
+  vec3 meadow = mix(vec3(0.35, 0.46, 0.255), vec3(0.80, 0.68, 0.37), pasture);
+  float bracken = smoothstep(0.54, 0.69, field + (middle - 0.5) * 0.12);
+  meadow = mix(meadow, mix(vec3(0.52, 0.32, 0.34), vec3(0.67, 0.44, 0.32), pasture * 0.46), bracken * 0.90);
+  meadow = mix(meadow, vec3(0.78, 0.70, 0.42), clearings * (1.0 - bracken) * 0.22);`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  vec3 canopy = mix(vec3(0.075, 0.145, 0.085), vec3(0.145, 0.235, 0.125), canopyVar);
+  float autumnGroves = smoothstep(0.72, 0.92, broad) * (0.12 + 0.10 * smoothstep(180.0, snowLine - 30.0, hj));
+  canopy = mix(canopy, vec3(0.36, 0.28, 0.12), autumnGroves);`,
+    `  vec3 canopy = mix(vec3(0.21, 0.32, 0.24), vec3(0.42, 0.49, 0.28), canopyVar);
+  float autumnGroves = smoothstep(0.38, 0.73, broad * 0.70 + middle * 0.30 + (tintv - 0.5) * 0.32);
+  canopy = mix(canopy, mix(vec3(0.56, 0.29, 0.23), vec3(0.81, 0.53, 0.24), canopyVar), autumnGroves * 0.88);`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  vec3 rock = mix(vec3(0.25, 0.275, 0.28), vec3(0.39, 0.40, 0.385), rockVar);
+  rock = mix(rock, vec3(0.42, 0.38, 0.30), smoothstep(0.68, 0.90, broad) * 0.12);
+  vec3 sand = mix(vec3(0.40, 0.39, 0.32), vec3(0.52, 0.48, 0.37), clamp(broad + groundGrain, 0.0, 1.0));`,
+    `  vec3 rock = mix(vec3(0.39, 0.33, 0.42), vec3(0.59, 0.44, 0.43), rockVar);
+  rock = mix(rock, vec3(0.66, 0.48, 0.35), smoothstep(0.68, 0.90, broad) * 0.16);
+  vec3 sand = mix(vec3(0.57, 0.48, 0.34), vec3(0.74, 0.63, 0.42), clamp(broad + groundGrain, 0.0, 1.0));`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  vec3 sunTint = vec3(1.04, 1.04, 1.02);
+  vec3 skyFill = vec3(0.90, 0.94, 0.98);`,
+    `  vec3 sunTint = vec3(1.16, 1.05, 0.84);
+  vec3 skyFill = vec3(0.99, 0.98, 1.05);`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  vec3 shadowTint = vec3(0.69, 0.73, 0.77);
+  col = mix(col, col * shadowTint + vec3(0.004, 0.006, 0.008), sh * 0.80);`,
+    `  vec3 shadowTint = vec3(0.82, 0.79, 0.93);
+  col = mix(col, col * shadowTint + vec3(0.008, 0.010, 0.018), sh * 0.62);`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  col *= treeVisibility;`,
+    `  float crownShade = smoothstep(0.03, 0.38, 1.0 - treeVisibility);
+  col = mix(col, col * vec3(0.52, 0.43, 0.66) + vec3(0.094, 0.058, 0.145), crownShade * 0.92);`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  col = mix(col, col * vec3(0.60, 0.66, 0.80) + vec3(0.006, 0.010, 0.018), csh * 0.48);`,
+    `  col = mix(col, col * vec3(0.78, 0.72, 0.88) + vec3(0.012, 0.010, 0.022), csh * 0.34);`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  float middle = mix(0.5, terrainNoise(p.xz, 256.0), middleFade);
+  float fine = mix(0.5, terrainNoise(p.xz, 1024.0), fineFade);
+  float groundGrain = (middle - 0.5) * 0.10 + (fine - 0.5) * 0.035;`,
+    `  // 整数斜轴维持周期，坡高让色带顺着山形走，不在世界网格边缘整块换色。
+  vec2 brush = vec2(p.x - p.z, p.x + 2.0 * p.z) + vec2(h * 0.6, -h * 1.7);
+  float middle = mix(0.5, terrainNoise(brush, 128.0), middleFade);
+  float fine = mix(0.5, terrainNoise(brush + broad * 27.0, 512.0), fineFade);
+  float groundGrain = (middle - 0.5) * 0.24 + (fine - 0.5) * 0.065;`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  float rockMask = max(smoothstep(0.24, 0.50, slope + (broad - 0.5) * 0.06), smoothstep(snowLine + 80.0, snowLine + 260.0, hj));`,
+    `  float rockMask = max(smoothstep(0.12, 0.38, slope + (middle - 0.5) * 0.065),
+    smoothstep(480.0, 930.0, hj + (broad - 0.5) * 160.0) * 0.82);`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  col = mix(col, snowCol, snowMask);
+
+  col *= tone;`,
+    `  col = mix(col, snowCol, snowMask);
+
+  float grass = (1.0 - rockMask) * (1.0 - forestMask) * (1.0 - sandMask);
+  float tuft = smoothstep(0.53, 0.78, middle * 0.66 + fine * 0.34);
+  col = mix(col, vec3(0.77, 0.65, 0.36), grass * tuft * (0.25 + 0.30 * broad));
+  // 草地与覆荫林底使用不同的笔形和颜料，小于屏幕足迹时只留原有大色块。
+  float cover = (1.0 - smoothstep(.7, 4.0, footprint)) * (1.0 - rockMask) * (1.0 - sandMask);
+  if (cover > .001) {
+    vec2 cell = (floor((mod(p.xz, vec2(uWorldSize)) + vec2(7.35, 19.28)) * 2.0) + .5) * .5;
+    vec2 slant = vec2(cell.x + cell.y, cell.y - cell.x);
+    float bed = terrainNoise(cell, 768.0);
+    float hay = terrainNoise(vec2(slant.x, slant.y * 3.0) + 6.0 * bed, 1536.0);
+    float drift = terrainNoise(vec2(slant.y, 2.0 * cell.x + cell.y) - 9.0 * bed, 2048.0);
+    float woods = max(forestMask, smoothstep(.06, .38, 1.0 - aux.a));
+    float straw = smoothstep(.44, .69, hay + .30 * (bed - .5));
+    float litter = smoothstep(.43, .70, drift + .38 * (1.0 - bed) - .13);
+    vec3 loam = mix(col * vec3(.78,.85,.76), vec3(.27,.22,.28), woods * .48);
+    vec3 thatch = mix(loam, vec3(.73,.64,.40), straw * (.60 - .32 * woods));
+    vec3 ochre = mix(vec3(.51,.34,.26), vec3(.74,.45,.27), bed);
+    col = mix(col, mix(thatch, ochre, litter * (.37 + .40 * woods)), cover);
+  }
+  // 林线之上的露岩按坡高断续成带，远到分不清笔触时保留山脊剪影。
+  vec2 ledgeUV = vec2(p.x + p.z + h * 1.6, p.x - p.z - h * 2.3);
+  float strata = terrainNoise(ledgeUV, 196.0);
+  float exposed = max(rockMask * 0.88, smoothstep(175.0, 530.0, hj) * 0.68) * (1.0 - forestMask * 0.88);
+  float strokes = smoothstep(0.50, 0.82, strata + (broad - 0.5) * 0.42) * (1.0 - smoothstep(9.0, 48.0, footprint));
+  vec3 ledge = mix(vec3(0.65, 0.49, 0.48), vec3(0.84, 0.72, 0.54), broad);
+  col = mix(col, ledge, exposed * strokes * 0.81);
+  float leeside = smoothstep(0.04, 0.43, -dot(n, uSunDir));
+  col = mix(col, vec3(0.41, 0.31, 0.45), leeside * (0.19 + rockMask * 0.23));
+  col *= tone;`, 'SCENE_FS');
+
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `vec3 waterShade(vec3 p, vec3 rd, float depth, float dith, out float glit) {
+  glit = 0.0;
+  vec2 q = p.xz;
+  float t = uTime;
+  float d = max(depth, 0.0);
+  vec3 shallow = vec3(0.15, 0.31, 0.34);
+  vec3 middle = vec3(0.065, 0.17, 0.24);
+  vec3 deep = vec3(0.022, 0.060, 0.125);
+  vec3 c = mix(shallow, middle, smoothstep(0.2, 3.2, d));
+  c = mix(c, deep, smoothstep(4.0, 18.0, d));
+
+  // Broad world-space wave bands add gentle water structure without pixel glitter.
+  float waveA = 0.5 + 0.5 * sin(q.x * 0.014 + q.y * 0.009 + t * 0.42);
+  float waveB = 0.5 + 0.5 * sin(q.x * 0.007 - q.y * 0.012 - t * 0.28);
+  float wave = waveA * 0.58 + waveB * 0.42;
+  c += vec3(0.010, 0.019, 0.026) * (wave - 0.5);
+
+  float shore = 1.0 - smoothstep(0.2, 2.4, d);
+  float foamBand = shore * smoothstep(0.76, 0.94, wave);
+  c = mix(c, vec3(0.46, 0.58, 0.63), foamBand * 0.10);
+  return c;
+}`,
+    `vec3 waterShade(vec3 p, vec3 rd, float depth, float footprint, out float glit) {
+  glit = 0.0;
+  float d = max(depth, 0.0);
+  vec3 shallow = vec3(0.28, 0.61, 0.61);
+  vec3 middle = vec3(0.22, 0.43, 0.53);
+  vec3 deep = vec3(0.16, 0.32, 0.45);
+  vec3 c = mix(shallow, middle, smoothstep(0.2, 4.5, d));
+  c = mix(c, deep, smoothstep(6.0, 24.0, d));
+  float broadWater = terrainNoise(p.xz, 32.0);
+  c = mix(c, vec3(0.44, 0.38, 0.50), smoothstep(0.43, 0.82, broadWater) * 0.44);
+
+  // 两个方向的水纹被长波扭弯；远处只保留宽波色带，不显示亚像素高光。
+  vec2 waveUV = vec2(p.x + p.z, 3.0 * p.z - p.x) + vec2(35.0, 59.0) * broadWater;
+  float swell = terrainNoise(waveUV, 64.0);
+  float crests = terrainNoise(waveUV + swell * 19.0, 256.0);
+  float fineWater = 1.0 - smoothstep(4.0, 20.0, footprint);
+  float ripple = smoothstep(0.56, 0.85, crests) * fineWater;
+  c += (swell - 0.5) * vec3(0.028, 0.048, 0.057);
+  c = mix(c, vec3(0.37, 0.58, 0.62), ripple * 0.34);
+
+  // 真实入射光关于水平面反射，再与朝向相机的水面光线比较。
+  vec3 reflected = reflect(-normalize(uSunDir), vec3(0.0, 1.0, 0.0));
+  vec3 reflectionRay = -normalize(rd);
+  vec2 viewAz = reflectionRay.xz / max(length(reflectionRay.xz), 1e-4);
+  vec2 reflectionAz = reflected.xz / max(length(reflected.xz), 1e-4);
+  float azimuthPath = smoothstep(0.976, 0.9995, dot(viewAz, reflectionAz));
+  float elevationPath = 1.0 - smoothstep(0.025, 0.18, abs(reflectionRay.y - reflected.y));
+  // 天顶附近方位角不稳定，平滑改用反射线的夹角。
+  float overheadPath = smoothstep(0.976, 0.9995, dot(reflectionRay, reflected));
+  float sunPath = mix(overheadPath, azimuthPath * elevationPath, smoothstep(0.0, 0.20, length(reflected.xz)))
+    * smoothstep(-0.03, 0.05, reflected.y);
+  // 宽金色底光与稀疏短波纹并存，不把所有波纹染成发白的高光。
+  c = mix(c, vec3(0.65, 0.47, 0.40), sunPath * 0.36);
+  float farCrest = smoothstep(0.54, 0.83, swell) * 0.44 * (1.0 - smoothstep(50.0, 130.0, footprint));
+  float warmedRipple = sunPath * (ripple * smoothstep(0.36, 0.66, swell) + (1.0 - fineWater) * farCrest);
+  c = mix(c, vec3(1.0, 0.82, 0.46), warmedRipple * 0.84);
+
+  float paleShore = 1.0 - smoothstep(0.8, 5.0, d);
+  c = mix(c, vec3(0.66, 0.78, 0.70), paleShore * 0.38);
+  return c;
+}`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `waterShade(vec3(hp.x, 0.0, hp.z), rd, -hitH, dith, glit)`,
+    `waterShade(vec3(hp.x, 0.0, hp.z), rd, -hitH, footprint, glit)`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `col = mix(col, hz, fog * 0.66);`,
+    `col = mix(col, hz, fog * 0.86);`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `vec3 sunDiscColor() { return vec3(1.0, 0.97, 0.84); }`,
+    `vec3 sunDiscColor() { return vec3(1.0, 0.92, 0.73); }`, 'SCENE_FS');
+  __skyScene = __skyReplaceExactlyOnce(__skyScene,
+    `  // alpine grade: cool shadows, neutral highlights, no warm cast
+  float lum = dot(col, vec3(0.299, 0.587, 0.114));
+  col = mix(col, col * vec3(0.93, 0.97, 1.07), (1.0 - clamp(lum, 0.0, 1.0)) * 0.24);`,
+    `  // 阴面保留淡紫环境光，而不是把青蓝水和草地一并压暗。
+  col = mix(col, col * vec3(1.03, 0.98, 1.05), (1.0 - clamp(dot(col, vec3(0.299, 0.587, 0.114)), 0.0, 1.0)) * 0.12);
+  col = min(col, vec3(1.0));`, 'SCENE_FS');
+
+  __skyCloud = __skyReplaceExactlyOnce(__skyCloud,
+    `      vec3 cLow = vec3(0.28, 0.33, 0.42);
+      vec3 cMid = vec3(0.47, 0.53, 0.61);
+      vec3 cHi  = vec3(0.73, 0.78, 0.84);
+      vec3 cHot = vec3(0.88, 0.90, 0.93);`,
+    `      vec3 cLow = vec3(0.49, 0.41, 0.56);
+      vec3 cMid = vec3(0.73, 0.56, 0.63);
+      vec3 cHi  = vec3(0.93, 0.73, 0.66);
+      vec3 cHot = vec3(1.00, 0.87, 0.71);`, 'CLOUD_FS');
+  __skyCloud = __skyReplaceExactlyOnce(__skyCloud,
+    `      float lit = clamp(0.18 + hf * 0.86 - dSun * 0.95 + d * 0.14, 0.0, 1.0);`,
+    `      float lit = clamp(0.18 + hf * 0.86 - dSun * 0.95 + d * 0.14, 0.0, 1.0);
+      lit = floor(lit * 3.0 + 0.5) / 3.0;`, 'CLOUD_FS');
+  __skyCloud = __skyReplaceExactlyOnce(__skyCloud,
+    `  col = mix(col, vec3(0.55, 0.62, 0.70), fog * 0.6);`,
+    `  col = mix(col, vec3(0.80, 0.66, 0.72), fog * 0.48);`, 'CLOUD_FS');
+
+  __skyPost = __skyReplaceExactlyOnce(__skyPost,
+    `  c = mix(c, vec3(0.70, 0.75, 0.81), uCloudWhite * 0.42);`,
+    `  c = mix(c, vec3(0.96, 0.80, 0.76), uCloudWhite * 0.32);`, 'POST_FS');
+  __skyPost = __skyReplaceExactlyOnce(__skyPost,
+    `  // alpine grade: cool shadows, neutral highlights, restrained contrast
+  c = max(c, vec3(0.0));
+  c = pow(c, vec3(1.06, 1.04, 1.00));
+  float lum = dot(c, vec3(0.299, 0.587, 0.114));
+  c = mix(vec3(lum), c, 1.06);
+  c = (c - 0.5) * 1.03 + 0.5;
+  c = max(c, vec3(0.0));
+
+  // Keep the grade smooth: screen-space ordered dithering created dense
+  // bright speckles over large, nearly uniform terrain regions.
+  c = mix(c, vec3(0.030, 0.040, 0.060), uFade);`,
+    `  // 统一有限色阶；不附加屏幕空间白点或随时间闪烁的抖色。
+  c = max(c, vec3(0.0));
+  c = pow(c, vec3(1.02, 1.00, 0.98));
+  c = (c - 0.5) * 1.025 + 0.5;
+  c += vec3(0.008, 0.003, 0.004);
+  c = clamp(c, 0.0, 1.0);
+  c = floor(c * 31.0 + 0.5) / 31.0;
+  c = mix(c, vec3(0.045, 0.035, 0.065), uFade);`, 'POST_FS');
+
+  // 全部锚点成功后一次提交，失败时不留下半更新的材质。
+  SCENE_FS = __skyScene;
+  CLOUD_FS = __skyCloud;
+  POST_FS = __skyPost;
+  MESH_VS = __skyMesh;
+  MESH_FS = __skyMeshFrag;
+}
 
 
 // ===== 31_render.js =====
@@ -2923,6 +3724,169 @@ function buildMeshes() {
 }
 
 
+// ===== 37_player_airframe.js =====
+// 按用户提供的两张游戏画面手工重建；不读取参考游戏资源。模型坐标延用 -Z 朝前、+Y 向上。
+const SKY_WING_TRAIL_REAR = 1.30;
+const skySharedFighter = buildFighter;
+buildFighter = function (kind) {
+  if (kind !== 'player') return skySharedFighter(kind);
+
+  const mb = new MeshBuilder(), p = v3;
+  const ink = {
+    belly: rgb('#4a4f5d'), seam: rgb('#4c5260'), flank: rgb('#626673'), slate: rgb('#818592'),
+    metal: rgb('#a8a9a7'), silver: rgb('#c5c4b8'), bone: rgb('#dfd2aa'),
+    navy: rgb('#2d3345'), navyTop: rgb('#3a4252'), gunmetal: rgb('#383946'),
+    rust: rgb('#d46348'), buff: rgb('#d5b47c'), tip: rgb('#7caaa2'),
+  };
+  const mean = row => vmul(row.reduce(vadd, p()), 1 / row.length);
+  function join(a, b, colors, count = a.length) {
+    mb.center = vmul(vadd(mean(a), mean(b)), .5);
+    for (let j = 0; j < count; j++) {
+      const k = (j + 1) % a.length;
+      mb.quad(a[j], a[k], b[k], b[j], colors[j]);
+    }
+  }
+  function cap(row, back, color) {
+    mb.center = mean(row);
+    mb.center.z -= back ? .1 : -.1;
+    mb.poly(row, color);
+  }
+
+  // 尖鼻到中机身的梯形截面提供平坦背板与连续的斜肩，而非沿每节随机换迷彩色。
+  const body = [
+    [-5.67, .19, .14, .02, -.10], [-3.92, .56, .42, .03, -.30], [-3.67, .64, .49, .04, -.34],
+    [-2.33, .78, .58, .06, -.45], [-.09, 1.05, .61, .08, -.51],
+    [1.75, 1.10, .54, .10, -.53], [3.15, .85, .37, .05, -.37], [4.0, .50, .15, .03, -.22],
+  ];
+  const shell = body.map(([z, w, roof, side, bottom]) => [
+    p(-w*.54, roof, z), p(w*.54, roof, z), p(w, side, z), p(w*.85, bottom*.66, z),
+    p(w*.43, bottom, z), p(-w*.43, bottom, z), p(-w*.85, bottom*.66, z), p(-w, side, z),
+  ]);
+  const nose = p(0, .025, -6.59), radome = [ink.navyTop, ink.navy, ink.navy, ink.navy, ink.navy, ink.navy, ink.navy, ink.navy];
+  mb.center = p(0, .021, -5.94);
+  for (let j = 0; j < 8; j++) mb.tri(nose, shell[0][j], shell[0][(j + 1) % 8], radome[j]);
+  for (let i = 0; i < shell.length - 1; i++) {
+    const top = i === 1 ? ink.silver : ink.metal;
+    join(shell[i], shell[i + 1], i === 0 ? radome : [top, ink.slate, ink.flank, ink.belly, ink.belly, ink.belly, ink.flank, ink.slate]);
+  }
+  cap(shell.at(-1), true, ink.gunmetal);
+
+  const canopy = [
+    [-4.00,.24,.34,.14], [-3.70,.42,.37,.37], [-3.13,.58,.43,.63], [-1.68,.65,.43,.81],
+    [-1.09,.59,.43,.71], [-.73,.39,.48,.22],
+  ].map(([z,w,y,h]) => [p(-w,y,z),p(-w*.70,y+h*.72,z),p(-w*.34,y+h,z),p(w*.34,y+h,z),p(w*.70,y+h*.72,z),p(w,y,z)]);
+  const roof = ['#a4774b','#d6a45d','#f9db97','#d6a05e','#a87d4f'].map(rgb);
+  const windscreen = ['#a87e56','#d4b078','#ffe8ae','#d7b27e','#a47e55'].map(rgb);
+  const rim = ['#413d44','#5c5148','#6f6051','#5c5148','#413d44'].map(rgb);
+  for (let i = 0; i < canopy.length - 1; i++) join(canopy[i], canopy[i+1], i < 2 ? windscreen : i === 4 ? rim : roof, 5);
+  cap(canopy[0], false, ink.gunmetal);
+  cap(canopy.at(-1), true, ink.gunmetal);
+
+  // 中间留较深的双发动机间隙，暖芯凹入喷口而不是贴两个亮点在机背上。
+  const steps = 8;
+  const ring = (x, y, z, w, h) => Array.from({length:steps}, (_, i) => {
+    const a = (i + .5) * TAU / steps;
+    return p(x + w*Math.cos(a), y + h*Math.sin(a), z);
+  });
+  const cowl = [ink.slate, ink.metal, ink.slate, ink.flank, ink.seam, ink.belly, ink.seam, ink.flank];
+  const iron = ['#53505c','#68616b','#56535f','#45414d','#45414d','#44404b','#3b3946','#45414d'].map(rgb);
+  const liner = rgb('#282331');
+  const exhaust = [rgb('#e28348'), rgb('#ffe2a2')];
+  const foilTop = [ink.slate, ink.slate, ink.metal, ink.flank];
+  function foilRow(side, [x,nose,tail,y,t]) {
+    const z = f => nose + (tail-nose)*f;
+    return [p(side*x,y,nose),p(side*x,y+t*.64,z(.14)),p(side*x,y+t*.56,z(.51)),
+      p(side*x,y+t*.24,z(.96)),p(side*x,y,tail)];
+  }
+  function foil(side, sections, paint) {
+    const rows = sections.map(s => foilRow(side,s));
+    for (let i = 0; i < rows.length - 1; i++) {
+      const shades = paint[i] || foilTop;
+      join(rows[i],rows[i+1],[...shades,ink.belly]);
+    }
+    mb.center = mean(rows.at(-1)); mb.center.x -= side * .10;
+    mb.poly(rows.at(-1), paint.at(-1)?.[0] || ink.seam);
+    return rows;
+  }
+  const wing = [
+    [.81,-2.03,2.24,.04,.29], [1.91,-1.28,2.21,.035,.25], [3.12,-.39,1.95,.021,.19],
+    [4.20,.45,1.78,.010,.12], [4.38,.61,1.70,0,.108], [4.54,.74,1.63,0,.099],
+    [4.70,.79,1.54,0,.078], [4.90,.92,SKY_WING_TRAIL_REAR,0,.040],
+  ];
+  const paint = [
+    [ink.metal,ink.flank,ink.slate,ink.seam], [ink.slate,ink.slate,ink.silver,ink.flank],
+    [ink.metal,ink.slate,ink.silver,ink.flank], foilTop,
+    [ink.buff,ink.buff,ink.bone,ink.buff], [ink.rust,ink.rust,ink.rust,ink.rust], [ink.tip,ink.tip,ink.tip,ink.tip],
+  ];
+  const tail = [[1.25,2.27,3.92,.10,.17],[2.15,2.63,4.01,.08,.14],[2.99,3.46,3.89,.05,.07]];
+  function wingMark(a, b) {
+    // 单侧暖浅识别块沿实际翼面铺设，不悬浮在机翼上方。
+    const at = (x, t) => {
+      const q = vlerp(vlerp(a[1],a[2],t), vlerp(b[1],b[2],t), x);
+      q.y += .013;
+      return q;
+    };
+    mb.center = p(0,-1,0);
+    mb.quad(at(.18,.16),at(.76,.16),at(.76,.76),at(.18,.76),ink.bone);
+  }
+  const fin = [[1.17,.33,1.72,3.90,.100], [1.63,1.52,2.52,3.68,.071],
+    [1.675,1.65,2.67,3.63,.065], [1.80,2.04,3.02,3.48,.048]];
+  const rails = {pos:p(),renderBasis:basisFrom(0,0,0)};
+  for (const side of [-1, 1]) {
+    const planform = foil(side, wing, paint);
+    if (side < 0) wingMark(planform[2],planform[3]);
+    foil(side, tail, [[ink.slate,ink.metal,ink.silver,ink.seam]]);
+
+    const engine = [
+      [1.00,-.035,-1.73,.37,.27], [1.20,-.02,-.90,.59,.40],
+      [1.25,0,3.57,.52,.43], [1.25,0,4.30,.49,.45],
+    ].map(([x,y,z,w,h]) => ring(side*x,y,z,w,h));
+    cap(engine[0], false, ink.navy);
+    for (let i = 0; i < engine.length - 1; i++) {
+      if (i !== 1) { join(engine[i],engine[i+1],i === 2 ? iron : cowl); continue; }
+      const a = engine[i], b = engine[i+1];
+      mb.center = vmul(vadd(mean(a),mean(b)),.5);
+      for (let j = 0; j < steps; j++) {
+        const k = (j+1)%steps;
+        if (j !== 1) { mb.quad(a[j],a[k],b[k],b[j],cowl[j]); continue; }
+        // 只细分朝上的检修面：前盖、窄接缝、后盖，侧面仍沿用完整机舱。
+        for (const [from,to,shade] of [[0,2.22/4.47,ink.silver],[2.22/4.47,2.36/4.47,ink.seam],[2.36/4.47,1,ink.slate]]) {
+          mb.quad(vlerp(a[j],b[j],from),vlerp(a[k],b[k],from),vlerp(a[k],b[k],to),vlerp(a[j],b[j],to),shade);
+        }
+      }
+    }
+    const rx = side * 1.25;
+    const mouth = ring(rx,0,4.30,.303,.279), throat = ring(rx,0,4.18,.235,.217);
+    join(engine.at(-1), mouth, iron);
+    // 外环和内管都应在尾部有受光方向，不用朝外法线渲染内腔。
+    mb.center = p(rx,0,4.09);
+    for (let i = 0; i < steps; i++) mb.quad(mouth[i],mouth[(i+1)%steps],throat[(i+1)%steps],throat[i],liner);
+    cap(throat, true, liner);
+    mb.center = p(rx,0,4.1);
+    mb.disc(rx,0,4.207,.179,8,exhaust[0],.31);
+    mb.disc(rx+.016*side,.016,4.225,.112,7,exhaust[1],.56);
+
+    const rudder = fin.map(([x,y,z0,z1,w]) => [p(side*(x-w),y,z0),p(side*(x+w),y,z0+.045),
+      p(side*(x+w),y,z1),p(side*(x-w),y,z1-.035)]);
+    for (const [i, shade] of [[ink.flank,ink.slate,ink.seam,ink.metal],Array(4).fill(ink.buff),Array(4).fill(ink.rust)].entries()) {
+      join(rudder[i],rudder[i+1],shade);
+    }
+    mb.center = p(side*1.77,1.82,3.22);
+    mb.poly(rudder.at(-1),ink.rust);
+
+    for (const slot of side < 0 ? [0,2] : [1,3]) {
+      const {x,y,z} = wingRailPosition(rails,slot);
+      const end = Math.abs(x) > 3 ? .67 : .39;
+      const bracket = (a, h, t) => [p(x-t,y+.131,a),p(x+t,y+.131,a),p(x+t,h,a),p(x-t,h,a)];
+      const front = bracket(z+.12,y+.22,.048), root = bracket(end,.07,.067);
+      join(front,root,[ink.gunmetal,ink.seam,ink.seam,ink.seam]);
+      cap(front,false,ink.gunmetal); cap(root,true,ink.gunmetal);
+    }
+  }
+  return mb.radius(6.7).build();
+};
+
+
 // ===== 33_forest.js =====
 // ---------------------------------------------------------------------------
 // Deterministic, periodic forest cache and instanced tree batches.
@@ -3066,6 +4030,119 @@ const Forest = (() => {
 })();
 
 
+// ===== 36_autumn_forest.js =====
+// 新版树保留共享实例位置和尺度；只替换两张静态网格，冠影仍投在实际地面上。
+(() => {
+  buildPineTree = function () {
+    const mb = new MeshBuilder({ x: 0, y: 15.7, z: 0 });
+    mb.box(0, 15.7, 0, 2.7, 31.4, 2.7, rgb('#54444a'));
+    const needle = ['#485450', '#596952', '#657252', '#838657', '#636f58'].map(rgb);
+    const shade = rgb('#41444a');
+    for (const [i, [y, r, h]] of [[6, 12, 5.5], [12, 10.1, 6], [19, 8.1, 5.4], [25.2, 6.2, 5.1], [30.4, 3.7, 5.6]].entries()) {
+      const tip = { x: -0.25 * i, y: y + h, z: 0.15 * i };
+      const hub = { x: tip.x, y: y + h * 0.20, z: tip.z };
+      const rim = Array.from({ length: 8 }, (_, j) => {
+        const a = j * TAU / 8 + i * 0.43, reach = r * (j % 2 ? 0.75 : 1);
+        return { x: hub.x + Math.cos(a) * reach, y: y + (j % 2 ? 1 : -0.6), z: hub.z + Math.sin(a) * reach };
+      });
+      mb.center = hub;
+      for (let j = 0; j < rim.length; j++) {
+        const next = rim[(j + 1) % 8];
+        mb.tri(rim[j], next, tip, needle[(j + i) % needle.length], -2);
+        mb.tri(rim[j], hub, next, shade);
+      }
+    }
+    return Object.assign(mb.radius(24).build(), { height: 36, crownRadius: 12, crownBase: 5.4 });
+  };
+
+  buildAutumnTree = function () {
+    const mb = new MeshBuilder({ x: 0, y: 8, z: 0 }), bark = rgb('#634851');
+    mb.box(0, 5, 0, 3.1, 10, 2.7, bark);
+    mb.beam({ x: 0, y: 5.3, z: 0 }, { x: -4.6, y: 13.2, z: 1 }, 0.64, 0.6, bark);
+    mb.beam({ x: 0, y: 6.4, z: 0 }, { x: 4.1, y: 14.3, z: -1.1 }, 0.64, 0.6, bark);
+    const leaves = ['#bd915d', '#c69961', '#cba16b', '#b88e60', '#b3875e', '#c59a68'].map(rgb);
+    const firstLeaf = mb.emi.length;
+    // 冠团沿分叉错开，边缘留凹口；斜顶错峰，轮廓无需新增绘制批次。
+    for (const [i, [x,y,z,w,h,d]] of [[-2.3,20.4,-3.0,8.5,5.5,7.4],[-7.6,14.2,2.9,6.5,6.9,5.6],
+      [2.8,16.8,7.0,7.1,4.9,6.0],[7.0,16.3,-2.1,6.4,5.3,6.4],[-4.9,15.6,-8.0,6.1,4.9,5.3]].entries()) {
+      const rim = [], shoulder = [];
+      const point = (a,r,b) => ({ x:x+Math.cos(a)*w*r, y:y+h*b, z:z+Math.sin(a)*d*r });
+      const crown = point(i * 1.7, .21, 1), base = point(i, .10, -1);
+      mb.center = {x,y,z};
+      for (let j=0; j<6; j++) {
+        const a = j*TAU/6 + i*.59, v = (i+2*j)%5 / 4;
+        rim.push(point(a, .87+.13*v, -.23+.11*v));
+        shoulder.push(point(a+.18, .76+.15*(1-v), .48+.18*v));
+      }
+      for (let j=0; j<6; j++) {
+        const k=(j+1)%6, shade=leaves[(i+j)%6];
+        mb.tri(base,rim[j],rim[k],shade); mb.quad(rim[j],shoulder[j],shoulder[k],rim[k],shade);
+        mb.tri(crown,shoulder[k],shoulder[j],leaves[(i+j+1)%6]);
+      }
+    }
+    // 实例树本来就不发光；负材质码标出叶面，让同一株的树干不吃秋色。
+    mb.emi.fill(-1, firstLeaf);
+    return Object.assign(mb.radius(21).build(), { height: 25.9, crownRadius: 13.5, crownBase: 7.3 });
+  };
+  const collect = Forest.collect;
+  let pineValues = new Float32Array(0), autumnValues = new Float32Array(0);
+
+  function hash(x, z) {
+    let h = Math.imul(x, 0x1f123bb5) ^ Math.imul(z, 0x5f356495) ^ 0x6d2b79f5;
+    h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+    h = Math.imul(h ^ (h >>> 12), 0x297a2d39);
+    return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+  }
+  function noise(x, z, period) {
+    const px = (x - Math.floor(x / WORLD_SIZE) * WORLD_SIZE) / WORLD_SIZE * period;
+    const pz = (z - Math.floor(z / WORLD_SIZE) * WORLD_SIZE) / WORLD_SIZE * period;
+    const ix = Math.floor(px), iz = Math.floor(pz), tx = px - ix, tz = pz - iz;
+    const sx = tx * tx * (3 - 2 * tx), sz = tz * tz * (3 - 2 * tz);
+    const x1 = (ix + 1) % period, z1 = (iz + 1) % period;
+    const a = hash(ix, iz), b = hash(x1, iz), c = hash(ix, z1), d = hash(x1, z1);
+    return (a + (b - a) * sx) * (1 - sz) + (c + (d - c) * sx) * sz;
+  }
+
+  Forest.collect = function (camera, player, meshes, view) {
+    const batches = collect.call(this, camera, player, meshes, view);
+    let pine, autumn;
+    for (const batch of batches) {
+      if (batch.mesh === meshes.pineTree) pine = batch;
+      else if (batch.mesh === meshes.autumnTree) autumn = batch;
+    }
+    if (pine && autumn && pine.instanceCount > 0) {
+      const needed = (pine.instanceCount + autumn.instanceCount) * 8;
+      if (pineValues.length < needed) {
+        const capacity = 2 ** Math.ceil(Math.log2(needed));
+        pineValues = new Float32Array(capacity);
+        autumnValues = new Float32Array(capacity);
+      }
+      let p = 0, a = autumn.instanceCount * 8;
+      autumnValues.set(autumn.instances);
+      const values = pine.instances;
+      for (let i = 0; i < pine.instanceCount * 8; i += 8) {
+        const x = values[i], z = values[i + 2];
+        const promote = noise(x, z, 8) * 0.75 + noise(x, z, 16) * 0.25 > 0.5;
+        const target = promote ? autumnValues : pineValues, at = promote ? a : p;
+        // Copy scalars: no per-tree record or subarray allocation in the frame loop.
+        for (let j = 0; j < 8; j++) target[at + j] = values[i + j];
+        if (promote) a += 8; else p += 8;
+      }
+      pine.instances = pineValues.subarray(0, p); pine.instanceCount = p / 8;
+      autumn.instances = autumnValues.subarray(0, a); autumn.instanceCount = a / 8;
+    }
+    // Empty instanced batches would fall through to a non-instanced identity draw.
+    let kept = 0;
+    for (const batch of batches) {
+      if ((batch.mesh === meshes.pineTree || batch.mesh === meshes.autumnTree) && batch.instanceCount === 0) continue;
+      batches[kept++] = batch;
+    }
+    batches.length = kept;
+    return batches;
+  };
+})();
+
+
 // ===== 40_game.js =====
 // ---------------------------------------------------------------------------
 // GAME — state, flight model, cameras, waves, scoring.
@@ -3080,6 +4157,16 @@ const DRONE_MAX_HP = 100;
 const GUN_INTERVAL = 0.1;
 const GUN_RANGE = 1100;
 const GUN_DAMAGE = 12;
+const GUN_BULLET_SPEED = 720;
+const GUN_BULLET_GRAVITY = 38;
+const GUN_BULLET_LIFE = 2.2;
+const MISSILE_GRAVITY = 70;
+const MISSILE_PLAYER_SPEED = 430;
+const MISSILE_PLAYER_MAX_SPEED = 520;
+const MISSILE_ENEMY_SPEED = 280;
+const MISSILE_ENEMY_MAX_SPEED = 430;
+const MISSILE_TRAIL_SPACING = 15;
+const MISSILE_TRAIL_LIFE = 1.8;
 const MOUSE_STEER_TIMEOUT = 0.42;
 
 const G = {
@@ -3088,7 +4175,7 @@ const G = {
   time: 0, realTime: 0, missionTime: 0,
   map: null, meshes: null, seed: 1337,
   player: null, camera: null,
-  enemies: [], ground: [], missiles: [], effects: [], tracers: [], popups: [], decals: [], vapor: [],
+  enemies: [], ground: [], missiles: [], missileTrails: [], bullets: [], effects: [], tracers: [], popups: [], decals: [], vapor: [],
   view: 1, prevView: 1, viewBlend: 1,
   cockpitAlpha: 0,
   shake: 0, damageFlash: 0, flash: 0, hitStop: 0, fade: 0,
@@ -3142,7 +4229,7 @@ function makePlayer(map, forTitle = false) {
     shield: PLAYER_MAX_SHIELD, fuel: 100,
     agl: 0, groundH: 0, gLoad: 1, pitchRate: 0, yawRate: 0,
     rollT: 0, rollCd: 0, invuln: 0, spin: 0,
-    missiles: 4, reloads: [], flares: 3, flareCd: 0, gunCd: 0,
+    missiles: 4, nextRail: 0, reloads: [], flares: 3, flareCd: 0, gunCd: 0,
     lastHit: -99, dead: false, burning: false,
     inCloud: 0, skimming: false, terrainWarn: false, speedDisplay: 0,
     basis: null, renderBasis: null,
@@ -3156,8 +4243,8 @@ function makePlayer(map, forTitle = false) {
 
 function setupTitleWorld() {
   G.player = makePlayer(G.map, true);
-  G.player.pos.y = Math.max(G.map.heightAt(G.player.pos.x, G.player.pos.z) + 320, 520);
-  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0;
+  G.player.pos.y = Math.max(G.map.heightAt(G.player.pos.x, G.player.pos.z) + 250, 320);
+  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
   G.effects.length = 0; G.tracers.length = 0; G.popups.length = 0; G.decals.length = 0; G.vapor.length = 0;
   G.view = 1; G.prevView = 1; G.viewBlend = 1; G.cockpitAlpha = 0;
   G.chaseInit = false;
@@ -3178,7 +4265,7 @@ function startRun() {
   G.missionTime = 0;
   G.time = 0;
   G.player = makePlayer(G.map, false);
-  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0;
+  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
   G.effects.length = 0; G.tracers.length = 0; G.popups.length = 0; G.decals.length = 0; G.vapor.length = 0;
   G.lock = { target: null, progress: 0, phase: 'search', tick: 0, lockTone: 0 };
   G.score = 0;
@@ -3256,10 +4343,11 @@ function computePose(view, allowSmooth = true) {
   const p = G.player;
   const b = p.basis;
   if (view === 0) {
-    const camY = Math.max(p.pos.y + 2350, 2100);
+    const aspect = VW / VH;
+    const fit = Math.max(.8, Math.min(1, 1.84 / aspect), .68 / aspect);
     return {
-      pos: { x: p.pos.x, y: camY, z: p.pos.z },
-      target: { x: p.pos.x, y: 0, z: p.pos.z },
+      pos: { x: p.pos.x, y: p.pos.y + 26 * fit, z: p.pos.z },
+      target: vcopy(p.pos),
       up: { x: 0, y: 0, z: -1 },
       fov: 0.95
     };
@@ -3271,7 +4359,7 @@ function computePose(view, allowSmooth = true) {
       pos,
       target: vadd(pos, vmul(cockpit.fwd, 160)),
       up: vcopy(cockpit.up),
-      fov: 1.18 + clamp((p.speed - SPEED_CRUISE) / 500, 0, 0.06)
+      fov: p.cockpitComfort ? 1.18 : 1.18 + clamp((p.speed - SPEED_CRUISE) / 500, 0, 0.06)
     };
   }
   // chase
@@ -3322,12 +4410,49 @@ function buildCamera(pose, shakeAmt = 0) {
   };
 }
 
+function blendCameraPose(a, b, t, arc) {
+  // 球面插值完整朝向，避免正飞与倒飞的up向量在中点抵消。
+  const orientation = pose => {
+    const f = vnorm(vsub(pose.target, pose.pos)), r = vnorm(vcross(f, pose.up)), u = vcross(r, f);
+    const m = [[r.x, u.x, -f.x], [r.y, u.y, -f.y], [r.z, u.z, -f.z]], q = [0, 0, 0, 0];
+    const trace = m[0][0] + m[1][1] + m[2][2];
+    if (trace > 0) {
+      const s = 2 * Math.sqrt(1 + trace);
+      q[3] = s / 4;
+      q[0] = (m[2][1] - m[1][2]) / s; q[1] = (m[0][2] - m[2][0]) / s; q[2] = (m[1][0] - m[0][1]) / s;
+    } else {
+      const i = m[0][0] > m[1][1] && m[0][0] > m[2][2] ? 0 : m[1][1] > m[2][2] ? 1 : 2;
+      const j = (i + 1) % 3, k = (i + 2) % 3, s = 2 * Math.sqrt(1 + m[i][i] - m[j][j] - m[k][k]);
+      q[i] = s / 4; q[3] = (m[k][j] - m[j][k]) / s;
+      q[j] = (m[j][i] + m[i][j]) / s; q[k] = (m[k][i] + m[i][k]) / s;
+    }
+    return q;
+  };
+  const qa = orientation(a), qb = orientation(b), dotOf = (a, b) => a.reduce((sum, v, i) => sum + v * b[i], 0);
+  // 一次过渡只选一次弧；近180°时不能让浮点符号逐帧改变旋转方向。
+  if (arc.from) {
+    for (const [q, previous] of [[qa, arc.from], [qb, arc.to]])
+      if (dotOf(q, previous) < 0) for (let i = 0; i < 4; i++) q[i] = -q[i];
+  } else if (dotOf(qa, qb) < 0) for (let i = 0; i < 4; i++) qb[i] = -qb[i];
+  arc.from = qa; arc.to = qb;
+  const dot = dotOf(qa, qb);
+  const angle = Math.acos(clamp(dot, -1, 1)), sine = Math.sin(angle);
+  const wa = sine > 1e-5 ? Math.sin((1 - t) * angle) / sine : 1 - t;
+  const wb = sine > 1e-5 ? Math.sin(t * angle) / sine : t;
+  const q = qa.map((v, i) => v * wa + qb[i] * wb), length = Math.hypot(...q);
+  const [x, y, z, w] = q.map(v => v / length);
+  const fwd = { x: -2 * (x * z + y * w), y: -2 * (y * z - x * w), z: 2 * (x * x + y * y) - 1 };
+  const up = { x: 2 * (x * y - z * w), y: 1 - 2 * (x * x + z * z), z: 2 * (y * z + x * w) };
+  const pos = vlerp(a.pos, b.pos, t);
+  return { pos, target: vmad(pos, fwd, lerp(vdist(a.pos, a.target), vdist(b.pos, b.target), t)), up, fov: lerp(a.fov, b.fov, t) };
+}
+
 function updateCamera(dt) {
   if (!G.player) return;
   const p = G.player;
   // base basis of the airframe (flight), then a render basis with barrel-roll spin
-  p.basis = basisFrom(p.yaw, p.pitch, p.roll);
-  const rp = p.roll + p.spin;
+  p.basis = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0));
+  const rp = p.roll + (p.inversionRoll || 0) + p.spin;
   p.renderBasis = basisFrom(p.yaw, p.pitch, rp);
 
   let pose;
@@ -3335,7 +4460,8 @@ function updateCamera(dt) {
     const a = computePose(G.prevView, false);
     const b = computePose(G.view, false);
     const t = smoothstep(0, 1, clamp01(G.viewBlend));
-    pose = {
+    if (p.cockpitComfort && (!G.cameraBlendArc || G.viewBlend === 0)) G.cameraBlendArc = {};
+    pose = p.cockpitComfort ? blendCameraPose(a, b, t, G.cameraBlendArc) : {
       pos: vlerp(a.pos, b.pos, t),
       target: vlerp(a.target, b.target, t),
       up: vnorm(vlerp(a.up, b.up, t)),
@@ -3343,6 +4469,7 @@ function updateCamera(dt) {
     };
     G.viewBlend = Math.min(1, G.viewBlend + dt / 1.0);
   } else {
+    G.cameraBlendArc = null;
     pose = computePose(G.view, true);
   }
   // clamp camera above the terrain even in a blended pose
@@ -3350,7 +4477,8 @@ function updateCamera(dt) {
     const gh = Math.max(G.map.heightAt(pose.pos.x, pose.pos.z), 0);
     if (pose.pos.y < gh + 3) pose.pos.y = gh + 3;
   }
-  const shake = G.shake * (G.view === 2 ? 0.45 : 1);
+  // 外部镜头不随机晃动；受击仍保留护盾读数、告警、闪边和音效。
+  const shake = G.view === 2 ? G.shake * 0.45 : 0;
   G.camera = buildCamera(pose, shake);
 
   // cockpit overlay fades with view intent
@@ -3388,8 +4516,8 @@ function lineOfSightClear(a, b, steps = 14) {
 function readSteering() {
   const p = G.player;
   const topView = G.view === 0;
-  const mouseBlend = G.testInput || TOUCH.active || (INPUT.touchMode && !Number.isFinite(INPUT.mouseSteerAge)) ? 1
-    : 1 - clamp((INPUT.mouseSteerAge - 0.14) / (MOUSE_STEER_TIMEOUT - 0.14), 0, 1);
+  const mouseBlend = G.testInput || TOUCH.active ? 1 : p.mouseSteering === false ? 0
+    : INPUT.touchMode && !Number.isFinite(INPUT.mouseSteerAge) ? 1 : 1 - clamp((INPUT.mouseSteerAge - 0.14) / (MOUSE_STEER_TIMEOUT - 0.14), 0, 1);
   let sx = 0, sy = 0, burn = false, alt = 0, turn = 0;
   const keyLeft = INPUT.keys.has('KeyA') || INPUT.keys.has('ArrowLeft');
   const keyRight = INPUT.keys.has('KeyD') || INPUT.keys.has('ArrowRight');
@@ -3442,16 +4570,13 @@ function updateFlight(dt) {
   G.lastDt = dt;
 
   // afterburner / fuel
-  const wantBurn = st.burn && p.fuel > 0.5 && G.mode !== 'failed';
+  const wantBurn = st.burn && p.fuel > 0.5 && G.mode !== 'failed' && (!p.speedResponse || (p.burnSpeed ?? SPEED_BURN) > (p.cruiseSpeed ?? SPEED_CRUISE) + 0.01);
   p.burning = wantBurn;
-  const targetSpeed = wantBurn ? SPEED_BURN : SPEED_CRUISE;
-  if (p.burning) {
-    p.speed = Math.min(SPEED_BURN, p.speed + 62 * dt);
-    p.fuel = Math.max(0, p.fuel - 15.5 * dt);
-  } else {
-    p.speed = damp(p.speed, SPEED_CRUISE, p.speed > SPEED_CRUISE ? 0.75 : 0.55, dt);
-    p.fuel = Math.min(100, p.fuel + 10.5 * dt);
-  }
+  const targetSpeed = p.targetSpeed = wantBurn ? (p.burnSpeed ?? SPEED_BURN) : (p.cruiseSpeed ?? SPEED_CRUISE);
+  p.speed = wantBurn && p.speed <= targetSpeed
+    ? Math.min(targetSpeed, p.speed + 62 * dt)
+    : damp(p.speed, targetSpeed, p.speedResponse ?? (p.speed > targetSpeed ? 0.75 : 0.55), dt);
+  p.fuel = wantBurn ? Math.max(0, p.fuel - 15.5 * dt) : Math.min(100, p.fuel + 10.5 * dt);
   const speedFactor = clamp(125 / Math.max(80, p.speed), 0.56, 1.15);
 
   if (st.topView) {
@@ -3481,22 +4606,24 @@ function updateFlight(dt) {
     p.pitchRate = 0;
     p.gLoad = clamp(1 + Math.abs(turn) * p.speed / 9.81 * 0.10, 1, 6);
   } else {
-    const targetRoll = -st.sx * BANK_MAX;
-    p.roll = angleLerp(p.roll, targetRoll, 1 - Math.exp(-6.5 * dt));
+    const comfortable = !!p.cockpitComfort && G.view === 2;
+    const targetRoll = -st.sx * (comfortable ? 0.56 : BANK_MAX);
+    const bankStep = wrapAngle(targetRoll - p.roll) * (1 - Math.exp(-(comfortable ? 2.2 : 6.5) * dt));
+    p.roll += comfortable ? clamp(bankStep, -0.6 * dt, 0.6 * dt) : bankStep;
     const oldPitch = p.pitch;
-    const pitchRate = st.sy * 1.08;
+    const pitchRate = st.sy * (comfortable ? 0.52 : 1.08);
     if (Math.abs(st.sy) > 0.03) p.pitch += pitchRate * dt;
     else p.pitch = damp(p.pitch, 0, 2.2, dt);
     p.pitch = clamp(p.pitch, -1.02, 1.02);
     p.pitchRate = (p.pitch - oldPitch) / Math.max(dt, 1e-6);
-    if (Math.abs(st.sx) < 0.03 && Math.abs(p.roll) < 0.25) p.roll *= 1 - 1.6 * dt;
+    if (!comfortable && Math.abs(st.sx) < 0.03 && Math.abs(p.roll) < 0.25) p.roll *= 1 - 1.6 * dt;
     const turnRate = 1.28 * speedFactor * (p.burning ? 0.70 : 1) * (1 - Math.abs(p.pitch) * 0.25);
-    const yawDelta = -Math.sin(p.roll) * turnRate;
+    const yawDelta = comfortable ? clamp(-Math.sin(p.roll) * turnRate * 0.52, -0.38, 0.38) : -Math.sin(p.roll) * turnRate;
     p.yaw = wrapAngle(p.yaw + yawDelta * dt);
     p.yawRate = yawDelta;
     p.gLoad = clamp(1 + Math.abs(yawDelta) * p.speed / 9.81 * 0.42 + Math.abs(pitchRate) * 0.6, 1, 9);
   }
-  p.basis = basisFrom(p.yaw, p.pitch, p.roll);
+  p.basis = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0));
 
   // barrel roll
   if (p.rollT > 0) {
@@ -3563,7 +4690,6 @@ function updateFlight(dt) {
       p.sprayTimer = 0.025;
       spawnSpray(vadd(p.pos, { x: 0, y: -p.agl, z: 0 }));
     }
-    if (Math.random() < 0.2) addWingTrail(p.pos, 0, true);
   }
 
   // clouds
@@ -3578,12 +4704,12 @@ function updateFlight(dt) {
 
   // vapour trails at high G / high speed
   p.vaporTimer -= dt;
-  const vap = (p.gLoad > 3.6 || p.speed > 178 || p.rollT > 0) && G.view !== 2;
+  const vap = (G.skyScenic || G.view === 0 || p.gLoad > 3.6 || p.speed > 178 || p.rollT > 0) && G.view !== 2;
   if (vap && p.vaporTimer <= 0) {
-    p.vaporTimer = 0.018;
-    const b = p.renderBasis;
-    addWingTrail(vadd(vadd(p.pos, vmul(b.right, 4.9)), vmul(b.fwd, 0.3)), 1);
-    addWingTrail(vadd(vadd(p.pos, vmul(b.right, -4.9)), vmul(b.fwd, 0.3)), -1);
+    p.vaporTimer += 0.05;
+    const b = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0) + p.spin);
+    addWingTrail(wingTipPosition(p, b, 1), 1);
+    addWingTrail(wingTipPosition(p, b, -1), -1);
   }
 
   // engine plume puffs
@@ -3602,6 +4728,10 @@ function updateFlight(dt) {
     AudioSys.lowWarn();
   }
   if (G.mode === 'play') G.missionTime += dt;
+}
+
+function wingTipPosition(p, b, side) {
+  return vadd(vadd(vadd(p.pos, vmul(b.right, 4.9 * side)), vmul(b.up, 0)), vmul(b.fwd, -SKY_WING_TRAIL_REAR));
 }
 
 function triggerBarrelRoll() {
@@ -3625,7 +4755,7 @@ function triggerBarrelRoll() {
     }
   }
   // pilot style above the canopy
-  for (let i = 0; i < 2; i++) addWingTrail(vadd(p.pos, vmul(p.basis.right, i ? 4.9 : -4.9)), i ? 1 : -1, true);
+  for (let i = 0; i < 2; i++) addWingTrail(wingTipPosition(p, basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0) + p.spin), i ? 1 : -1), i ? 1 : -1, true);
 }
 
 // ------------------------------------------------------------ life cycle ----
@@ -3729,6 +4859,7 @@ function updateGame(dtRaw) {
     updateMissiles(dt);
     updateEnemies(dt);
     updateGround(dt);
+    updateGunBullets(dt);
     updateEffects(dt);
     updateVapor(dt);
     updateWaveLogic(dt);
@@ -3742,6 +4873,7 @@ function updateGame(dtRaw) {
     updateVapor(dt);
     updateEnemies(dt);
     updateMissiles(dt);
+    updateGunBullets(dt);
     updateGround(dt);
     updateCamera(dt);
     G.respite -= dt;
@@ -3764,6 +4896,7 @@ function updateGame(dtRaw) {
     G.dyingTimer -= raw;
     updateEffects(dt);
     updateMissiles(dt);
+    updateGunBullets(dt);
     updateVapor(dt);
     updateEnemies(dt * 0.6);
     updateCamera(dt);
@@ -3790,7 +4923,7 @@ function updateTitle(dt) {
   const t = G.titleTime;
   p.yaw = wrapAngle((G.playerTitleYaw || 0.6) + Math.sin(t * 0.085) * 0.32 + Math.sin(t * 0.031 + 1.4) * 0.15);
   const gh = G.map.heightAt(p.pos.x, p.pos.z);
-  const targetAlt = Math.max(gh + 320, 520);
+  const targetAlt = Math.max(gh + 250, 320);
   p.pitch = clamp((targetAlt - p.pos.y) / 900, -0.10, 0.10);
   p.roll = Math.sin(t * 0.6) * 0.07;
   p.speed = 92;
@@ -3802,8 +4935,14 @@ function updateTitle(dt) {
   p.pos.y += fwd.y * p.speed * dt;
   if (p.pos.y < gh + 160) p.pos.y = gh + 160;
   if (G.map.heightAt(p.pos.x, p.pos.z) > p.pos.y - 60) p.pitch = 0.2;
-  // subtle trail
-  if (Math.random() < dt * 20) addWingTrail(vadd(p.pos, vmul(p.basis.right, -4.9)), -1);
+  // subtle paired wing-tip trails
+  p.vaporTimer -= dt;
+  if (p.vaporTimer <= 0) {
+    p.vaporTimer = 0.05;
+    const b = basisFrom(p.yaw, p.pitch, p.roll + p.spin);
+    addWingTrail(wingTipPosition(p, b, 1), 1);
+    addWingTrail(wingTipPosition(p, b, -1), -1);
+  }
   updateCamera(dt);
   updateEffects(dt);
   updateVapor(dt);
@@ -4049,7 +5188,7 @@ function spawnDrone(index = 0) {
     kind: 'drone', isGround: false,
     pos: { x, y: alt, z },
     yaw: Math.atan2(p.pos.x - x, -(p.pos.z - z)),
-    pitch: 0, roll: 0, speed: 108, energy: 100,
+    pitch: 0, roll: 0, speed: 108 * (G.enemySpeedScale ?? 1), energy: 100,
     hp: DRONE_MAX_HP, dead: false, aware: 0, state: 'patrol', fleeT: 0,
     missileCd: rr(3.0, 7.0), gunCd: rr(1, 2.5), gunBurst: 0,
     losTimer: rr(0, 0.3), los: true, age: 0,
@@ -4079,6 +5218,20 @@ function targetConcealed(t) {
   return G.map.cloudDensity(t.pos.x, t.pos.y + 1, t.pos.z) > 0.28;
 }
 
+// 近俯视中只把屏外目标的标记放在对应的画框边，不移动目标或改变世界判定。
+function projectTargetMarker(pos, s) {
+  s.edge = false;
+  const projected = projectToScreen(pos, s);
+  if (G.view !== 0 || G.viewBlend < 1) return projected;
+  const cx = VW / 2, cy = VH / 2;
+  if (projected && s.x >= 18 && s.x <= VW-18 && s.y >= 18 && s.y <= VH-18) return true;
+  const dx = pos.x - G.player.pos.x, dz = pos.z - G.player.pos.z;
+  if (Math.abs(dx) + Math.abs(dz) < .001) return false;
+  const scale = 1 / Math.max(Math.abs(dx)/(cx-18), Math.abs(dz)/(cy-18));
+  s.x = cx + dx*scale; s.y = cy + dz*scale; s.edge = true;
+  return true;
+}
+
 function updateLockOn(dt) {
   const p = G.player;
   const L = G.lock;
@@ -4096,7 +5249,7 @@ function updateLockOn(dt) {
     const dir = vnorm(vsub(t.pos, p.pos));
     if (vdot(dir, p.basis.fwd) < 0.25) continue;
     if (targetConcealed(t)) continue;
-    if (!projectToScreen({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.5), z: t.pos.z }, tmp)) continue;
+    if (!projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.5), z: t.pos.z }, tmp)) continue;
     if (tmp.x < -20 || tmp.x > VW + 20 || tmp.y < -20 || tmp.y > VH + 20) continue;
     const dx = tmp.x - aim.x, dy = tmp.y - aim.y;
     const d2 = dx * dx + dy * dy;
@@ -4122,7 +5275,7 @@ function updateLockOn(dt) {
     // break if the target slips out of the cone or is concealed
     const d = vdist(p.pos, t.pos);
     const dir = vnorm(vsub(t.pos, p.pos));
-    const off = projectToScreen({ x: t.pos.x, y: t.pos.y + 1.5, z: t.pos.z }, tmp);
+    const off = projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.5), z: t.pos.z }, tmp);
     const far = !off || Math.hypot(tmp.x - aim.x, tmp.y - aim.y) > radius * 1.34;
     if (d > 2900 || vdot(dir, p.basis.fwd) < 0.12 || far || targetConcealed(t)) {
       L.progress = Math.max(0, L.progress - dt * 3.5);
@@ -4159,6 +5312,18 @@ function updatePlayerGuns(dt) {
   if (INPUT.left || INPUT.keys.has('KeyF') || INPUT.touchGun) firePlayerGuns();
 }
 
+function spawnGunBullet(origin, velocity, owner, damage, color = '#f2c270') {
+  const b = {
+    owner, pos: vcopy(origin), vel: vcopy(velocity), damage,
+    life: GUN_BULLET_LIFE, radius: 1.8, color,
+  };
+  G.bullets.push(b);
+  if (G.bullets.length > 240) G.bullets.shift();
+  const tail = vsub(origin, vmul(vnorm(velocity), 13));
+  addTracer(tail, origin, color, owner === 'player' ? 1.3 : 1.1);
+  return b;
+}
+
 function firePlayerGuns() {
   const p = G.player;
   if (!p || p.dead || G.mode !== 'play' || p.gunCd > 1e-6) return;
@@ -4166,66 +5331,90 @@ function firePlayerGuns() {
   G.stats.shots++;
   const b = p.basis;
   const origin = vadd(p.pos, vmul(b.fwd, 6));
-  let distance = GUN_RANGE, target = null;
-  for (const t of collectTargets()) {
-    const offset = vsub(targetAimPoint(t), origin);
-    const along = vdot(offset, b.fwd);
-    const radius = (t.radius || 7) + 3;
-    const side2 = vdot(offset, offset) - along * along;
-    if (side2 > radius * radius || along < 0) continue;
-    const entry = Math.max(0, along - Math.sqrt(Math.max(0, radius * radius - side2)));
-    if (entry < distance) { distance = entry; target = t; }
-  }
-  // 沿射线检查山体，不能隔着地形命中敌机。
-  const steps = Math.max(1, Math.ceil(distance / 12));
-  for (let i = 0; i <= steps; i++) {
-    const d = distance * i / steps;
-    const point = vadd(origin, vmul(b.fwd, d));
-    if (point.y <= Math.max(0, G.map.heightAt(point.x, point.z)) + 1) {
-      distance = d; target = null;
-      spawnSparks(point, 2, '#d4a16a');
-      break;
-    }
-  }
-  const end = vadd(origin, vmul(b.fwd, distance));
-  addTracer(origin, end, '#f2c270', 1);
+  const velocity = vmul(b.fwd, GUN_BULLET_SPEED);
+  spawnGunBullet(origin, velocity, 'player', GUN_DAMAGE, '#f2c270');
   spawnBurst(origin, 2, '#e9ae56', 3, 0.06);
-  if (target) {
-    if (target.isGround) hitGround(target, GUN_DAMAGE, end);
-    else hitDrone(target, GUN_DAMAGE, end);
-  }
   AudioSys.gunshot(0.7);
 }
 
+function segmentHitsTerrain(from, to, clearance = 1) {
+  const length = vdist(from, to);
+  const steps = Math.max(1, Math.ceil(length / 10));
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const point = vlerp(from, to, t);
+    const ground = Math.max(G.map.heightAt(point.x, point.z), 0) + clearance;
+    if (point.y <= ground) {
+      const prev = vlerp(from, to, Math.max(0, (i - 1) / steps));
+      const denom = point.y - prev.y;
+      const hitT = Math.abs(denom) > 1e-6 ? clamp((ground - prev.y) / denom, 0, 1) : 0;
+      return vlerp(prev, point, hitT);
+    }
+  }
+  return null;
+}
+
+function updateGunBullets(dt) {
+  for (const b of G.bullets) {
+    if (b.dead) continue;
+    b.life -= dt;
+    if (b.life <= 0) { b.dead = true; continue; }
+    const from = vcopy(b.pos);
+    b.vel.y -= GUN_BULLET_GRAVITY * dt;
+    b.pos = vadd(b.pos, vmul(b.vel, dt));
+    addTracer(vsub(b.pos, vmul(vnorm(b.vel), 13)), b.pos, b.color, b.owner === 'player' ? 1.3 : 1.1);
+    const terrain = segmentHitsTerrain(from, b.pos, 1);
+    if (terrain) {
+      b.dead = true;
+      spawnSparks(terrain, 2, '#d4a16a');
+      continue;
+    }
+    const targets = b.owner === 'player' ? collectTargets() : (G.player && !G.player.dead ? [G.player] : []);
+    let hit = null;
+    for (const target of targets) {
+      const point = targetAimPoint(target) || target.pos;
+      if (missilePassesNear(from, b.pos, point, (target.radius || 7) + b.radius)) { hit = target; break; }
+    }
+    if (hit) {
+      b.dead = true;
+      if (b.owner === 'player') {
+        if (hit.isGround) hitGround(hit, b.damage, hit.pos); else hitDrone(hit, b.damage, hit.pos);
+      } else {
+        damagePlayer(b.damage, 'guns');
+        spawnSparks(G.player.pos, 2, '#ffbf80');
+      }
+    }
+  }
+  G.bullets = G.bullets.filter(b => !b.dead);
+}
+
 // --------------------------------------------------------------- missiles ---
-function makeMissileOwnerRef(owner) { return owner; }
+function wingRailPosition(p, slot) {
+  const b = p.renderBasis || p.basis, outer = Math.floor(slot / 2);
+  const side = (slot % 2 ? 1 : -1) * (2.2 + outer * 1.05);
+  return vmad(vmad(vmad(p.pos, b.right, side), b.up, -0.52), b.fwd, 0.8 + outer * 1.35);
+}
 
 function spawnPlayerMissile() {
   const p = G.player;
-  const t = G.lock.phase === 'locked' ? G.lock.target : null;
-  const b = p.basis;
-  const side = (p.railFlip = !p.railFlip ? 1 : -1);
-  const lateral = side > 0 ? 3.55 : -3.0;
-  const origin = vadd(vadd(p.pos, vmul(b.right, lateral)), vadd(vmul(b.up, -0.45), vmul(b.fwd, 1.8)));
-  const dir = vnorm(b.fwd);
-  const speed = p.speed + 35;
+  const t = G.lock.phase === 'locked' && G.lock.target && !G.lock.target.dead ? G.lock.target : null;
+  const slot = p.nextRail || 0, origin = wingRailPosition(p, slot);
+  p.nextRail = (slot + 1) % 4;
+  const dir = (p.renderBasis || p.basis).fwd;
+  const speed = Math.max(MISSILE_PLAYER_SPEED, p.speed + 35);
   const m = {
     owner: 'player', kind: 'player',
     pos: origin, vel: vmul(dir, speed), speed,
     target: t, alive: true, dead: false,
-    life: 6.5, age: 0, turnRate: 2.9,
-    smokeTimer: 0, trailTimer: 0,
+    life: 14, age: 0, turnRate: 2.9, gravity: MISSILE_GRAVITY,
+    accel: 110, maxSpeed: MISSILE_PLAYER_MAX_SPEED,
+    trail: startMissileTrail(origin, dir),
     lost: false, lostTimer: 0,
-    offset: { x: rr(-0.6, 0.6), y: rr(-0.3, 0.3), z: rr(-0.6, 0.6) },
     hitRadius: 20, damage: 130,
-    surface: null, smokeBig: false,
   };
   G.missiles.push(m);
   G.stats.shots++;
-  spawnBurst(origin, 6, '#ffd08a', 14);
-  for (let i = 0; i < 2; i++) {
-    addSmoke(vadd(origin, { x: rr(-1.5, 1.5), y: rr(-1.5, 1.5), z: rr(-1.5, 1.5) }), rr(0.9, 1.8), 0.45, true, 1.2);
-  }
+  spawnBurst(origin, 4, '#ffd08a', 11);
   addShake(0.18);
   G.flash = Math.max(G.flash, 0.1);
   AudioSys.launch();
@@ -4247,21 +5436,19 @@ function spawnEnemyMissile(origin, aimedAt, source) {
   const p = G.player;
   const targetPos = aimedAt || p.pos;
   const dir = vnorm(vsub(targetPos, origin));
-  const wave = G.wave || 1;
-  const speed = Math.min(230, 150 + wave * 6) * 0.55;
+  const speed = MISSILE_ENEMY_SPEED;
   const m = {
     owner: 'enemy', kind: 'enemy',
     pos: vcopy(origin), vel: vmul(dir, speed), speed,
     target: p, dead: false,
-    life: 9.5, age: 0, turnRate: 1.05,
-    smokeTimer: 0, trailTimer: 0,
+    life: 9.5, age: 0, turnRate: 1.35, gravity: MISSILE_GRAVITY,
+    accel: 42, maxSpeed: MISSILE_ENEMY_MAX_SPEED,
+    trail: startMissileTrail(origin, dir),
     lost: false, lostTimer: 0, decoy: false,
-    damage: 30 + Math.min(14, wave * 1.4),
+    damage: 30 + Math.min(14, (G.wave || 1) * 1.4),
     hitRadius: 12, source,
-    smokeBig: true,
   };
   G.missiles.push(m);
-  for (let i = 0; i < 2; i++) addSmoke(vadd(origin, { x: rr(-2, 2), y: rr(-1.5, 1.5), z: rr(-2, 2) }), rr(1.2, 2.2), 0.5, true, 1.5);
   const d = vdist(origin, G.player.pos);
   if (d < 1700) AudioSys.launch();
   return m;
@@ -4306,100 +5493,74 @@ function updateMissiles(dt) {
     let desired = null;
     if (m.owner === 'player') {
       if (m.target && !m.target.dead) {
-        if (m.target.isGround) {
-          if (G.map.cloudDensity(m.target.pos.x, m.target.pos.y + 1, m.target.pos.z) > 0.4 && rng() < dt * 2) { m.lost = true; }
-        }
+        if (m.target.isGround && G.map.cloudDensity(m.target.pos.x, m.target.pos.y + 1, m.target.pos.z) > 0.4 && rng() < dt * 2) m.lost = true;
         if (!m.lost) desired = targetAimPoint(m.target);
-      } else {
-        m.target = null;
-      }
-      m.speed = Math.min(325, m.speed + 110 * dt);
-    } else {
-      // enemy missile
-      if (m.lost) {
-        m.lostTimer -= dt;
-        if (m.lostTimer <= 0) { m.dead = true; spawnExplosion(m.pos, 0.3, 'air', { smoke: 2 }); continue; }
-      } else if (p && !p.dead) {
-        if (p.invuln > 0.25 && vdist(m.pos, p.pos) < 32) {
-          m.lost = true; m.lostTimer = 0.7;
-        }
-        const conceal = G.map.cloudDensity(p.pos.x, p.pos.y, p.pos.z);
-        const concealChance = (conceal > 0.28 ? 0.55 : 0) + (p.agl < 42 ? 0.2 : 0) + (p.skimming ? 0.25 : 0);
-        if (concealChance > 0 && rng() < concealChance * dt * 1.8) {
-          m.lost = true; m.lostTimer = 1.0;
-        }
-        if (m.decoy && rng() < dt * 3) { m.lost = true; m.lostTimer = 0.5; }
-        if (!m.lost) {
-          const lead = vadd(p.pos, vmul(p.basis.fwd, p.speed * 0.35));
-          desired = lead;
-        }
-      }
-      m.speed = Math.min(m.speed + 22 * dt, 250);
-    }
-    if (desired) {
-      const dir = vnorm(m.vel);
-      const want = vnorm(vsub(desired, m.pos));
-      const nd = rotateTowards(dir, want, m.turnRate * dt);
-      m.vel = vmul(nd, m.speed);
-    } else {
-      m.vel = vmul(vnorm(m.vel), m.speed);
-    }
-    const previousPos = vcopy(m.pos);
-    m.pos.x += m.vel.x * dt;
-    m.pos.y += m.vel.y * dt;
-    m.pos.z += m.vel.z * dt;
-
-    // trail
-    m.smokeTimer -= dt;
-    if (m.smokeTimer <= 0) {
-      m.smokeTimer = m.smokeBig ? 0.022 : 0.03;
-      addSmoke(m.pos, m.smokeBig ? rr(1.5, 3.0) : rr(0.8, 1.7), m.smokeBig ? 1.5 : 0.95, true, m.smokeBig ? 2.2 : 1.5);
-      if (m.owner === 'player' && Math.random() < 0.5) spawnBurst(m.pos, 1, '#ffcf8a', 3, 0.15);
+      } else m.target = null;
+    } else if (m.lost) {
+      m.lostTimer -= dt;
+      if (m.lostTimer <= 0) { m.dead = true; spawnExplosion(m.pos, 0.3, 'air', { smoke: 2 }); continue; }
+    } else if (p && !p.dead) {
+      if (p.invuln > 0.25 && vdist(m.pos, p.pos) < 32) { m.lost = true; m.lostTimer = 0.7; }
+      const conceal = G.map.cloudDensity(p.pos.x, p.pos.y, p.pos.z);
+      const concealChance = (conceal > 0.28 ? 0.55 : 0) + (p.agl < 42 ? 0.2 : 0) + (p.skimming ? 0.25 : 0);
+      if (concealChance > 0 && rng() < concealChance * dt * 1.8) { m.lost = true; m.lostTimer = 1.0; }
+      if (m.decoy && rng() < dt * 3) { m.lost = true; m.lostTimer = 0.5; }
+      if (!m.lost) desired = vadd(p.pos, vmul(p.basis.fwd, p.speed * 0.35));
     }
 
-    // terrain impact
-    const gh = G.map.heightAt(m.pos.x, m.pos.z);
-    if (m.pos.y <= Math.max(gh, 0) + 1.0) {
-      m.dead = true;
-      const water = gh < 0;
-      const point = { x: m.pos.x, y: Math.max(gh, 0) + 0.5, z: m.pos.z };
-      spawnExplosion(point, m.owner === 'player' ? 1.1 : 0.9, water ? 'water' : 'ground');
-      if (m.owner === 'player') detonatePlayerMissile(m, point);
-      else if (p && !p.dead && vdist(point, p.pos) < 35 && !m.lost) damagePlayer(m.damage * 0.5, 'missile');
-      AudioSys.explosion(0.6, false);
-      addShake(0.2);
-      continue;
-    }
+    const steps = Math.max(1, Math.ceil(dt / 0.0125));
+    const stepDt = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const oldVelocity = m.vel, from = m.pos;
+      const age = m.age - dt + (i + 0.5) * stepDt;
+      const steer = m.owner === 'player' ? smoothstep(0.12, 0.32, age) : 1;
+      if (desired && steer > 0) {
+        const dir = rotateTowards(vnorm(m.vel), vnorm(vsub(desired, from)), m.turnRate * steer * stepDt);
+        m.vel = vmul(dir, Math.min(m.maxSpeed, m.speed + m.accel * stepDt));
+      } else m.vel = vcopy(oldVelocity);
+      m.vel.y -= (m.gravity || MISSILE_GRAVITY) * stepDt;
+      m.speed = vlen(m.vel);
+      m.pos = vmad(from, vadd(oldVelocity, m.vel), 0.5 * stepDt);
 
-    // proximity / target hit
-    if (m.owner === 'player') {
-      let hit = false;
-      if (m.target && !m.target.dead) {
-        const aim = targetAimPoint(m.target);
-        if (missilePassesNear(previousPos, m.pos, aim, m.hitRadius + (m.target.isGround ? 8 : 4))) {
-          hit = true;
-          detonatePlayerMissile(m, aim);
-        }
-      } else {
-        // proximity fuse on any target
-        for (const t of collectTargets()) {
-          const ap = targetAimPoint(t);
-          if (missilePassesNear(previousPos, m.pos, ap, 16)) { m.target = t; hit = true; detonatePlayerMissile(m, ap); break; }
-        }
-      }
-      if (hit) { m.dead = true; continue; }
-    } else {
-      if (p && !p.dead && missilePassesNear(previousPos, m.pos, p.pos, m.hitRadius)) {
+      const terrain = segmentHitsTerrain(from, m.pos, 1);
+      if (m.trail) sampleMissileTrail(m.trail, vmad(terrain || m.pos, m.vel, -3 / (m.speed || 1)));
+      if (terrain) {
         m.dead = true;
-        const wasInvuln = p.invuln > 0.2;
-        if (!wasInvuln) {
+        const gh = G.map.heightAt(terrain.x, terrain.z), water = gh < 0;
+        const point = { x: terrain.x, y: Math.max(gh, 0) + 0.5, z: terrain.z };
+        if (m.owner === 'player') detonatePlayerMissile(m, point);
+        else {
+          spawnExplosion(point, 0.9, water ? 'water' : 'ground');
+          if (p && !p.dead && vdist(point, p.pos) < 35 && !m.lost) damagePlayer(m.damage * 0.5, 'missile');
+          AudioSys.explosion(0.6, false);
+          addShake(0.2);
+        }
+        break;
+      }
+
+      if (m.owner === 'player') {
+        let hit = false;
+        if (m.target && !m.target.dead) {
+          const aim = targetAimPoint(m.target);
+          if (missilePassesNear(from, m.pos, aim, m.hitRadius + (m.target.isGround ? 8 : 4))) {
+            detonatePlayerMissile(m, aim);
+            hit = true;
+          }
+        } else {
+          for (const t of collectTargets()) {
+            const aim = targetAimPoint(t);
+            if (missilePassesNear(from, m.pos, aim, m.hitRadius)) { m.target = t; detonatePlayerMissile(m, aim); hit = true; break; }
+          }
+        }
+        if (hit) { m.dead = true; break; }
+      } else if (p && !p.dead && missilePassesNear(from, m.pos, p.pos, m.hitRadius)) {
+        m.dead = true;
+        if (p.invuln <= 0.2) {
           damagePlayer(m.damage, 'missile');
           spawnExplosion(p.pos, 0.9, 'air', { player: true });
           G.flash = 0.5;
-        } else {
-          spawnExplosion(m.pos, 0.45, 'air', { smoke: 4 });
-        }
-        continue;
+        } else spawnExplosion(m.pos, 0.45, 'air', { smoke: 4 });
+        break;
       }
     }
   }
@@ -4592,7 +5753,7 @@ function updateEnemies(dt) {
       e.pitch = Math.max(e.pitch, 0.16);
     }
     steerDrone(e, desired, dt);
-    e.speed = damp(e.speed, speedTarget, 1.4, dt);
+    e.speed = damp(e.speed, speedTarget * (G.enemySpeedScale ?? 1), 1.4, dt);
     const f = e.basis.fwd;
     e.pos.x += f.x * e.speed * dt;
     e.pos.y += f.y * e.speed * dt;
@@ -4645,24 +5806,16 @@ function updateEnemies(dt) {
 function fireDroneGuns(e, p, dist) {
   const muzzle = vadd(vadd(e.pos, vmul(e.basis.fwd, 5.0)), vmul(e.basis.right, rr(-1.5, 1.5)));
   const conceal = playerExposureFactor(p);
-  const invuln = p.invuln > 0.2;
-  let hitChance = clamp(0.42 - dist / 1600, 0.05, 0.4) * (conceal > 0.6 ? 0.75 : 0.35);
-  if (invuln) hitChance = 0;
-  const tracers = 4;
-  for (let i = 0; i < tracers; i++) {
-    const t = 0.35 + i * 0.06;
-    const target = vadd(p.pos, { x: rr(-12, 12), y: rr(-8, 8), z: rr(-12, 12) });
-    const end = vlerp(muzzle, target, t + 0.12);
-    addTracer(muzzle, end, '#ffca8a', 2);
-    addTracer(muzzle, vlerp(muzzle, end, 0.65), '#fff0c8', 1);
+  const spread = 8 + (1 - conceal) * 26;
+  const bulletSpeed = GUN_BULLET_SPEED * 0.82;
+  const leadTime = Math.min(0.9, dist / bulletSpeed);
+  for (let i = 0; i < 4; i++) {
+    const target = vadd(vadd(p.pos, vmul(p.basis.fwd, p.speed * leadTime)), {
+      x: rr(-spread, spread), y: rr(-spread * 0.6, spread * 0.6), z: rr(-spread, spread),
+    });
+    spawnGunBullet(muzzle, vmul(vnorm(vsub(target, muzzle)), bulletSpeed), 'enemy', 4.2 + Math.min(2, G.wave * 0.2), '#ffca8a');
   }
   spawnBurst(muzzle, 2, '#ffd9a0', 6, 0.18);
-  if (Math.random() < hitChance) {
-    const dmg = 3.2 + Math.min(4, G.wave * 0.35);
-    damagePlayer(dmg, 'guns');
-    spawnSparks(p.pos, 3, '#ffbf80');
-    addTracer(muzzle, p.pos, '#fff5cf', 1);
-  }
   if (dist < 900) AudioSys.gunshot(clamp(1 - dist / 1400, 0.1, 1));
 }
 
@@ -4702,9 +5855,9 @@ function updateGround(dt) {
 function capEffects() {
   while (G.effects.length > 820) G.effects.shift();
 }
-function addSmoke(pos, size, life, dark = false, growth = null) {
+function addSmoke(pos, size, life, dark = false, growth = null, rise = rr(1, 5)) {
   G.effects.push({
-    type: 'smoke', pos: vcopy(pos), vel: { x: rr(-2, 2), y: rr(1, 5), z: rr(-2, 2) },
+    type: 'smoke', pos: vcopy(pos), vel: { x: rr(-2, 2), y: rise, z: rr(-2, 2) },
     life, maxLife: life, size, growth: growth === null ? rr(3, 10) : growth, dark,
     drift: rr(0, TAU)
   });
@@ -4733,6 +5886,23 @@ function spawnDebris(pos, baseVel) {
 function addTracer(a, b, color, width = 1) {
   G.tracers.push({ a: vcopy(a), b: vcopy(b), color, width, life: 0.09, maxLife: 0.09 });
   if (G.tracers.length > 120) G.tracers.shift();
+}
+function startMissileTrail(origin, dir) {
+  const tail = vmad(origin, dir, -3);
+  const trail = { points: [{ pos: tail, life: MISSILE_TRAIL_LIFE }], tip: tail, tipLife: MISSILE_TRAIL_LIFE, carry: 0 };
+  G.missileTrails.push(trail);
+  if (G.missileTrails.length > 28) G.missileTrails.shift();
+  return trail;
+}
+function sampleMissileTrail(trail, tail) {
+  const from = trail.tip, length = vdist(from, tail);
+  // 把上一段不足一个采样间距的余量带过来，低帧率也不断线。
+  for (let d = MISSILE_TRAIL_SPACING - trail.carry; d <= length; d += MISSILE_TRAIL_SPACING) {
+    trail.points.push({ pos: vlerp(from, tail, d / length), life: MISSILE_TRAIL_LIFE });
+    if (trail.points.length > 112) trail.points.shift();
+  }
+  trail.carry = (trail.carry + length) % MISSILE_TRAIL_SPACING;
+  trail.tip = tail; trail.tipLife = MISSILE_TRAIL_LIFE;
 }
 function addWingTrail(pos, side, strong = false) {
   G.vapor.push({ pos: vcopy(pos), side, life: strong ? 0.7 : 0.45, maxLife: strong ? 0.7 : 0.45, size: strong ? 1.8 : 1.1 });
@@ -4791,7 +5961,11 @@ function spawnExplosion(pos, scale = 1, kind = 'air', opts = {}) {
     G.effects.push({ type: 'ring', pos: at, vel: { x: 0, y: 0, z: 0 }, life: 0.5, maxLife: 0.5,
       size: 5 * s, growth: 40 * s, color: '#e5cfa8', flat: true, delay });
     addScorch(at, 18 * s);
-    for (let i = 0; i < 5; i++) addSmoke({ x: at.x + rr(-10, 10), y: at.y + rr(4, 12), z: at.z + rr(-10, 10) }, rr(6, 14), 2.5, true);
+    // 火光只闪一下，分层升起的烟才让玩家看清远岸的落点。
+    for (let i = 0; i < 5; i++) {
+      const puff = { x: at.x + rr(-12, 12) * s, y: at.y + 3 + i * 2, z: at.z + rr(-9, 9) * s };
+      addSmoke(puff, (8 + i) * s, 2.2 + i * 0.24, true, (5 + i) * s, (13 + i * 8) * s);
+    }
   } else {
     // air burst
     G.effects.push({ type: 'fire', pos: at, vel: { x: 0, y: 3, z: 0 }, life: 0.5, maxLife: 0.5, size: 9 * s, growth: 30 * s, color: '#fff2c8', delay });
@@ -4822,6 +5996,13 @@ function addScorch(pos, size) {
 }
 
 function updateEffects(dt) {
+  for (let i = G.missileTrails.length - 1; i >= 0; i--) {
+    const trail = G.missileTrails[i];
+    for (const point of trail.points) point.life -= dt;
+    while (trail.points.length && trail.points[0].life <= 0) trail.points.shift();
+    trail.tipLife -= dt;
+    if (trail.tipLife <= 0 && !trail.points.length) G.missileTrails.splice(i, 1);
+  }
   for (let i = G.effects.length - 1; i >= 0; i--) {
     const f = G.effects[i];
     if (f.delay > 0) { f.delay -= dt; continue; }
@@ -5028,15 +6209,46 @@ function drawScorchDecals() {
 }
 
 function drawVaporPoints() {
+  const bySide = new Map();
   for (const v of G.vapor) {
     const s = {};
     if (!projectToScreen(v.pos, s) || !s.visible) continue;
-    const a = clamp01(v.life / v.maxLife);
-    const ppm = pxPerM(s.dist);
-    const r = Math.max(0.6, v.size * ppm);
-    ctx.globalAlpha = a * 0.34;
-    ctx.fillStyle = '#e8f1f4';
-    ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, TAU); ctx.fill();
+    const side = v.side || 0;
+    const points = bySide.get(side) || [];
+    points.push({ v, s });
+    bySide.set(side, points);
+  }
+  for (const [side, points] of bySide) {
+    const last = points.at(-1).v;
+    if (side && G.player && !G.player.dead && G.view !== 2 && last.maxLife - last.life <= 0.1) {
+      // 衔接当帧真实翼尖，避免采样间隔和滚转带来的近端断口。
+      const pos = wingTipPosition(G.player, G.player.renderBasis, side), s = {};
+      if (projectToScreen(pos, s) && s.visible) points.push({ v: { pos, life: 1, maxLife: 1 }, s });
+    }
+    if (points.length < 2) continue;
+    ctx.save();
+    ctx.strokeStyle = '#e8f1f4';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    let open = false;
+    for (let i = 0; i < points.length; i++) {
+      const { v, s } = points[i];
+      const prev = points[i - 1];
+      const gap = prev && vdist(prev.v.pos, v.pos) > 120;
+      if (!open || gap) {
+        ctx.moveTo(s.x, s.y);
+        open = true;
+      } else {
+        ctx.lineTo(s.x, s.y);
+      }
+    }
+    const life = points.reduce((sum, point) => sum + clamp01(point.v.life / point.v.maxLife), 0) / points.length;
+    const ppm = points.reduce((sum, point) => sum + pxPerM(point.s.dist), 0) / points.length;
+    ctx.globalAlpha = life * 0.42;
+    ctx.lineWidth = Math.max(0.85, Math.min(1.65, ppm * 0.45));
+    ctx.stroke();
+    ctx.restore();
   }
   ctx.globalAlpha = 1;
 }
@@ -5064,7 +6276,67 @@ function drawTracers() {
   }
 }
 
+let missileSmokeStamp;
+function drawMissileTrails() {
+  if (!G.missileTrails.length) return;
+  if (!missileSmokeStamp) {
+    const tile = document.createElement('canvas'); tile.width = tile.height = 24;
+    const ink = tile.getContext('2d'), colors = ['#a49aa1', '#cbbcb4', '#e8d9c4', '#fff0d2'];
+    // 原创的小烟团只画一次；亮面和透空边缘随烟走，不在屏幕上抖动。
+    for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) {
+      const u = (x - 11.5) / 12, v = (y - 11.5) / 12;
+      const edge = Math.min(Math.hypot(u + 0.23, v + 0.10) / 0.68,
+        Math.hypot(u - 0.22, v - 0.05) / 0.67, Math.hypot(u + 0.03, v - 0.28) / 0.59);
+      const grain = bayer(x, y);
+      if (edge > 1.07 - grain * 0.22) continue;
+      ink.fillStyle = colors[clamp(Math.floor(2.65 - v * 1.4 - u * 0.72 - edge * 0.85 + grain * 0.90), 0, 3)];
+      ink.fillRect(x, y, 1, 1);
+    }
+    missileSmokeStamp = tile;
+  }
+  ctx.save();
+  ctx.lineCap = 'butt';
+  const a = {}, b = {}, drift = {};
+  for (const trail of G.missileTrails) {
+    let prev = a, next = b, projected = false;
+    for (let i = 0; i <= trail.points.length; i++) {
+      const tip = i === trail.points.length;
+      const pos = tip ? trail.tip : trail.points[i].pos;
+      const life = tip ? trail.tipLife : trail.points[i].life;
+      if (!pos || life <= 0) { projected = false; continue; }
+      const fresh = clamp01(life / MISSILE_TRAIL_LIFE), age = 1 - fresh;
+      // 只让冷烟在绘制时轻微上浮、卷散；不搬动飞行留下的世界采样点。
+      const phase = pos.x * 0.037 + pos.y * 0.021 + pos.z * 0.046;
+      const curl = age * age, ripple = Math.sin(phase);
+      drift.x = pos.x + curl * ripple * 1.8;
+      drift.y = pos.y + curl * (2.1 + Math.cos(phase * 0.72));
+      drift.z = pos.z + curl * Math.cos(phase) * 1.3;
+      const ok = projectToScreen(drift, next) && next.dist > 3;
+      if (projected && ok && (prev.visible || next.visible)) {
+        const depth = (prev.dist + next.dist) * 0.5;
+        const width = clamp(pxPerM(depth) * (0.44 + age * 1.25) * (1 + 0.20 * age * ripple), 0.70, 2.8);
+        const alpha = Math.pow(fresh, 1.25) * (0.18 + 0.82 * smoothstep(12, 70, depth)) * (1 + age * 0.15 * ripple);
+        ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(next.x, next.y);
+        ctx.lineWidth = width; ctx.strokeStyle = '#bdb5ae'; ctx.globalAlpha = 0.13 * alpha; ctx.stroke();
+        ctx.lineWidth = width * 0.62; ctx.strokeStyle = fresh > 0.72 ? '#ffedc9' : fresh > 0.4 ? '#e0d4c4' : '#c4c0bc';
+        ctx.globalAlpha = (0.10 + 0.28 * fresh) * alpha; ctx.stroke();
+      }
+      if (!tip && ok && next.visible) {
+        const size = clamp(pxPerM(next.dist) * (3.2 + 12 * age) * (1 + 0.15 * ripple), 1.1, 44);
+        const separation = projected ? Math.hypot(next.x - prev.x, next.y - prev.y) : size;
+        ctx.globalAlpha = Math.pow(fresh, 0.85) * (0.28 + 0.55 * smoothstep(9, 58, next.dist))
+          * clamp(separation / (size * 0.55), 0.23, 1);
+        ctx.drawImage(missileSmokeStamp, Math.round(next.x - size / 2), Math.round(next.y - size * 0.46), size, size * 0.92);
+      }
+      projected = ok;
+      const swap = prev; prev = next; next = swap;
+    }
+  }
+  ctx.restore();
+}
+
 function drawEffects() {
+  drawMissileTrails();
   const tmp = {};
   // smoke belongs behind the fireball and sparks, not on top of them
   const smokeRank = f => (f.type === 'smoke' || f.type === 'mist') ? 0 : 1;
@@ -5199,30 +6471,34 @@ function drawMissilesAndGlows() {
     const back = { x: m.pos.x - ux * 8, y: m.pos.y - uy * 8, z: m.pos.z - uz * 8 };
     if (!projectToScreen(back, t2)) continue;
     let dx = tmp.x - t2.x, dy = tmp.y - t2.y;
-    const dl = Math.hypot(dx, dy) || 1;
-    dx /= dl; dy /= dl;
-    const ppm = pxPerM(tmp.dist);
-    // stylised size floor keeps the missile readable at combat ranges
-    const len = clamp(Math.round(4.2 * ppm * 2.2), 9, 22);
-    const x = tmp.x, y = tmp.y;
+    const dl = Math.hypot(dx, dy);
+    dx /= dl || 1; dy /= dl || 1;
+    const ppm = pxPerM(tmp.dist), x = tmp.x, y = tmp.y;
+    // 端视时可见的是点状尾焰，不能把几乎为零的投影切线放大成一根黑棍。
+    const len = clamp(Math.min(4.2 * ppm, 1.6 + 0.65 * dl), 1.2, 18);
+    const enemy = m.owner === 'enemy', flameCol = enemy ? '#ff8a3d' : '#ffc46a';
+    if (len <= 2.6) {
+      const ix = Math.round(x), iy = Math.round(y);
+      ctx.save(); ctx.globalAlpha = 0.52; ctx.fillStyle = flameCol; ctx.fillRect(ix - 1, iy - 1, 3, 3);
+      ctx.globalAlpha = 0.94; ctx.fillStyle = '#fff3d2'; ctx.fillRect(ix, iy, 1, 1); ctx.restore();
+      continue;
+    }
     const nx = x + dx * len * 0.62, ny = y + dy * len * 0.62;
     const tx = x - dx * len * 0.38, ty = y - dy * len * 0.38;
     const px = -dy, py = dx;
-    const enemy = m.owner === 'enemy';
     const bodyCol = enemy ? '#d9c9b6' : '#efe8d4';
     const finCol = enemy ? '#6e2f2a' : '#8e929c';
     const noseCol = enemy ? '#ff5d47' : '#c24534';
-    const flameCol = enemy ? '#ff8a3d' : '#ffc46a';
     const flick = 0.75 + 0.25 * Math.sin(G.realTime * 40 + (m.age || 0) * 7);
-    const flameLen = (4 + len * 0.55) * flick;
+    const flameLen = (0.7 + len * 0.35) * flick;
     const ex = tx - dx * flameLen, ey = ty - dy * flameLen;
-    const thick = 2;
-    const fs = Math.max(2, len * 0.16);
-    // dark underlay keeps the missile legible over snow and cloud
-    pixelLine(ex, ey, nx, ny, '#0b0912', thick + 1);
-    // swept tail fins
-    pixelLine(tx - dx * 2 + px * fs, ty - dy * 2 + py * fs, tx + px * (fs + 1.4), ty + py * (fs + 1.4), finCol, 1);
-    pixelLine(tx - dx * 2 - px * fs, ty - dy * 2 - py * fs, tx - px * (fs + 1.4), ty - py * (fs + 1.4), finCol, 1);
+    const thick = len > 8 ? 2 : 1;
+    if (len > 6) {
+      const fs = Math.max(1, len * 0.14);
+      pixelLine(tx, ty, nx, ny, '#51474c', thick + 1);
+      pixelLine(tx - dx * 2 + px * fs, ty - dy * 2 + py * fs, tx + px * (fs + 1), ty + py * (fs + 1), finCol, 1);
+      pixelLine(tx - dx * 2 - px * fs, ty - dy * 2 - py * fs, tx - px * (fs + 1), ty - py * (fs + 1), finCol, 1);
+    }
     // body + red seeker
     pixelLine(tx, ty, nx, ny, bodyCol, thick);
     pixelLine(lerp(tx, nx, 0.76), lerp(ty, ny, 0.76), nx, ny, noseCol, thick);
@@ -5230,17 +6506,10 @@ function drawMissilesAndGlows() {
     pixelLine(ex, ey, tx, ty, flameCol, thick);
     pixelLine(lerp(ex, tx, 0.35), lerp(ey, ty, 0.35), tx, ty, '#fff3c8', 1);
     ctx.save();
-    const qx = Math.round(tx), qy = Math.round(ty);
-    // soft exhaust bloom, still blocky
-    ctx.globalAlpha = 0.16;
-    ctx.fillStyle = flameCol;
-    ctx.fillRect(qx - 3, qy - 1, 7, 3);
-    ctx.fillRect(qx - 1, qy - 3, 3, 7);
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = '#fff6d8';
-    ctx.fillRect(qx - 1, qy - 1, 2, 2);
-    ctx.globalAlpha = 0.35;
-    ctx.fillRect(Math.round(ex) - 1, Math.round(ey) - 1, 3, 3);
+    const qx = Math.round(tx), qy = Math.round(ty), glow = len > 7 ? 2 : 1;
+    ctx.globalAlpha = 0.18; ctx.fillStyle = flameCol;
+    ctx.fillRect(qx - glow, qy, 2 * glow + 1, 1); ctx.fillRect(qx, qy - glow, 1, 2 * glow + 1);
+    ctx.globalAlpha = 0.94; ctx.fillStyle = '#fff6d8'; ctx.fillRect(qx, qy, 1, 1);
     ctx.restore();
   }
   // engine glows
@@ -5357,7 +6626,6 @@ function drawHUD() {
   const cockpit = G.cockpitAlpha;
   drawPitchLadder(cockpit);
   drawHeadingTape();
-  if (G.view === 0 && G.viewBlend > 0.55) drawTopPlayerIcon();
   // target boxes sit under the instrument panels so they never scribble
   // over the shield/fuel/score readouts
   drawTargetMarkers();
@@ -5373,7 +6641,8 @@ function drawHUD() {
   }
   drawWarnings();
   drawBanner();
-  if ((G.mode === 'play' || G.mode === 'waveclear' || G.mode === 'dying') && (!INPUT.touchMode || TOUCH.active)) {
+  if ((G.mode === 'play' || G.mode === 'waveclear' || G.mode === 'dying') && (!INPUT.touchMode || TOUCH.active)
+      && (G.view !== 0 || TOUCH.active || INPUT.mouseSteerAge < MOUSE_STEER_TIMEOUT)) {
     drawMousePip(INPUT.mx, INPUT.my, cockpit > 0.5 ? '#b7e9df' : '#d8efe8');
   }
 }
@@ -5554,7 +6823,7 @@ function drawSpeedAlt() {
   // bank indicator
   const bx = 10, by = y1 + 58;
   drawText('坡度', bx, by, { size: 10, color: '#a99276' });
-  const bankDeg = Math.round(-p.roll * 180 / Math.PI);
+  const bankDeg = Math.round(-wrapAngle(p.roll + (p.inversionRoll || 0)) * 180 / Math.PI);
   const bankStr = String(Math.abs(bankDeg));
   const bankW = textWidth(bankStr, 9, true);
   drawText(bankStr, bx + 66, by, { size: 9, color: '#cbbd9f', mono: true, align: 'right', shadow: '#0b0912' });
@@ -5606,7 +6875,11 @@ function drawTargetMarkers() {
     if (d > 3400) continue;
     if (targetConcealed(t)) continue;
     const s = {};
-    if (!projectToScreen({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.2), z: t.pos.z }, s)) continue;
+    if (!projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.2), z: t.pos.z }, s)) continue;
+    if (s.edge) {
+      drawEdgeCue(s, d, t);
+      continue;
+    }
     if (!s.visible) {
       // edge cue for off-screen enemies
       if (!t.isGround && d < 3200 && s.w > 0) drawEdgeCue(s, d, t);
@@ -5684,7 +6957,8 @@ function drawTargetMarkers() {
     drawText(`${d > 1000 ? (d / 1000).toFixed(1) + 'K' : Math.round(d)}`, x, distY, {
       size: 8, color: col, align: 'center', shadow: '#0b0912', mono: true
     });
-    const labelY = y - (isLock ? 44 : r + 7);
+    const above = y - (isLock ? 44 : r + 7);
+    const labelY = hudBlocked(x, above) || hudBlocked(x, above - 19) ? y + (isLock ? 84 : r + 42) : above;
     drawText(isDrone ? '敌机' : (t.type === 'sam' ? '防空' : '装甲'), x, labelY, {
       size: 10, color: col, align: 'center', alpha: 0.9, shadow: '#0b0912'
     });
@@ -5746,57 +7020,23 @@ function drawEdgeCue(s, d, t) {
   const x = cx + dx * f, y = cy + dy * f;
   const a = Math.atan2(dy, dx);
   ctx.save();
-  ctx.globalAlpha = 0.45;
+  const selected = G.lock.target === t, color = selected ? '#ffe39a' : '#ff9b8c';
+  ctx.globalAlpha = selected ? .95 : .45;
   ctx.translate(x, y);
   ctx.rotate(a);
-  ctx.fillStyle = '#ff9b8c';
+  ctx.fillStyle = color;
   ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-3, -3); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
   ctx.restore();
-  drawText(`${(d / 1000).toFixed(1)}`, x - Math.cos(a) * 10, y - Math.sin(a) * 10 + 3, {
-    size: 5, color: '#ffb2a3', align: 'center', alpha: 0.6, shadow: '#0b0912'
+  const status = selected && s.edge ? (G.lock.phase === 'locked' ? '已锁定 ' : '锁定中 ') : '';
+  drawText(`${status}${(d / 1000).toFixed(1)}`, x - Math.cos(a) * 10, y - Math.sin(a) * 10 + 3, {
+    size: 5, color: selected ? color : '#ffb2a3', align: 'center', alpha: selected ? 1 : .6, shadow: '#0b0912'
   });
-}
-
-function drawTopPlayerIcon() {
-  const p = G.player;
-  if (!p) return;
-  const s = {};
-  if (!projectToScreen(p.pos, s) || !s.visible) return;
-  const x = Math.round(s.x), y = Math.round(s.y);
-  const ppm = pxPerM(s.dist);
-  const size = clamp(10 + 90 * ppm, 9, 17);
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(p.yaw);
-  ctx.fillStyle = 'rgba(8,6,12,0.8)';
-  ctx.beginPath();
-  ctx.moveTo(0, -size - 1);
-  ctx.lineTo(2, -size * 0.32); ctx.lineTo(size * 0.8, -1);
-  ctx.lineTo(size * 0.8, 2); ctx.lineTo(2, 2); ctx.lineTo(1.5, size * 0.42);
-  ctx.lineTo(-1.5, size * 0.42); ctx.lineTo(-2, 2); ctx.lineTo(-size * 0.8, 2);
-  ctx.lineTo(-size * 0.8, -1); ctx.lineTo(-2, -size * 0.32);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#ffd27a';
-  ctx.beginPath();
-  ctx.moveTo(0, -size);
-  ctx.lineTo(1.4, -size * 0.3); ctx.lineTo(size * 0.7, 0);
-  ctx.lineTo(1.4, 1.2); ctx.lineTo(1, size * 0.36);
-  ctx.lineTo(-1, size * 0.36); ctx.lineTo(-1.4, 1.2); ctx.lineTo(-size * 0.7, 0);
-  ctx.lineTo(-1.4, -size * 0.3);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#b7e5db';
-  ctx.fillRect(-1, -size * 0.35, 2, size * 0.5);
-  ctx.restore();
-  ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = '#ffe0a0';
-  ctx.beginPath(); ctx.arc(x, y, size + 3, 0, TAU); ctx.stroke();
-  ctx.restore();
 }
 
 function drawAimReticle() {
   if (G.view === 0) {
-    // top-down command reticle follows the cursor
+    if (!TOUCH.active && !(INPUT.mouseSteerAge < MOUSE_STEER_TIMEOUT)) return;
+    // 仅在实际鼠标或触控瞄准时绘制，闲置光标不能盖住近距机身。
     const x = Math.round(INPUT.mx), y = Math.round(INPUT.my);
     ctx.save();
     ctx.globalAlpha = 0.8;
@@ -6953,45 +8193,390 @@ function drawTouchControls() {
 }
 
 
+// ===== 54_cockpit.js =====
+// 实体舱框、仪表和平显共用当前飞行状态；切换视角时三层一起淡入。
+const SKY_PHOSPHOR = '#b4ef91';
+function skyMetalFace(color, points) {
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(points[0], points[1]);
+  for (let i = 2; i < points.length; i += 2) ctx.lineTo(points[i], points[i + 1]);
+  ctx.closePath(); ctx.fill();
+}
+function skyStamp(s, x, y, size = 5, color = '#ded7b9') {
+  drawText(String(s), x, y, { size, color, align: 'center', mono: true });
+}
+function skyScrew(x, y) {
+  rect(x - 1, y - 1, 4, 4, '#20212b'); rect(x - 1, y - 1, 3, 3, '#72747c');
+  rect(x, y, 2, 1, '#242630'); rect(x - 1, y - 1, 1, 1, '#b3aaa0');
+}
+function skyPlate(x, y, w, h) {
+  const cut = 3;
+  skyMetalFace('#23232e', [x+cut,y, x+w-2,y, x+w,y+2, x+w,y+h, x+2,y+h, x,y+h-2, x,y+cut]);
+  rect(x+2, y+2, w-4, h-5, '#42434e');
+  line(x+3,y+1,x+w-3,y+1,'#696875'); line(x+1,y+3,x+1,y+h-3,'#555765');
+  line(x+3,y+h-3,x+w-3,y+h-3,'#343541');
+  for (const px of [x+5, x+w-7]) for (const py of [y+5, y+h-8]) skyScrew(px,py);
+}
+function skyBezel(x, y, r) {
+  circleFill(x,y+1,r+2,'#252631'); circleFill(x,y,r+1,'#75747b');
+  circleFill(x,y,r,'#20232d'); circleLine(x,y,r-1,'#4b4e59');
+}
+function skyDial(x,y,r,tag,fraction,value) {
+  skyBezel(x,y,r);
+  for (let i = 0; i <= 16; i++) {
+    const a = (140 + 260*i/16) * DEG, dx = Math.cos(a), dy = Math.sin(a), outer = r-3, inner = outer - (i%4 ? 2 : 4);
+    line(x+dx*inner,y+dy*inner,x+dx*outer,y+dy*outer, i===16 ? '#db9971' : i%4 ? '#939398' : '#dbd6c0');
+  }
+  const angle = (140 + 260*clamp01(fraction)) * DEG, dx = Math.cos(angle), dy = Math.sin(angle);
+  line(x-dx*3,y-dy*3,x+dx*(r-4),y+dy*(r-4),'#e8d6a4',1.4);
+  circleFill(x,y,1.8,'#c0a578'); circleFill(x,y,.75,'#46464b');
+  skyStamp(tag,x,y+r*.51,Math.max(4, r*.24),'#d7d2be');
+  if (value != null) {
+    const bw = Math.min(34,r*1.85); rect(x-bw/2,y+r+3,bw,8,'#272831');
+    skyStamp(value,x,y+r+9,6,'#f5daa4');
+  }
+}
+function skyAttitudeBall(x,y,r,bank,pitch) {
+  skyBezel(x,y,r);
+  ctx.save(); ctx.beginPath(); ctx.arc(x,y,r-2,0,TAU); ctx.clip();
+  ctx.translate(x,y); ctx.rotate(bank); ctx.translate(0,clamp(pitch*.95,-1,1)*r);
+  rect(-r*2,-r*4,r*4,r*4,'#7094ac'); rect(-r*2,0,r*4,r*4,'#986f52');
+  rect(-r*2,0,r*4,3,'#dfb782'); rect(-r*2,-1,r*4,1,'#e8ddbd');
+  for (const i of [-2,-1,1,2]) { const half = Math.abs(i)===2 ? r*.3 : r*.19; line(-half,i*r*.21,half,i*r*.21,'#e9dcc0'); }
+  ctx.restore();
+  line(x-r*.58,y,x-r*.2,y,'#333540',3); line(x+r*.2,y,x+r*.58,y,'#333540',3);
+  line(x-r*.58,y-1,x-r*.2,y-1,'#ffe2a1'); line(x+r*.2,y-1,x+r*.58,y-1,'#ffe2a1');
+  line(x-3,y,x,y+3,'#f5d28e'); line(x,y+3,x+3,y,'#f5d28e');
+  for (const d of [-60,-30,0,30,60]) {
+    const a = (d-90)*DEG; line(x+(r-5)*Math.cos(a),y+(r-5)*Math.sin(a),x+(r-2)*Math.cos(a),y+(r-2)*Math.sin(a),'#d5d1c0');
+  }
+}
+function skyThrottle(x,y,w,on) {
+  const cx=x+w*.38, travel=35, lever=y+(on?2:31);
+  rect(cx-3,y,7,travel+9,'#24252d'); rect(cx-2,y+1,2,travel+6,'#171a21');
+  for(let i=0;i<5;i++) line(cx+6,y+3+i*9,cx+9+(i%2?0:2),y+3+i*9,'#a09b92');
+  rect(cx-1,lever+3,3,7,'#8b8480'); rect(cx-7,lever,15,6,'#20232a');
+  rect(cx-7,lever-1,14,4,on?'#c7a57b':'#aba59a'); line(cx-6,lever-1,cx+6,lever-1,'#f0dabe');
+  if(w>=48) {
+    for(const [i,l] of ['加力','巡航'].entries()) {
+      const lit = i === (on ? 0 : 1), px = x+w*.74, py=y+6+i*18;
+      rect(px-9,py-6,18,9,lit?'#524d3e':'#333640'); skyStamp(l,px,py+1,6,lit?'#fcda94':'#aaa8a0');
+    }
+  }
+}
+function skyMapGlass(x,y,w,h,p) {
+  updateRadarMap();
+  rect(x-3,y-3,w+6,h+6,'#22232b'); line(x-2,y+h+2,x+w+2,y+h+2,'#77716a');
+  ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+  // 共享的 56×56 北向实况地形图取中央一半，即从中心到上下边缘 1.5 公里。
+  const zoom = h/1500/2, cx=x+w/2, cy=y+h/2;
+  rect(x,y,w,h,'#4a301f');
+  ctx.drawImage(RADAR.canvas,cx-h,cy-h,2*h,2*h);
+  rect(x,y,w,h,'#b76f29',.30);
+  circleLine(cx,cy,h*.25,'#efb561',.45); circleLine(cx,cy,h*.47,'#f6c17b',.46);
+  line(x,cy,x+w,cy,'#f3b960',1,.35); line(cx,y,cx,y+h,'#f3b960',1,.35);
+  for(let yy=y+2;yy<y+h;yy+=3) rect(x,yy,w,1,'#342621',.15);
+  for(const e of G.enemies) if(!e.dead&&!targetConcealed(e)) {
+    const dx=(e.pos.x-p.pos.x)*zoom, dz=(e.pos.z-p.pos.z)*zoom;
+    if(Math.abs(dx)<w/2&&Math.abs(dz)<h/2) rect(cx+dx-1,cy+dz-1,3,2,'#ffe0a1');
+  }
+  const a=p.yaw, dx=Math.sin(a), dy=-Math.cos(a);
+  line(cx,cy,cx+dx*h*.45,cy+dy*h*.45,'#ffc669');
+  skyMetalFace('#fff0b3',[cx+dx*4,cy+dy*4, cx-dx*2-dy*2,cy-dy*2+dx*2, cx-dx*2+dy*2,cy-dy*2-dx*2]);
+  ctx.restore();
+}
+function skySystemReadings(p) {
+  const firing=G.mode==='play'&&(INPUT.left||INPUT.keys.has('KeyF')||INPUT.touchGun);
+  const reload=p.reloads.length ? ` · ${Math.ceil(Math.max(0,Math.min(...p.reloads)))}s` : '';
+  return [
+    ['燃油',`${Math.ceil(Math.max(0,p.fuel))}%`,p.fuel<18?'warn':p.burning?'active':'normal'],
+    ['护盾',`${Math.ceil(Math.max(0,p.shield))}%`,p.shield<22?'warn':'normal'],
+    ['机炮',p.dead?'离线':firing?'连射':p.gunCd>0?'循环':'待发',p.dead?'warn':firing?'active':'normal'],
+    ['导弹',`${p.missiles}/4${reload}`,p.missiles===0?'warn':reload?'active':'normal'],
+    ['加力',p.burning?'接通':p.fuel<=.5?'低油':'待命',p.burning?'active':p.fuel<=.5?'warn':'normal'],
+    ['干扰',`${p.flares}${p.flareCd>.1?` · ${Math.ceil(p.flareCd)}s`:''}`,p.flares===0?'warn':p.flareCd>.1?'active':'normal']
+  ];
+}
+function skySystemRow(reading,x,y,w,size=6) {
+  const [tag,value,state]=reading, ink=state==='warn'?'#ffab88':state==='active'?'#f7d293':'#d7e4c0';
+  rect(x,y-5,2,2,state==='normal'?'#87977b':ink);
+  drawText(tag,x+5,y,{size,color:'#c5c2b6'});
+  drawText(value,x+w,y,{size,color:ink,align:'right',mono:true});
+}
+function skyCockpitPanel(p,bank,pitch) {
+  const w=VW,h=VH,compact=w<415, toe=h-(compact?116:92), systems=skySystemReadings(p);
+  const unit=typeof cssRect==='object'&&cssRect.height ? cssRect.height/h : 2;
+  const short=!compact&&unit<1.2, sysFont=short?Math.ceil(10/unit):6, sysLift=short?50:0;
+  // 中央遮光罩拱起，两侧压低；上缘、受光面、返边与仪表板是不同的实体轮廓。
+  const lip=[[0,14],[.115,10],[.184,9],[.207,2],[.323,1],[.358,-7],[.63,-7],[.665,0],[.79,2],[.82,9],[.91,10],[1,15]];
+  for(const [drop,color] of [[0,'#1f202a'],[3,'#79777c'],[5,'#555663'],[9,'#383b48'],[14,'#2d303c']]) {
+    const path=[]; for(const [u,v] of lip)path.push(Math.round(w*u),toe+v+drop);
+    skyMetalFace(color,[...path,w,h,0,h]);
+  }
+  const top=toe+17, height=h-top-3, at=f=>Math.round(w*f), knots=Math.round(p.speed*1.94384), feet=Math.round(p.pos.y*3.28084);
+  const panel=(left,right,off=0)=>skyPlate(left+1,top+off,right-left-3,height-off);
+  if(compact){
+    const split=at(.60), instruments=height-29; panel(2,split); panel(split,w-1);
+    const r=Math.min(20,w*.088), cx=split*.63, cy=top+instruments*.43;
+    skyThrottle(4,top+12,split*.29,p.burning); skyAttitudeBall(cx,cy,r,bank,pitch);
+    skyStamp('航向 '+pad(Math.round(compassDeg(p.yaw))%360,3),cx,top+instruments-7,7);
+    const x=split+8,width=w-x-10,mh=Math.min(39,width*.84);
+    skyStamp('地形 / MAP',x+width/2,top+8,6); skyMapGlass(x,top+13,width,mh,p);
+    skyStamp('1.5 KM',x+width/2,top+instruments-6,5);
+    const cell=w/3, sy=top+height-25;
+    line(5,sy-3,w-5,sy-3,'#858075',1,.65);
+    for(let i=0;i<systems.length;i++) {
+      const col=i%3,row=Math.floor(i/3);
+      skySystemRow(systems[i],col*cell+5,sy+7+row*12,cell-11,5.5);
+      if(col) line(col*cell,sy,col*cell,sy+22,'#69686b',1,.55);
+    }
+    return;
+  }
+  // 仪表随可用宽度重新分组，圆表只按半径缩放，不拉伸为椭圆。
+  const t=at(.13), f=at(.49), m=at(.68), s=at(.85), cy=top+height*.38;
+  panel(2,t,5); panel(t,f); panel(f,m,-2); panel(m,s); panel(s,w-1,5-sysLift);
+  skyStamp('油门',t*.5,top+18,7); skyThrottle(4,top+24,t-8,p.burning);
+  const fw=f-t, r=Math.min(21,fw*.117), ax=t+fw*.205, bx=t+fw*.50, hx=t+fw*.804;
+  const dialMax = Math.max(450, Math.round((p.burnSpeed ?? 0) * 1.94384));
+  skyDial(ax,cy,r,dialMax > 450 ? `KT/${dialMax}` : 'KT',p.speed*1.94384/dialMax,pad(knots,3)); skyAttitudeBall(bx,cy,r+2,bank,pitch);
+  skyDial(hx,cy,r,'FT',(feet%10000)/10000,pad(feet,5));
+  skyStamp('空速',ax,top+height-5,6); skyStamp('海拔',hx,top+height-5,6);
+  rect(bx-20,top+height-17,40,12,'#292b34'); skyStamp('HDG '+pad(Math.round(compassDeg(p.yaw))%360,3),bx,top+height-8,7,'#ffdfa0');
+  const sw=Math.min(m-f-23,74),sh=Math.min(height-27,46),mx=(m+f)/2;
+  skyStamp('地形 / MAP',mx,top+8,6); skyMapGlass(mx-sw/2,top+13,sw,sh,p); skyStamp('N ↑   1.5 KM',mx,top+height-6,5);
+  const sw2=s-m, er=Math.min(14,sw2*.164);
+  skyDial(m+sw2*.29,cy,er,'G',(p.gLoad-1)/8,p.gLoad.toFixed(1));
+  const climb = p.speed*Math.sin(p.pitch); skyDial(m+sw2*.71,cy,er,'M/S',(climb+120)/240,Math.round(climb));
+  const barX=m+9, bw=sw2-20; rect(barX,top+height-14,bw,6,'#242630');
+  for(let i=0;i<14;i++)rect(barX+i*bw/14+1,top+height-13,bw/14-2,4,i<Math.ceil(p.fuel*.14)?'#babd87':'#59595c');
+  const lx=s+8, rw=w-s-16;
+  skyStamp('机载监控 / SYS',s+(w-s)*.5,top+12-sysLift,short?9:6);
+  for(let i=0;i<systems.length;i++) skySystemRow(systems[i],lx,top+23-sysLift+i*(short?sysFont+2:9),rw,sysFont);
+}
+function skyCanopyPost() {
+  const w=VW,h=VH,foot=Math.min(w*.12,56), edge=Math.min(w*.043,23), knee=h*.47;
+  skyMetalFace('#22232f',[-9,18, 2,25, edge+3,knee, foot+8,h-74, foot-7,h-71, edge-9,knee+3,-10,51]);
+  skyMetalFace('#585b68',[-5,20, 0,26, edge,knee-2,edge-6,knee+1,-6,48]);
+  skyMetalFace('#474b59',[edge-6,knee+3,edge+1,knee+1,foot+5,h-74,foot-2,h-74]);
+  line(edge+1,knee-2,1,27,'#8b8787'); line(edge+2,knee+4,foot+5,h-74,'#767781');
+  skyMetalFace('#353844',[edge-8,knee-4,edge+2,knee-7,edge+5,knee+9,edge-4,knee+12]);
+  skyScrew(edge-2,knee); skyScrew(lerp(edge,foot,.58),lerp(knee,h-74,.58));
+}
+function skyGlass(p,bank,pitch) {
+  const cx=VW*.5, cy=VH*.5, span=Math.min(115,VW*.35), green=SKY_PHOSPHOR, rim='#4b6246';
+  ctx.save(); ctx.beginPath(); ctx.rect(cx-span,34,span*2,VH-140); ctx.clip();
+  ctx.translate(cx,cy); ctx.rotate(bank);
+  const focal=VH/(2*G.camera.tanHalf);
+  for(let deg=-80;deg<=80;deg+=5){
+    const delta=pitch-deg*DEG; if(Math.abs(delta)>.65) continue;
+    const y=Math.tan(delta)*focal, major=deg%10===0, len=deg===0?48:major?29:16, gap=deg===0?13:major?12:10;
+    for(const side of [-1,1]){
+      const a=side*gap,b=side*len;
+      line(a,y,b,y,rim,2,.65); line(a,y,b,y,green,1,.90);
+      if(major&&deg){ line(b,y,b,y+(deg>0?2:-2),green); if(side===1) skyStamp(Math.abs(deg),b+6,y+2,5,green); }
+    }
+  }
+  ctx.restore();
+  circleLine(cx,cy,2.5,green); line(cx-9,cy,cx-3,cy,green); line(cx+3,cy,cx+9,cy,green); line(cx,cy-5,cx,cy-3,green);
+  const dist=Math.min(115,VW*.29);
+  const ralt=Math.round(Math.max(0,p.pos.y-Math.max(p.groundH,0))*3.28084);
+  for(const [side,num,unit] of [[-1,Math.round(p.speed*1.94384),'KT'],[1,Math.round(p.pos.y*3.28084),'FT']]){
+    const x=cx+side*dist, sw=String(num).length*4.8+8;
+    rect(x-sw/2,cy-23,sw,11,'#2e3e34',.28); rectLine(x-sw/2,cy-23,sw,11,green,.88);
+    skyStamp(num,x,cy-15,7,green); skyStamp(unit,x,cy-6,5,green);
+  }
+  skyStamp('G '+p.gLoad.toFixed(1),cx-dist,cy+27,6,green); skyStamp('RA '+ralt,cx+dist,cy+27,6,green);
+}
+drawCockpit = function (alpha) {
+  const p=G.player; if(!p || alpha<=.01) return;
+  const b=p.renderBasis, bank=Math.atan2(b.right.y,b.up.y), pitch=Math.asin(clamp(b.fwd.y,-1,1));
+  ctx.save(); ctx.globalAlpha*=alpha;
+  skyGlass(p,bank,pitch);
+  skyCanopyPost(); ctx.save(); ctx.translate(VW,0); ctx.scale(-1,1); skyCanopyPost(); ctx.restore();
+  skyCockpitPanel(p,bank,pitch);
+  ctx.restore();
+};
+
+
 // ===== 55_ui.js =====
-// DOM负责标志、遥测与菜单，Canvas仅绘制飞行和战斗叠加。
+// 完整飞行HUD复用初版仪表；DOM保留菜单、按钮和无障碍读数。
 // 本文件在60_main前载入，BOOT只能在稍后执行的绘制函数中读取。
 const SKY_OCCLUSION = [];
-
-function skyHeadingTape() {
-  if (!G.player) return;
-  const heading = compassDeg(G.player.yaw), cx = VW / 2;
-  const span = Math.min(88, VW * 0.23), scale = span / 35;
-  for (let d = Math.ceil((heading - 35) / 5) * 5; d <= heading + 35; d += 5) {
-    const x = cx + (d - heading) * scale;
-    const major = d % 15 === 0;
-    line(x, 13, x, major ? 18 : 16, '#f4e8d1', 1, 0.85);
-    if (major) drawText(pad((d % 360 + 360) % 360, 3), x, 27, {
-      size: 6, mono: true, align: 'center', color: '#fff0d7', shadow: '#35323a'
-    });
-  }
-  line(cx - 2, 7, cx, 10, '#f5c38a');
-  line(cx + 2, 7, cx, 10, '#f5c38a');
+const skyBaseHudBlocked = hudBlocked;
+function skyCompactHUD() {
+  const unit = typeof cssRect === 'object' && cssRect.height ? cssRect.height / VH : 2;
+  return VW < 420 || unit < 1.2;
+}
+function skyScenicView() {
+  return !!G.skyScenic && (G.view === 0 || G.view === 1 && G.skyScenic.oblique);
 }
 
-hudBlocked = (x, y) => (Math.abs(x - VW / 2) < Math.min(94, VW * 0.25) && y < 32)
-  || SKY_OCCLUSION.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+function skyHeadingTape(full = false) {
+  if (!G.player) return;
+  const heading = compassDeg(G.player.yaw), cx = VW / 2, narrow = VW < 420;
+  const span = full ? Math.min(82, narrow ? Math.max(10, (VW - 160) / 2) : VW * .20) : Math.min(88, VW * .23);
+  const scale = span / 35, cockpit = G.cockpitAlpha > .5;
+  const ink = cockpit ? SKY_PHOSPHOR : '#fff0d7', y = cockpit ? 16 : 0;
+  if (full) panel(cx - span - 5, 8, span * 2 + 10, 15, { alpha: .56, fill: '#24212a', stroke: '#9b8055' });
+  for (let d = Math.ceil((heading - 35) / 5) * 5; d <= heading + 35; d += 5) {
+    const x = cx + (d - heading) * scale, major = d % 15 === 0;
+    line(x, 10 + y, x, (major ? 15 : 13) + y, major ? '#f5ce8c' : ink, 1, .85);
+    if (major && !narrow) drawText(pad((d % 360 + 360) % 360, 3), x, 21 + y, {
+      size: 6, mono: true, align: 'center', color: ink, shadow: '#35323a'
+    });
+  }
+  line(cx - 2, 25 + y, cx, 28 + y, '#f5c38a');
+  line(cx + 2, 25 + y, cx, 28 + y, '#f5c38a');
+  if (full) drawText(pad(Math.round(heading) % 360, 3), cx, 38, {
+    size: 8, mono: true, align: 'center', color: '#fff0d7', shadow: '#24212a'
+  });
+}
+
+function skyFlightLayout() {
+  const unit = typeof cssRect === 'object' && cssRect.height ? cssRect.height / VH : 2;
+  const s = Math.max(1, 1.5 / unit), narrow = VW < 420;
+  const side = narrow ? Math.min(64, (VW - 54) / 2) : 82 * s;
+  const resources = narrow ? { x: 8, y: 49, w: VW - 16, h: 20 } : { x: 8, y: 61, w: 112 * s, h: 48 };
+  const radar = { x: VW - (narrow ? 33 : 44), y: VH - (narrow ? 76 : 58), r: narrow ? 24 : 34 };
+  return { s, narrow, resources, side, speedY: 124, speedH: 37 * s, radar,
+    regions: [
+      { x: 4, y: 2, w: narrow ? 70 : 124 * s, h: 43 },
+      { x: VW - (narrow ? 70 : 124 * s) - 4, y: 2, w: narrow ? 70 : 124 * s, h: 43 },
+      resources,
+      { x: 6, y: 120, w: side + 4, h: 66 * s },
+      { x: VW - side - 10, y: 120, w: side + 4, h: 66 * s },
+      { x: 6, y: VH - 45, w: VW - 12, h: 43 },
+      { x: radar.x - radar.r - 4, y: radar.y - radar.r - 9, w: radar.r * 2 + 8, h: radar.r * 2 + 16 }
+    ] };
+}
+
+function skyCompactFlightPanels(l) {
+  const p = G.player, { s, narrow, resources: r, side: w, speedY: y } = l;
+  const ink = '#fff0d7', muted = '#dcc092', mint = '#b8e0d5';
+  const labelSize = narrow ? 8 : 8 * s, small = narrow ? 7 : 7 * s;
+  const write = (value, x, y, size = labelSize, color = ink, align = 'left') => drawText(value, x, y, { size, color, align, shadow: '#28212a', mono: !/[㐀-鿿]/.test(String(value)) });
+  const box = (x, y, w, h) => panel(x, y, w, h, { fill: '#24212a', stroke: '#9b8055', alpha: .56 });
+  box(4, 2, narrow ? 69 : 124 * s, 41);
+  box(VW - (narrow ? 73 : 124 * s + 4), 2, narrow ? 69 : 124 * s, 41);
+  write(flightMode === 'intercept' ? '截击任务' : '自由巡航', 8, 13, labelSize, muted);
+  write(flightMode === 'intercept' ? `第 ${pad(G.wave, 2)} 波` : '秋日湖谷', 8, 27, labelSize);
+  if (flightMode === 'intercept') write(`目标 ${G.waveKills}/${G.waveTotal}`, 8, 39, small, muted);
+  write('得分', VW - 8, 13, labelSize, muted, 'right');
+  write(pad(Math.floor(G.score), 6), VW - 8, 28, narrow ? 11 : 12 * s, ink, 'right');
+  write(`T+${fmtTime(G.missionTime)}`, VW - 8, 39, small, muted, 'right');
+  box(r.x - 3, r.y - 3, r.w + 6, r.h + 6);
+  for (const [i, id] of ['shield', 'fuel'].entries()) {
+    const x = r.x + (narrow ? i * (r.w / 2 + 3) : 0), yy = r.y + (narrow ? 8 : 8 + i * 23);
+    const width = narrow ? r.w / 2 - 7 : r.w, color = id === 'shield' ? mint : '#f7ce8d';
+    write(id === 'shield' ? '护盾' : '燃油', x, yy, labelSize, color);
+    write(`${Math.ceil(Math.max(0, p[id]))}%`, x + width, yy, small, color, 'right');
+    segBar(x, yy + 4, width, narrow ? 7 : 8, p[id] / 100, color, '#43363d', narrow ? 12 : 20);
+  }
+  box(6, y, w, l.speedH); box(VW - w - 6, y, w, l.speedH);
+  write('空速', 10, y + 8 * s, labelSize, muted);
+  write(String(Math.round(p.speed * 1.94384)), w + 2, y + 23 * s, 17 * s, ink, 'right');
+  write('节', w + 2, y + 33 * s, labelSize, muted, 'right');
+  write('高度', VW - 10, y + 8 * s, labelSize, muted, 'right');
+  write(String(Math.round(p.pos.y * 3.28084)), VW - w - 2, y + 23 * s, 17 * s);
+  write('英尺', VW - 10, y + 33 * s, labelSize, muted, 'right');
+  write('离地', 8, y + 48 * s, labelSize, mint);
+  write(String(Math.round(Math.max(0, p.agl) * 3.28084)), w + 2, y + 48 * s, small, mint, 'right');
+  write('坡度', 8, y + 60 * s, labelSize, muted);
+  const bank = Math.round(-wrapAngle(p.roll + (p.inversionRoll || 0)) / DEG);
+  write(`${bank >= 0 ? '右' : '左'} ${Math.abs(bank)}°`, w + 2, y + 60 * s, small, ink, 'right');
+  write('升降', VW - w - 2, y + 48 * s, labelSize, muted);
+  const vsi = Math.round(p.basis.fwd.y * p.speed * 196.85);
+  write(`${vsi >= 0 ? '+' : ''}${vsi}`, VW - 8, y + 48 * s, small, ink, 'right');
+  write(`G ${p.gLoad.toFixed(1)}`, VW - 8, y + 60 * s, small, mint, 'right');
+}
+
+function skyWeaponStatus(compact = false) {
+  const p = G.player, readings = skySystemReadings(p), cx = VW / 2;
+  const unit = typeof cssRect === 'object' && cssRect.height ? cssRect.height / VH : 2;
+  const scale = compact ? Math.max(1, 1.5 / unit) : 1;
+  const size = 8 * scale, width = Math.min(VW - 16, 190 * scale);
+  const x = cx - width / 2, y = VH - (compact ? (scale > 1 ? 55 : 45) : 57);
+  if (compact) panel(x - 3, y - 10, width + 6, VH - y + 5, { alpha: .50, fill: '#24212a', stroke: '#9b8055', border: false });
+  for (const [index, xx] of [[2, x], [4, cx + 7]]) {
+    const [tag, value, state] = readings[index], color = state === 'active' ? '#ffd18d' : '#e4d8bd';
+    drawText(tag, xx, y, { size, color: '#dcc092', shadow: '#28212a' });
+    drawText(value, xx + 25 * scale, y, { size, color, shadow: '#28212a' });
+  }
+  if (compact) {
+    const yy = VH - 36, iconScale = Math.min(scale, 1.2, (width - 83 * scale) / 48);
+    drawText('导弹', x, yy + 9, { size, color: '#dcc092', shadow: '#28212a' });
+    for (let i = 0; i < 4; i++) {
+      ctx.save(); ctx.translate(x + 25 * scale + i * 11 * iconScale, yy - 4); ctx.scale(iconScale, iconScale);
+      const load = i === p.missiles && p.reloads.length ? clamp01(1 - p.reloads[0] / MISSILE_RELOAD) : 0;
+      drawMissilePip(0, 0, i < p.missiles, load); ctx.restore();
+    }
+    drawText(readings[3][1], cx + 18 * scale, yy + 9, { size: 7 * scale, mono: true, color: '#fff0d7', shadow: '#28212a' });
+    drawText('干扰', x, VH - 8, { size, color: '#dcc092', shadow: '#28212a' });
+    drawText(readings[5][1], x + 25 * scale, VH - 8, { size: 7 * scale, mono: true, color: '#fff0d7', shadow: '#28212a' });
+  } else {
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, VW, VH - 15); ctx.clip(); ctx.translate(0, -8); drawWeaponPips(); ctx.restore();
+    if (p.reloads.length) drawText(readings[3][1], cx - 17, VH - 4, { size: 7, mono: true, color: '#e4d8bd', shadow: '#28212a', align: 'center' });
+    if (p.flareCd > .1) drawText(readings[5][1], cx + 63, VH - 4, { size: 7, mono: true, color: '#e4d8bd', shadow: '#28212a', align: 'center' });
+  }
+}
+
+hudBlocked = (x, y) => {
+  const external = G.cockpitAlpha < .45 && G.mode !== 'title';
+  if (external && !skyCompactHUD() && skyBaseHudBlocked(x, y)) return true;
+  if (external && skyCompactHUD() && skyFlightLayout().regions.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return true;
+  return (Math.abs(x - VW / 2) < Math.min(94, VW * .25) && y < 40)
+    || SKY_OCCLUSION.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+};
 
 drawHUD = function () {
   if (!G.player || !G.camera) return;
-  skyHeadingTape();
-  if (G.view === 0 && G.viewBlend > 0.55) drawTopPlayerIcon();
+  const scenic = skyScenicView(), top = G.view === 0 && G.viewBlend > .55;
+  const cockpit = G.cockpitAlpha > .5, external = G.cockpitAlpha < .45;
+  if (!top) drawPitchLadder(G.cockpitAlpha);
+  if (top) {
+    const x = VW / 2;
+    drawText('N', x, 15, { size: 7, mono: true, align: 'center', color: '#fff0d7', shadow: '#35323a' });
+    line(x - 3, 23, x, 19, '#f5c38a'); line(x + 3, 23, x, 19, '#f5c38a');
+  } else skyHeadingTape(external);
+  if (flightMode === 'intercept' && !cockpit) drawTargetMarkers();
+  if (external) {
+    const compact = skyCompactHUD();
+    if (compact) {
+      const layout = skyFlightLayout();
+      skyCompactFlightPanels(layout);
+      const r = layout.radar; drawRadarScope(r.x, r.y, r.r, false);
+    } else {
+      if (flightMode === 'intercept') drawObjectivesPanel();
+      else {
+        panel(6, 2, 116, 54, { alpha: .38, fill: '#24212a', border: false });
+        drawText('自由巡航', 10, 19, { size: 10, color: '#ead3ab', shadow: '#28212a' });
+        drawText('秋日湖谷', 10, 35, { size: 10, color: '#fff0d7', shadow: '#28212a' });
+        drawText('无战斗目标', 10, 49, { size: 8, color: '#b8ded2', shadow: '#28212a' });
+      }
+      drawScorePanel(); drawSpeedAlt(); drawShieldFuel(); drawMiniRadar();
+    }
+    skyWeaponStatus(compact);
+  }
+  if (scenic) for (const x of [4, VW - 4]) for (const y of [4, VH - 4]) {
+    line(x, y, x + (x === 4 ? 4 : -4), y, '#ffe7c6', 1, .45);
+    line(x, y, x, y + (y === 4 ? 4 : -4), '#ffe7c6', 1, .45);
+  }
   if (flightMode === 'intercept') {
-    drawTargetMarkers();
-    drawAimReticle();
+    ctx.save();
+    if (cockpit) { ctx.beginPath(); ctx.rect(0, 0, VW, VH - 99); ctx.clip(); drawTargetMarkers(); }
+    if (!cockpit) drawAimReticle();
     drawThreats();
+    ctx.restore();
   }
   drawWarnings();
   if (G.banner && G.banner.t < G.banner.life && G.mode === 'play') {
     const alpha = Math.min(clamp01(G.banner.t / 0.4), clamp01((G.banner.life - G.banner.t) / 0.6));
-    drawText(G.banner.title, VW / 2, 49, { size: 10, align: 'center', color: '#ffe2bb', shadow: '#24232c', alpha });
+    const y = hudBlocked(VW / 2, 49) ? 124 : 49;
+    drawText(G.banner.title, VW / 2, y, { size: 10, align: 'center', color: '#ffe2bb', shadow: '#24232c', alpha });
   }
-  if ((G.mode === 'play' || G.mode === 'waveclear') && (!INPUT.touchMode || TOUCH.active)) {
+  if ((G.mode === 'play' || G.mode === 'waveclear') && (!INPUT.touchMode || TOUCH.active)
+      && (!(scenic || top) || TOUCH.active || INPUT.mouseSteerAge < MOUSE_STEER_TIMEOUT)
+      && (!cockpit || Math.hypot(INPUT.mx - VW/2, INPUT.my - VH/2) > 9)) {
     drawMousePip(INPUT.mx, INPUT.my, '#e7eadc');
   }
 };
@@ -7247,12 +8832,9 @@ function collectDrawables() {
   if (p && !p.dead && G.cockpitAlpha < 0.62) {
     push(G.meshes.player, p.pos, p.renderBasis, 1, { maxDist: 10000 });
     // under-wing stores
-    const b = p.renderBasis;
-    for (let i = 0; i < Math.min(4, p.missiles); i++) {
-      const side = (i % 2 === 0 ? -1 : 1) * (2.2 + Math.floor(i / 2) * 1.05);
-      const back = 0.8 + Math.floor(i / 2) * 1.35;
-      const pos = vadd(vadd(vadd(p.pos, vmul(b.right, side)), vmul(b.up, -0.52)), vmul(b.fwd, back));
-      push(G.meshes.missile, pos, b, 0.9, { maxDist: 800 });
+    for (let i = 0; !G.skyScenic && G.mode !== 'title' && i < Math.min(4, p.missiles); i++) {
+      const slot = ((p.nextRail || 0) + i) % 4;
+      push(G.meshes.missile, wingRailPosition(p, slot), p.renderBasis, 0.9, { maxDist: 800 });
     }
   }
   for (const e of G.enemies) {
@@ -7372,6 +8954,8 @@ function ensurePlay() {
   G.enemies.length = 0;
   G.ground.length = 0;
   G.missiles.length = 0;
+  G.missileTrails.length = 0;
+  G.bullets.length = 0;
   G.effects.length = 0;
   G.tracers.length = 0;
   G.popups.length = 0;
@@ -7786,30 +9370,68 @@ boot().catch(err => {
 
 
 // ===== 64_scene.js =====
-// 默认地图采用开阔湖岸航线，其他种子沿用引擎自动选点。
+// 从南岸向北穿过两段湖湾与林间窄口；其他种子保留地图选点。
 const skySetupTitle = setupTitleWorld;
 setupTitleWorld = function () {
-  if (G.seed === 1337 && typeof G.map.forestAt === 'function') {
-    G.spawn = { x: 2688, z: -3072, heading: Math.PI * 3 / 8 };
-  }
+  if (G.seed === 1337) G.spawn = { x: 4990, z: 7100, heading: -0.08 };
   skySetupTitle();
 };
 
 const skyComputePose = computePose;
+let skyChasePitch = 0;
+function skyChaseBlend() {
+  const scenic = G.skyScenic;
+  return scenic ? lerp(scenic.from, Number(scenic.oblique), smoothstep(0, .55, G.time - scenic.changedAt)) : 0;
+}
+
+function skyObliquePose(p) {
+  const worldUp = { x: 0, y: 1, z: 0 };
+  const heading = p.yaw - .62;
+  const fwd = { x: Math.sin(heading), y: 0, z: -Math.cos(heading) };
+  const aspect = VW / VH, fit = Math.max(.68, Math.min(1, 1.84 / aspect), 1.02 / aspect);
+  const distance = 15.6 * fit;
+  const pos = vmad(p.pos, fwd, -distance);
+  pos.y += (8.8 - 3.3 * clamp(p.pitch, -.55, .55)) * fit;
+  if (G.map) pos.y = Math.max(pos.y, Math.max(G.map.heightAt(pos.x, pos.z), 0) + 4.5);
+  const fov = .94 + clamp((p.speed - SPEED_CRUISE) / 900, 0, .05);
+  // 镜头沿水平航向跟转，飞机保留自己的倾斜；视轴从机体向上抬，留出山线。
+  const pitch = Math.atan2(p.pos.y - pos.y, distance) + Math.atan(.39 * Math.tan(fov / 2));
+  const target = vmad(pos, fwd, 64);
+  target.y += 64 * Math.tan(pitch);
+  return { pos, target, up: worldUp, fov };
+}
+
 computePose = function (view, allowSmooth = true) {
-  if (G.mode !== 'title' || view !== 1) return skyComputePose(view, allowSmooth);
-  const p = G.player, b = p.renderBasis;
+  const p = G.player, title = G.mode === 'title';
+  if (view !== 1) return skyComputePose(view, allowSmooth);
+  const blend = skyChaseBlend();
+  if (blend === 1) return skyObliquePose(p);
+  const distance = title ? 20 : 22.5, height = title ? 9 : 8;
+  // 只缓和俯仰；位置与航向保持正后，避免世界坐标低通拖到机翼侧面。
+  skyChasePitch = !G.chaseInit || !allowSmooth ? p.pitch
+    : damp(skyChasePitch, p.pitch, 5, G.lastDt || 0.016);
+  const b = basisFrom(p.yaw, skyChasePitch, 0), worldUp = { x: 0, y: 1, z: 0 };
+  const pos = vadd(vadd(p.pos, vmul(b.fwd, -distance)), vmul(worldUp, height));
+  if (G.map) pos.y = Math.max(pos.y, Math.max(G.map.heightAt(pos.x, pos.z), 0) + 4.5);
+  G.chasePos = vcopy(pos); G.chaseUp = vcopy(worldUp); G.chaseInit = true;
+  const rear = {
+    pos,
+    target: vadd(vadd(p.pos, vmul(b.fwd, title ? 35 : 32)), vmul(worldUp, title ? -4.5 : -5)),
+    // 飞机自己倾斜与桶滚，外部镜头的地平线和视野不跟着翻动、伸缩。
+    up: worldUp, fov: title ? 0.92 : 1.01,
+  };
+  if (!blend) return rear;
+  const oblique = skyObliquePose(p);
   return {
-    pos: vadd(vadd(p.pos, vmul(b.fwd, -20)), { x: 0, y: 9, z: 0 }),
-    target: vadd(vadd(p.pos, vmul(b.fwd, 35)), { x: 0, y: 0.5, z: 0 }),
-    up: { x: 0, y: 1, z: 0 }, fov: 0.92,
+    pos: vlerp(pos, oblique.pos, blend), target: vlerp(rear.target, oblique.target, blend),
+    up: vnorm(vlerp(rear.up, oblique.up, blend)), fov: lerp(rear.fov, oblique.fov, blend),
   };
 };
 
 
 // ===== 65_app.js =====
 // 使用运行时赋值，避免函数声明提升到原版boot之前。
-let flightMode = 'intercept';
+let flightMode = 'intercept', inlandFlight = false;
 const skyGet = id => document.getElementById(id);
 const skyApp = skyGet('sky-app');
 const skyStage = skyGet('stage');
@@ -7821,6 +9443,101 @@ const skyKeyHolds = new Map();
 const skyKeyClicks = new WeakSet();
 let skyNotice = '', skyNoticeUntil = 0, skyLastMode = '';
 let skyBoostTimer = 0;
+const skyFlightSpeeds = { cruise: SPEED_CRUISE, burn: 500 / 1.94384 };
+const skyControlSettings = { mouse: false, enemySpeed: 0.65 };
+G.enemySpeedScale = skyControlSettings.enemySpeed;
+let skyTurnGesture = null;
+
+function skyBurnMinimum() { return Math.min(500, Math.round(skyFlightSpeeds.cruise * 1.94384) + 50); }
+
+function skySetFlightSpeed(kind, knots) {
+  if (G.mode !== 'paused' || !['cruise', 'burn'].includes(kind) || !Number.isFinite(Number(knots))) return;
+  const value = Math.round(Number(knots));
+  if (kind === 'cruise') {
+    skyFlightSpeeds.cruise = clamp(value, 100, 500) / 1.94384;
+    skyFlightSpeeds.burn = Math.max(skyFlightSpeeds.burn, skyBurnMinimum() / 1.94384);
+  } else {
+    skyFlightSpeeds.burn = clamp(value, skyBurnMinimum(), 500) / 1.94384;
+  }
+  G.player.cruiseSpeed = skyFlightSpeeds.cruise;
+  G.player.burnSpeed = skyFlightSpeeds.burn;
+  skySync();
+}
+function skyResetFlightSpeeds() {
+  if (G.mode !== 'paused') return;
+  skyFlightSpeeds.cruise = G.player.cruiseSpeed = SPEED_CRUISE;
+  skyFlightSpeeds.burn = G.player.burnSpeed = 500 / 1.94384;
+  skySync();
+}
+function skySyncFlightSpeeds() {
+  for (const kind of ['cruise', 'burn']) {
+    const input = skyGet(`sky-${kind}-speed`);
+    const knots = String(Math.round(skyFlightSpeeds[kind] * 1.94384));
+    input.disabled = !BOOT.ready || !!BOOT.error || G.mode !== 'paused';
+    input.min = kind === 'burn' ? String(skyBurnMinimum()) : '100';
+    if (kind === 'burn' && input.min === '500') input.disabled = true;
+    if (input.value !== knots) input.value = knots;
+    skyAttribute(input, 'aria-valuetext', `${knots} 节`);
+    skyText(`sky-${kind}-speed-value`, `${knots} 节${kind === 'burn' && input.min === '500' ? ' · 已达上限' : ''}`);
+  }
+  const enabled = BOOT.ready && !BOOT.error && G.mode === 'paused';
+  const enemy = skyGet('sky-enemy-speed'), mouse = skyGet('sky-mouse-steering');
+  enemy.disabled = mouse.disabled = !enabled;
+  enemy.value = String(Math.round(skyControlSettings.enemySpeed * 100));
+  mouse.checked = skyControlSettings.mouse;
+  skyText('sky-enemy-speed-value', `${enemy.value}%`);
+  skyAttribute(enemy, 'aria-valuetext', `${enemy.value}%`);
+}
+
+function skySetControlSetting(kind, value) {
+  if (G.mode !== 'paused') return;
+  if (kind === 'mouse' && typeof value === 'boolean') {
+    skyControlSettings.mouse = G.player.mouseSteering = value;
+    resetMouseSteering();
+  } else if (kind === 'enemySpeed' && Number.isFinite(Number(value))) {
+    skyControlSettings.enemySpeed = G.enemySpeedScale = clamp(Math.round(Number(value) / 5) * 5, 30, 120) / 100;
+  }
+  skySync();
+}
+
+function skyTrackTurnGesture(code, down, repeat = false) {
+  if (!['KeyA', 'KeyD'].includes(code) || repeat || G.mode !== 'play') return;
+  const p = G.player, now = G.realTime;
+  if (!p || p.dead || p.halfRoll || p.rollT > 0) { skyTurnGesture = null; return; }
+  const other = code === 'KeyA' ? 'KeyD' : 'KeyA';
+  if (INPUT.keys.has(other)) { skyTurnGesture = null; return; }
+  if (down) {
+    if (skyTurnGesture?.code === code && now <= skyTurnGesture.armedUntil) {
+      if (skyTurnGesture.tap != null && now - skyTurnGesture.tap <= 0.35) {
+        const from = p.inversionRoll || 0, direction = code === 'KeyA' ? 1 : -1;
+        p.halfRoll = { from, to: from + direction * Math.PI, time: 0 };
+        skyReport('正在翻转 180°');
+        skyTurnGesture = null;
+        return;
+      }
+      skyTurnGesture.tap = now;
+    } else skyTurnGesture = { code, started: now, armedUntil: -1, tap: null };
+  } else if (skyTurnGesture?.code === code && now - skyTurnGesture.started >= 2 - 1e-6 && skyTurnGesture.armedUntil < 0) {
+    skyTurnGesture.armedUntil = now + 1.2;
+    skyReport(`双击 ${code === 'KeyA' ? 'A' : 'D'}：翻转 180°`);
+  }
+}
+
+const skyUpdateFlight = updateFlight;
+updateFlight = function (dt) {
+  const p = G.player;
+  if (p?.halfRoll && !p.dead) {
+    const r = p.halfRoll;
+    r.time = Math.min(1.6, r.time + dt);
+    p.inversionRoll = lerp(r.from, r.to, smoothstep(0, 1.6, r.time));
+    if (r.time >= 1.6 - 1e-6) {
+      p.inversionRoll = Math.abs(Math.cos(r.to) + 1) < 1e-6 ? (r.to < 0 ? -Math.PI : Math.PI) : 0;
+      p.halfRoll = null;
+      skyReport(p.inversionRoll ? '已倒飞 · 重复操作可翻回' : '已恢复正飞');
+    }
+  }
+  skyUpdateFlight(dt);
+};
 
 function skyText(id, value) {
   const el = typeof id === 'string' ? skyGet(id) : id, text = String(value);
@@ -7848,6 +9565,7 @@ function skyRefreshHolds() {
   }
 }
 function skyClearInput() {
+  skyTurnGesture = null;
   clearTimeout(skyBoostTimer); skyBoostTimer = 0;
   skyPointerHolds.clear(); skyKeyHolds.clear();
   for (const held of UI_HOLDS.values()) if (held.onUp) held.onUp();
@@ -7888,31 +9606,52 @@ loadHighScore = function () {
   return G.highScore;
 };
 
+const skyMakePlayer = makePlayer;
+makePlayer = function (map, forTitle = false) {
+  const p = skyMakePlayer(map, forTitle);
+  if (!forTitle) {
+    p.cruiseSpeed = skyFlightSpeeds.cruise;
+    p.burnSpeed = skyFlightSpeeds.burn;
+    p.speed = p.targetSpeed = p.cruiseSpeed;
+    p.mouseSteering = skyControlSettings.mouse;
+    p.cockpitComfort = true; p.speedResponse = 1.6; p.inversionRoll = 0;
+  }
+  if (!forTitle && inlandFlight) {
+    // 东侧草谷轴不随种子移动；种子只改变林斑、地表与山肩细节。
+    const x = 6970, z = 7200;
+    p.groundH = map.heightAt(x, z); p.agl = 125;
+    p.pos = { x, y: p.groundH + p.agl, z };
+    p.yaw = 0.00755; p.basis = p.renderBasis = basisFrom(p.yaw, p.pitch, p.roll);
+  }
+  return p;
+};
 const skyStartRun = startRun;
-startRun = function (mode = flightMode) {
+startRun = function (mode = flightMode, inland = inlandFlight) {
   if (!BOOT.ready || BOOT.error || !G.map) return false;
   if (mode !== 'free' && mode !== 'intercept') return false;
-  flightMode = mode;
+  flightMode = mode; inlandFlight = mode === 'free' && inland;
+  G.skyScenic = mode === 'free' ? { oblique: false, from: 0, changedAt: 0 } : null;
   skyNotice = '';
   skyClearInput();
   G.pausedFrom = null; G.freeze = false;
   skyStartRun();
   if (flightMode === 'free') {
-    G.banner = { title: '自由巡航', sub: '无战斗伤害，仍需避开地形', t: 0, life: 3.4 };
+    G.banner = { title: inlandFlight ? '秋林低飞' : '自由巡航', sub: '无战斗伤害，仍需避开地形', t: 0, life: 3.4 };
   }
   setViewName('chase');
   skySync();
   return true;
 };
-function skyStart(mode = 'intercept') {
+function skyStart(mode = 'intercept', inland = false) {
   if (!BOOT.ready || BOOT.error) return false;
   AudioSys.init();
   if (G.sound) AudioSys.setEnabled(true);
-  return startRun(mode);
+  return startRun(mode, inland);
 }
 function skyHome() {
   if (!BOOT.ready || BOOT.error || !G.map) return false;
   skyClearInput(); skyNotice = '';
+  G.skyScenic = null;
   G.mode = 'title'; G.pausedFrom = null; G.freeze = false;
   G.banner = null; G.shake = G.damageFlash = G.flash = G.hitStop = G.fade = 0;
   G.threatList.length = 0;
@@ -7937,6 +9676,8 @@ toggleSound = function () {
   skySync();
 };
 const skyKeyDown = onKeyDown;
+const skyBarrelRoll = triggerBarrelRoll;
+triggerBarrelRoll = function () { if (!G.player?.halfRoll) skyBarrelRoll(); };
 onKeyDown = function (code) {
   if (G.mode === 'title') {
     if (code === 'Enter' || code === 'NumpadEnter') skyStart('intercept');
@@ -7976,9 +9717,16 @@ function skySync() {
   const mode = ready ? G.mode : 'loading';
   const active = skyActive();
   const view = ['top', 'chase', 'cockpit'][G.view] || 'chase';
+  const chase = skyGet('sky-chase'), showChase = !!G.skyScenic && view === 'chase' && (active || mode === 'paused');
+  if (chase.hidden === showChase) chase.hidden = !showChase;
+  skyAttribute(chase, 'aria-pressed', showChase && G.skyScenic.oblique);
+  const scenic = skyScenicView();
+  skyAttribute(skyApp, 'data-scenic', scenic);
   skyAttribute(skyApp, 'data-mode', mode);
   skyAttribute(skyApp, 'data-view', view);
   skyAttribute(skyApp, 'data-flight', flightMode);
+  const fullHUD = !!G.player && view !== 'cockpit' && ['play', 'waveclear', 'paused', 'dying'].includes(mode);
+  skyAttribute(skyApp, 'data-hud', fullHUD ? 'flight' : 'shell');
   const modalOpen = ready && (mode === 'paused' || mode === 'failed');
   for (const id of ['sky-header', 'sky-controls']) {
     const el = skyGet(id);
@@ -7988,19 +9736,28 @@ function skySync() {
     const el = skyGet(id); if (el && el.hidden === show) el.hidden = !show;
   }
   const enabled = {
-    'sky-intercept': ready && mode === 'title', 'sky-cruise': ready && mode === 'title',
-    'sky-camera': ready && (active || mode === 'title'), 'sky-sound': ready,
+    'sky-intercept': ready && mode === 'title', 'sky-cruise': ready && mode === 'title', 'sky-inland': ready && mode === 'title',
+    'sky-camera': ready && (active || mode === 'title'), 'sky-chase': showChase && active, 'sky-sound': ready,
     'sky-fullscreen': ready && typeof skyApp.requestFullscreen === 'function' && document.fullscreenEnabled !== false,
     'sky-resume': ready && mode === 'paused', 'sky-restart': ready && mode === 'paused', 'sky-home': ready && mode === 'paused',
+    'sky-speed-reset': ready && mode === 'paused',
     'sky-again': ready && mode === 'failed' && G.failTimer > 0.5, 'sky-result-home': ready && mode === 'failed'
   };
   for (const b of skyButtons) {
     const action = b.dataset.skyAction;
-    const on = action ? (action === 'pause' ? active || (ready && mode === 'paused') : action === 'roll' ? active && mode === 'play' : active) : !!enabled[b.id];
+    let on = action ? (action === 'pause' ? active || (ready && mode === 'paused') : action === 'roll' ? active && mode === 'play' : active) : !!enabled[b.id];
+    if (action === 'flare') {
+      on = ready && mode === 'play' && G.player && !G.player.dead && G.player.flares > 0 && G.player.flareCd <= 0;
+      const remaining = G.player?.flares ?? 3, cooldown = Math.max(0, Math.ceil(G.player?.flareCd || 0));
+      skyText(b.querySelector('span'), remaining <= 0 ? '干扰弹 用尽' : cooldown ? `干扰弹 ${cooldown}s` : `干扰弹 ${remaining}`);
+      const label = `干扰弹，C 或 X；剩余 ${remaining}，冷却 ${cooldown} 秒`;
+      skyAttribute(b, 'aria-label', label); skyAttribute(b, 'title', label);
+    }
     if (b.disabled === on) b.disabled = !on;
   }
-  skyText('sky-mode-label', mode === 'title' ? '待命 / READY TO FLY' : flightMode === 'free' ? '自由巡航 / FREE FLIGHT' : '截击任务 / INTERCEPT');
-  const viewName = { top: '俯瞰视角', chase: '追尾视角', cockpit: '座舱视角' }[view];
+  skySyncFlightSpeeds();
+  skyText('sky-mode-label', mode === 'title' ? '待命 / READY TO FLY' : inlandFlight ? '秋林低飞 / VALLEY RUN' : flightMode === 'free' ? '自由巡航 / FREE FLIGHT' : '截击任务 / INTERCEPT');
+  const viewName = { top: '俯瞰视角', chase: scenic ? '斜后视角' : '追尾视角', cockpit: '座舱视角' }[view];
   skyText('sky-camera', viewName);
   skyAttribute(skyGet('sky-camera'), 'aria-label', `切换视角，当前${viewName}`);
   const sound = skyGet('sky-sound'), soundText = G.sound ? '音效开启' : '音效关闭';
@@ -8011,12 +9768,31 @@ function skySync() {
   skyAttribute(skyGet('sky-fullscreen'), 'aria-pressed', fullscreen);
   skyAttribute(skyGet('sky-fullscreen'), 'aria-label', fullscreen ? '退出全屏' : '进入全屏');
   const p = G.player;
+  skyText('sky-direction-label', skyControlSettings.mouse ? '鼠标 / WASD 转向' : 'WASD / 方向键转向');
+  const boost = skyActions.find(b => b.dataset.skyAction === 'boost');
+  if (boost) {
+    const capped = !!p && p.burnSpeed <= p.cruiseSpeed + .01;
+    skyText(boost.querySelector('span'), capped ? '已达上限' : p?.burning ? `加力 ${Math.round(p.targetSpeed * 1.94384)}节` : '加速');
+  }
   skyText('sky-alt', p ? skyNumber(p.pos.y * 3.28084) : '—');
   skyText('sky-speed', p ? skyNumber(p.speed * 1.94384) : '—');
   skyText('sky-wave', `第 ${pad(G.wave, 2)} 波 · ${G.waveKills}/${G.waveTotal}`);
   skyText('sky-score', skyNumber(G.score));
   skyText('sky-shield', p ? Math.ceil(Math.max(0, p.shield)) : 100);
   skyText('sky-fuel', p ? Math.ceil(Math.max(0, p.fuel)) : 100);
+  const systems = skyGet('sky-systems');
+  const showSystems = !!p && view !== 'cockpit' && (active || mode === 'paused');
+  if (systems && systems.hidden === showSystems) systems.hidden = !showSystems;
+  if (p) {
+    for (const [i, [, value, state]] of skySystemReadings(p).entries()) {
+      const id = ['fuel', 'shield', 'gun', 'missile', 'boost', 'flare'][i];
+      skyText(`sky-system-${id}-value`, value);
+      skyAttribute(skyGet(`sky-system-${id}`), 'data-state', state);
+    }
+    for (const id of ['fuel', 'shield']) {
+      skyAttribute(skyGet(`sky-system-${id}-meter`), 'value', Math.round(clamp01(p[id] / 100) * 1000) / 10);
+    }
+  }
   skyText('sky-result-score', skyNumber(G.score)); skyText('sky-result-kills', skyNumber(G.stats.kills));
   const ammo = p ? p.missiles : 4;
   skyText('sky-ammo-count', `${pad(ammo, 2)}/04`);
@@ -8025,14 +9801,15 @@ function skySync() {
     skyAttribute(skyAmmo[i], 'data-empty', i >= ammo);
   }
   skyAttribute(skyGet('sky-ammo'), 'aria-label', `导弹 ${ammo} / 4`);
-  const status = BOOT.error || (!ready ? `正在准备飞行 · ${BOOT.stage}` : mode === 'title' ? '选择开始截击或自由巡航；回车开始截击。' : mode === 'paused' ? '飞行已暂停。' : mode === 'failed' ? '飞行结束，可重新起飞或返回主界面。' : flightMode === 'free' ? '自由巡航：不受战斗伤害，撞地仍会损毁。' : '截击任务：消灭敌机，注意地形与来袭导弹。');
+  const status = BOOT.error || (!ready ? `正在准备飞行 · ${BOOT.stage}` : mode === 'title' ? '可从湖岸或秋林起飞；回车开始截击。' : mode === 'paused' ? '飞行已暂停。' : mode === 'failed' ? '飞行结束，可重新起飞或返回主界面。' : flightMode === 'free' ? '自由巡航：不受战斗伤害，撞地仍会损毁。' : '截击任务：消灭敌机，注意地形与来袭导弹。');
   skyText('sky-status', skyNotice && performance.now() < skyNoticeUntil ? skyNotice : status);
   if (!Number.isFinite(G.highScore)) G.highScore = 0;
   SKY_OCCLUSION.length = 0;
   const stage = uiCanvas.getBoundingClientRect();
-  if (stage.width && stage.height) for (const id of ['sky-brand', 'sky-telemetry', 'sky-camera', 'sky-combat']) {
+  if (systems && stage.height) skyAttribute(systems, 'style', `--hud-unit:${stage.height / VH}px`);
+  if (stage.width && stage.height) for (const id of ['sky-brand', 'sky-telemetry', 'sky-camera', 'sky-chase', 'sky-combat', 'sky-systems']) {
     const el = skyGet(id);
-    if (!el || el.hidden || (view === 'cockpit' && (id === 'sky-brand' || id === 'sky-telemetry'))) continue;
+    if (!el || el.hidden || fullHUD && ['sky-telemetry', 'sky-combat', 'sky-systems'].includes(id) || (id === 'sky-brand' && (mode !== 'title' && mode !== 'loading' || view === 'cockpit' || view === 'top' || scenic)) || (id === 'sky-telemetry' && view === 'cockpit')) continue;
     const r = el.getBoundingClientRect();
     if (r.width && r.height) SKY_OCCLUSION.push({ x: (r.left - stage.left) / stage.width * VW - 3, y: (r.top - stage.top) / stage.height * VH - 3, w: r.width / stage.width * VW + 6, h: r.height / stage.height * VH + 6 });
   }
@@ -8040,8 +9817,8 @@ function skySync() {
   if (mode !== skyLastMode) {
     skyLastMode = mode;
     const focus = mode === 'paused' ? skyGet('sky-resume') : mode === 'failed' ? skyGet('sky-result-home') : null;
-    if (focus) focus.focus({ preventScroll: true });
-    else if (mode === 'play' && document.activeElement?.tagName === 'BUTTON') document.activeElement.blur();
+    if (focus) focus.focus();
+    else if ((mode === 'play' || mode === 'waveclear') && ['BUTTON', 'INPUT'].includes(document.activeElement?.tagName)) document.activeElement.blur();
   }
 }
 
@@ -8073,21 +9850,36 @@ for (const type of ['pointerup', 'pointercancel', 'mouseup']) window.addEventLis
 window.addEventListener('keydown', e => {
   const modal = G.mode === 'paused' ? skyGet('sky-pause') : G.mode === 'failed' ? skyGet('sky-result') : null;
   if (modal && e.code === 'Tab') {
-    const buttons = [...modal.querySelectorAll('button')].filter(b => !b.disabled);
-    const index = buttons.indexOf(document.activeElement);
-    if (index < 0 || (e.shiftKey ? index === 0 : index === buttons.length - 1)) {
+    const controls = [...modal.querySelectorAll('button, input')].filter(b => !b.disabled);
+    const index = controls.indexOf(document.activeElement);
+    if (index < 0 || (e.shiftKey ? index === 0 : index === controls.length - 1)) {
       e.preventDefault();
-      buttons[e.shiftKey ? buttons.length - 1 : 0]?.focus({ preventScroll: true });
+      controls[e.shiftKey ? controls.length - 1 : 0]?.focus();
     }
     e.stopImmediatePropagation();
     return;
   }
+  if (G.mode === 'paused') {
+    if (e.code === 'KeyM') {
+      if (!e.repeat) toggleSound();
+    } else if (['Escape', 'KeyP'].includes(e.code)) {
+      e.preventDefault();
+      if (!e.repeat) togglePause();
+    } else if (['Enter', 'NumpadEnter'].includes(e.code) && e.target.tagName !== 'BUTTON') {
+      e.preventDefault();
+      if (!e.repeat) togglePause();
+    }
+    e.stopImmediatePropagation();
+    return; // 保留控件原生行为，暂停按键不进入飞行输入。
+  }
   const button = e.target.closest?.('button');
+  skyTrackTurnGesture(e.code, true, e.repeat);
   if (!button || !['Space', 'Enter', 'NumpadEnter'].includes(e.code)) return;
   if (!e.repeat) { skyHold(button, e.code, true); skyKeyClicks.add(button); }
   e.stopImmediatePropagation(); // 保留按钮原生激活，不拦截WASD等其他快捷键。
 }, true);
 window.addEventListener('keyup', e => {
+  skyTrackTurnGesture(e.code, false);
   skyKeyHolds.delete(e.code); skyRefreshHolds();
 }, true);
 window.addEventListener('blur', skyClearInput);
@@ -8098,11 +9890,25 @@ function skyClick(id, action) {
 }
 skyClick('sky-intercept', () => skyStart('intercept'));
 skyClick('sky-cruise', () => skyStart('free'));
+skyClick('sky-inland', () => skyStart('free', true));
 skyClick('sky-resume', () => togglePause());
+skyClick('sky-speed-reset', skyResetFlightSpeeds);
+for (const kind of ['cruise', 'burn']) {
+  const input = skyGet(`sky-${kind}-speed`);
+  input.addEventListener('input', () => skySetFlightSpeed(kind, input.value));
+}
+skyGet('sky-enemy-speed').addEventListener('input', e => skySetControlSetting('enemySpeed', e.target.value));
+skyGet('sky-mouse-steering').addEventListener('change', e => skySetControlSetting('mouse', e.target.checked));
 skyClick('sky-restart', () => startRun(flightMode));
 skyClick('sky-again', () => startRun(flightMode));
 skyClick('sky-home', skyHome); skyClick('sky-result-home', skyHome);
 skyClick('sky-camera', () => cycleView()); skyClick('sky-sound', () => toggleSound());
+skyClick('sky-chase', () => {
+  const scenic = G.skyScenic;
+  scenic.from = skyChaseBlend(); scenic.changedAt = G.time;
+  scenic.oblique = !scenic.oblique;
+  AudioSys.uiTick();
+});
 skyClick('sky-fullscreen', async () => {
   try {
     if (document.fullscreenElement === skyApp) await document.exitFullscreen();
@@ -8130,6 +9936,7 @@ for (const button of skyActions) button.addEventListener('click', e => {
     skyKeyClicks.delete(button);
   } else if (action === 'roll') triggerBarrelRoll();
   else if (action === 'missile') firePlayerMissile();
+  else if (action === 'flare') tryFlares();
   else if (action === 'view') cycleView();
   else if (action === 'pause') togglePause();
   skySync();

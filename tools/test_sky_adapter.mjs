@@ -8,8 +8,9 @@ const read = name => readFileSync(root + name, 'utf8');
 for (const name of ['sky-patrol/55_ui.js', 'sky-patrol/65_app.js']) {
   assert.ok(existsSync(root + name), `SKY adapter source is required: ${name}`);
 }
-const ui = read('sky-patrol/55_ui.js');
+const ui = read('sky-patrol/54_cockpit.js') + '\n' + read('sky-patrol/55_ui.js');
 const app = read('sky-patrol/65_app.js');
+assert.ok(/<button\b[^>]*data-sky-action="flare"[^>]*>[\s\S]*?<kbd>C<\/kbd>[\s\S]*?干扰弹[\s\S]*?<\/button>/.test(read('sky-patrol/00_shell.html')), '新版操作栏必须有标明C的干扰弹按钮');
 const engineFiles = ['10_core', '20_world', '30_shaders', '31_render', '32_meshes', '33_forest', '40_game', '42_combat', '50_ui_hud', '52_ui_screens'];
 new vm.Script(`(() => {\n${engineFiles.map(n => read(`src/${n}.js`)).join('\n')}\n${ui}\n${read('src/60_main.js')}\n${app}\n})();`);
 
@@ -65,18 +66,21 @@ const gl = node('gl', stage, 'CANVAS'); const canvas = node('ui', stage, 'CANVAS
 gl.rect = canvas.rect = stage.rect;
 for (const id of ['sky-header', 'bootfallback', 'sky-brand', 'sky-mode-label', 'sky-telemetry', 'sky-alt', 'sky-speed', 'sky-combat', 'sky-wave', 'sky-score', 'sky-shield', 'sky-fuel', 'sky-start', 'sky-pause', 'sky-result', 'sky-result-score', 'sky-result-kills', 'sky-status', 'sky-controls', 'sky-ammo-count', 'sky-ammo']) node(id, sky);
 const byId = id => nodes.find(n => n.id === id);
-for (const id of ['sky-camera', 'sky-intercept', 'sky-cruise', 'sky-resume', 'sky-restart', 'sky-home', 'sky-again', 'sky-result-home', 'sky-sound', 'sky-fullscreen']) {
-  const parent = ['sky-resume', 'sky-restart', 'sky-home'].includes(id) ? byId('sky-pause')
+for (const id of ['sky-camera', 'sky-chase', 'sky-intercept', 'sky-cruise', 'sky-inland', 'sky-resume', 'sky-cruise-speed', 'sky-burn-speed', 'sky-speed-reset', 'sky-mouse-steering', 'sky-enemy-speed', 'sky-restart', 'sky-home', 'sky-again', 'sky-result-home', 'sky-sound', 'sky-fullscreen']) {
+  const parent = ['sky-resume', 'sky-cruise-speed', 'sky-burn-speed', 'sky-speed-reset', 'sky-mouse-steering', 'sky-enemy-speed', 'sky-restart', 'sky-home'].includes(id) ? byId('sky-pause')
     : ['sky-again', 'sky-result-home'].includes(id) ? byId('sky-result') : sky;
-  node(id, parent, 'BUTTON');
+  node(id, parent, id.endsWith('-speed') || id === 'sky-mouse-steering' ? 'INPUT' : 'BUTTON');
 }
+for (const kind of ['cruise', 'burn', 'enemy']) node(`sky-${kind}-speed-value`, byId('sky-pause'), 'OUTPUT');
+byId('sky-mouse-steering').type = 'checkbox'; byId('sky-mouse-steering').checked = false;
 node('sound-label', byId('sky-sound'), 'SPAN');
 const actions = {};
-for (const action of ['roll', 'boost', 'gun', 'missile', 'view', 'pause']) {
+for (const action of ['roll', 'boost', 'gun', 'missile', 'flare', 'view', 'pause']) {
   actions[action] = node(`action-${action}`, byId('sky-controls'), 'BUTTON'); actions[action].dataset.skyAction = action;
 }
+node('flare-label', actions.flare, 'SPAN');
 for (let i = 0; i < 4; i++) node(`ammo-${i}`, byId('sky-ammo')).dataset.ammoSlot = String(i);
-function matches(n, selector) { return selector === 'span' ? n.tagName === 'SPAN' : selector === 'button' ? n.tagName === 'BUTTON' : selector === '[data-sky-action]' ? !!n.dataset.skyAction : selector === '[data-ammo-slot]' ? n.dataset.ammoSlot !== undefined : false; }
+function matches(n, selector) { return selector.split(',').some(part => { const s = part.trim(); return s === 'span' ? n.tagName === 'SPAN' : s === 'button' ? n.tagName === 'BUTTON' : s === 'input' ? n.tagName === 'INPUT' : s === '[data-sky-action]' ? !!n.dataset.skyAction : s === '[data-ammo-slot]' ? n.dataset.ammoSlot !== undefined : false; }); }
 document.getElementById = byId;
 document.querySelectorAll = selector => nodes.filter(n => matches(n, selector));
 document.createElement = () => new Element('canvas');
@@ -126,6 +130,7 @@ run("BOOT.ready = true; G.highScore = loadHighScore(); G.mode = 'title'; setupTi
 window.__SKY.sync();
 assert.equal(G.highScore, 2400, 'high score loader returns a finite value to boot');
 assert.equal(byId('sky-intercept').disabled, false);
+assert.equal(actions.flare.disabled, true, '待命时不能发射干扰弹');
 run("onKeyDown('Space'); onKeyDown('KeyQ'); onKeyDown('KeyF');");
 assert.equal(G.mode, 'title', 'only Enter starts the initial title from keyboard');
 run("onKeyDown('Enter')");
@@ -133,6 +138,33 @@ assert.equal(window.__SKY.flightMode, 'intercept');
 assert.equal(G.enemies.length, 3, 'formal start preserves original initial wave, no __PI extras');
 assert.equal(G.player.pos.y, 620, 'formal start does not apply screenshot altitude');
 assert.ok(G.waveTotal > 0 && G.ground.length > 0);
+
+// 实际按钮复用真实干扰弹规则，不穿透为机炮、导弹或切镜头。
+const flareBefore = { ammo: G.player.missiles, shots: G.stats.shots, view: G.view };
+assert.equal(actions.flare.disabled, false);
+assert.match(byId('flare-label').textContent, /干扰弹.*3/);
+dispatch(actions.flare, 'pointerdown'); dispatch(actions.flare, 'mousedown'); dispatch(actions.flare, 'mouseup'); dispatch(actions.flare, 'pointerup'); dispatch(actions.flare, 'click');
+assert.equal(G.player.flares, 2); assert.equal(G.player.flareCd, 7);
+assert.equal(G.effects.filter(effect => effect.type === 'flare').length, 6, '一轮投放六颗真实干扰效果');
+assert.deepEqual({ ammo: G.player.missiles, shots: G.stats.shots, view: G.view }, flareBefore);
+assert.equal(actions.flare.disabled, true); assert.match(byId('flare-label').textContent, /7s/);
+assert.match(actions.flare.getAttribute('aria-label'), /剩余 2.*冷却 7/);
+dispatch(actions.flare, 'click'); assert.equal(G.player.flares, 2, '冷却期间不能连点发射');
+run('updateFlight(1)'); window.__SKY.sync(); assert.match(byId('flare-label').textContent, /6s/);
+G.player.flareCd = 0; G.realTime += 7; window.__SKY.sync();
+assert.equal(actions.flare.disabled, false);
+dispatch(actions.flare, 'keydown', { code: 'Space' }); dispatch(actions.flare, 'click', { detail: 0 });
+assert.equal(G.player.flares, 1); assert.equal(G.view, flareBefore.view, '聚焦按钮的空格不切视角');
+G.player.flareCd = 0; G.realTime += 7;
+dispatch(canvas, 'keydown', { code: 'KeyX' }); dispatch(canvas, 'keyup', { code: 'KeyX' });
+assert.equal(G.player.flares, 0, 'X快捷键仍可用');
+assert.equal(actions.flare.disabled, true); assert.match(byId('flare-label').textContent, /用尽/);
+window.__SKY.restart(); G.mode = 'waveclear'; window.__SKY.sync();
+assert.equal(actions.flare.disabled, true, '遵守现有干扰弹只在play投放的规则');
+G.mode = 'play'; window.__SKY.sync();
+dispatch(actions.pause, 'click'); assert.equal(actions.flare.disabled, true);
+dispatch(actions.flare, 'click'); assert.equal(G.player.flares, 3, '暂停时不消耗干扰弹');
+dispatch(byId('sky-resume'), 'click');
 
 G.freeze = true; G.testInput = { burn: true }; G.pausedFrom = 'waveclear'; G.touchStick = { x: 1, y: 1 };
 run("INPUT.keys.add('KeyF'); INPUT.left = INPUT.touchBurn = INPUT.touchGun = true; TOUCH.active = true; UI_HOLDS.set(4, {});");
@@ -164,7 +196,9 @@ assert.equal(byId('ammo-2').getAttribute('data-empty'), 'true', 'shell ammo styl
 // Original window input listeners remain installed; capture fences must intercept them.
 dispatch(byId('sky-sound'), 'mousedown'); assert.equal(run('INPUT.left'), false);
 dispatch(byId('sky-sound'), 'pointermove'); assert.equal(run('INPUT.mouseSteerAge'), Infinity);
-dispatch(canvas, 'pointermove', { clientX: 1000, clientY: 200 }); assert.equal(run('INPUT.mouseSteerAge'), 0);
+dispatch(canvas, 'pointermove', { clientX: 1000, clientY: 200 });
+assert.equal(G.player.mouseSteering, false, '新版默认关闭鼠标操纵');
+assert.equal(run('readSteering().sx || readSteering().sy || readSteering().turn'), 0, '鼠标仍能瞄准但默认不能改变飞行操纵');
 dispatch(document.body, 'pointermove'); assert.equal(run('INPUT.mouseSteerAge'), Infinity);
 dispatch(canvas, 'mousedown'); assert.equal(run('INPUT.left'), true);
 dispatch(document.body, 'mouseup'); assert.equal(run('INPUT.left'), false, 'release outside stage cannot leave guns held');
@@ -218,7 +252,20 @@ run("G.mode = 'failed'; G.failTimer = 1; G.score = 1234; G.stats.kills = 2;"); w
 assert.equal(byId('sky-result').hidden, false); assert.equal(byId('sky-result-score').textContent, '1,234');
 dispatch(byId('sky-again'), 'click'); assert.equal(G.mode, 'play'); assert.equal(G.score, 0);
 assert.equal(rafCount, 1);
-assert.equal(run('hudBlocked(50, 100)'), false, 'removed legacy panels no longer hide targets');
+// 两条巡航仍用同一张地图和同一套规则；重开保留路线，回到待命不污染常规出生点。
+window.__SKY.home(); const lakeSpawn = { ...G.player.pos };
+const map = G.map;
+assert.equal(byId('sky-inland').disabled, false, '待命时能从正式按钮进入内陆草谷');
+dispatch(byId('sky-inland'), 'click');
+assert.equal(window.__SKY.flightMode, 'free'); assert.equal(G.view, 1); assert.equal(G.map, map);
+const inland = { ...G.player.pos };
+assert.ok(Math.hypot(inland.x - lakeSpawn.x, inland.z - lakeSpawn.z) > 1000, '草谷出发点须位于另一段真实地形');
+assert.ok(inland.y - map.heightAt(inland.x, inland.z) < 260, '林线入口不应沿用湖区600米净空');
+assert.equal(G.enemies.length + G.ground.length, 0);
+window.__SKY.restart(); assert.deepEqual({ ...G.player.pos }, inland);
+window.__SKY.home(); dispatch(byId('sky-intercept'), 'click');
+assert.equal(G.player.pos.x, lakeSpawn.x); assert.equal(G.player.pos.z, lakeSpawn.z); assert.equal(G.enemies.length, 3);
+assert.equal(run('hudBlocked(50, 100)'), true, '恢复的资源面板必须参与目标标签避让');
 dispatch(byId('sky-camera'), 'click');
 assert.equal(byId('sky-camera').getAttribute('aria-label'), '切换视角，当前座舱视角', '读屏名称必须同步实际视角');
 dispatch(actions.boost, 'click', { detail: 0 });

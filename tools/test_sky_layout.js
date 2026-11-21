@@ -20,5 +20,11 @@ for (const button of visibleButtons) {
   assert(r.left >= -1 && r.right <= innerWidth + 1 && r.top >= -1 && r.bottom <= innerHeight + 1, `按钮出屏：${button.textContent.trim()}`);
   assert(r.width >= 26 && r.height >= 26, `按钮命中区过小：${button.textContent.trim()}`);
 }
+const starts = [...document.querySelectorAll('#sky-start button')];
+assert(starts.some(b => b.id === 'sky-inland'), '林线缺少可见起飞入口');
+for (const b of starts) {
+  const r = b.getBoundingClientRect();
+  assert(r.top >= stage.top && r.bottom <= stage.bottom && document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button') === b, `起飞按钮被画框裁切或遮挡：${b.textContent}`);
+}
 assert(!__PI.errors.length && !__PI.exceptions.length, JSON.stringify({ errors: __PI.errors, exceptions: __PI.exceptions }));
 return { result: 'PASS', viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio }, stage: stage.toJSON(), canvas: ui.toJSON(), brand: brand.toJSON(), buttons: visibleButtons.length, errors: __PI.errors };

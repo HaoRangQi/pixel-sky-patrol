@@ -1,0 +1,592 @@
+{
+  "startedAt": "2026-11-21T11:14:34.942Z",
+  "command": "node tools/verify_sky_speed.mjs",
+  "baseUrl": "http://127.0.0.1:8765",
+  "result": "PASS",
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "result": "PASS",
+      "defaults": {
+        "cruiseSpeed": 112,
+        "burnSpeed": 204
+      },
+      "focusCycle": {
+        "forward": [
+          "sky-cruise-speed",
+          "sky-burn-speed",
+          "sky-speed-reset",
+          "sky-restart",
+          "sky-home",
+          "sky-resume"
+        ],
+        "backward": [
+          "sky-home",
+          "sky-restart",
+          "sky-speed-reset",
+          "sky-burn-speed",
+          "sky-cruise-speed",
+          "sky-resume"
+        ]
+      },
+      "pausedAudioShortcut": {
+        "before": false,
+        "states": [
+          {
+            "phase": "first keydown",
+            "sound": true,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          },
+          {
+            "phase": "autoRepeat keydown",
+            "sound": true,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          },
+          {
+            "phase": "keyup",
+            "sound": true,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          },
+          {
+            "phase": "second press restores audio",
+            "sound": false,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          }
+        ],
+        "restored": false
+      },
+      "nativeArrow": {
+        "before": 218,
+        "after": 219,
+        "output": "219 节"
+      },
+      "linkedBounds": {
+        "cruise": 300,
+        "burn": 300,
+        "burnMin": 300
+      },
+      "reset": {
+        "cruiseSpeed": 112,
+        "burnSpeed": 204,
+        "cruiseDisplay": 218,
+        "burnDisplay": 397
+      },
+      "touchSlider": {
+        "before": 230,
+        "after": 275,
+        "start": {
+          "x": 725.6,
+          "y": 457.171875
+        },
+        "end": {
+          "x": 775.9200000000001,
+          "y": 457.171875
+        }
+      },
+      "pausedFrozen": {
+        "speed": 112,
+        "fuel": 100,
+        "pos": {
+          "x": 4989.850555332146,
+          "y": 637.9034951305053,
+          "z": 7098.135928544345
+        },
+        "time": 0.016700000000000045
+      },
+      "resumeButton": {
+        "cruiseSpeed": 144.04477734792988,
+        "burnSpeed": 246.93390402502263,
+        "active": {
+          "id": "",
+          "tag": "BODY",
+          "insidePause": false,
+          "hidden": false
+        }
+      },
+      "screenshot": "shots/sky_speed_desktop.png",
+      "screenshotValues": {
+        "cruise": 280,
+        "burn": 480
+      },
+      "isolationBeforeKeyup": {
+        "view": 1,
+        "shots": 0,
+        "burning": false,
+        "steering": {
+          "sx": 0,
+          "sy": 0,
+          "burn": false,
+          "alt": 0,
+          "turn": 0,
+          "topView": false,
+          "mouseBlend": 1
+        }
+      },
+      "resumeFirstFrame": {
+        "before": 112.58682924541834,
+        "after": 112.87857033182463,
+        "target": 144.55922298131534
+      },
+      "convergence": {
+        "cruise": 144.55922298131534,
+        "burn": 246.93390402502263,
+        "releaseFirstFrame": 245.66218531272244
+      },
+      "lowerCap": {
+        "before": 245.66218531272244,
+        "afterFirstFrame": 244.84721183819676,
+        "target": 180.05597168491235
+      },
+      "fuelCutoff": {
+        "fuel": 0.5166666666666666,
+        "target": 144.55922298131534,
+        "burning": false
+      },
+      "resumeIsolation": true,
+      "touchBoost": {
+        "held": true,
+        "released": false,
+        "cap": 180.05597168491235
+      },
+      "restart": {
+        "speed": 144.04477734792988,
+        "cruiseSpeed": 144.04477734792988,
+        "burnSpeed": 246.93390402502263,
+        "mode": "free"
+      },
+      "modeSwitch": {
+        "speed": 144.04477734792988,
+        "cruiseSpeed": 144.04477734792988,
+        "burnSpeed": 246.93390402502263,
+        "mode": "intercept"
+      },
+      "runtimeErrors": []
+    },
+    {
+      "name": "portrait",
+      "width": 390,
+      "height": 844,
+      "mobile": true,
+      "result": "PASS",
+      "defaults": {
+        "cruiseSpeed": 112,
+        "burnSpeed": 204
+      },
+      "focusCycle": {
+        "forward": [
+          "sky-cruise-speed",
+          "sky-burn-speed",
+          "sky-speed-reset",
+          "sky-restart",
+          "sky-home",
+          "sky-resume"
+        ],
+        "backward": [
+          "sky-home",
+          "sky-restart",
+          "sky-speed-reset",
+          "sky-burn-speed",
+          "sky-cruise-speed",
+          "sky-resume"
+        ]
+      },
+      "pausedAudioShortcut": {
+        "before": false,
+        "states": [
+          {
+            "phase": "first keydown",
+            "sound": true,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          },
+          {
+            "phase": "autoRepeat keydown",
+            "sound": true,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          },
+          {
+            "phase": "keyup",
+            "sound": true,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          },
+          {
+            "phase": "second press restores audio",
+            "sound": false,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          }
+        ],
+        "restored": false
+      },
+      "nativeArrow": {
+        "before": 218,
+        "after": 219,
+        "output": "219 节"
+      },
+      "linkedBounds": {
+        "cruise": 300,
+        "burn": 300,
+        "burnMin": 300
+      },
+      "reset": {
+        "cruiseSpeed": 112,
+        "burnSpeed": 204,
+        "cruiseDisplay": 218,
+        "burnDisplay": 397
+      },
+      "touchSlider": {
+        "before": 230,
+        "after": 275,
+        "start": {
+          "x": 200.16,
+          "y": 399.640625
+        },
+        "end": {
+          "x": 246.74,
+          "y": 399.640625
+        }
+      },
+      "pausedFrozen": {
+        "speed": 112,
+        "fuel": 100,
+        "pos": {
+          "x": 4990,
+          "y": 637.8674387931824,
+          "z": 7100
+        },
+        "time": 0
+      },
+      "resumeButton": {
+        "cruiseSpeed": 144.04477734792988,
+        "burnSpeed": 246.93390402502263,
+        "active": {
+          "id": "",
+          "tag": "BODY",
+          "insidePause": false,
+          "hidden": false
+        }
+      },
+      "screenshot": "shots/sky_speed_portrait.png",
+      "screenshotValues": {
+        "cruise": 280,
+        "burn": 480
+      },
+      "isolationBeforeKeyup": {
+        "view": 1,
+        "shots": 0,
+        "burning": false,
+        "steering": {
+          "sx": 0,
+          "sy": 0,
+          "burn": false,
+          "alt": 0,
+          "turn": 0,
+          "topView": false,
+          "mouseBlend": 1
+        }
+      },
+      "resumeIsolation": true,
+      "touchBoost": {
+        "held": true,
+        "released": false,
+        "cap": 246.93390402502263
+      },
+      "restart": {
+        "speed": 144.04477734792988,
+        "cruiseSpeed": 144.04477734792988,
+        "burnSpeed": 246.93390402502263,
+        "mode": "free"
+      },
+      "modeSwitch": {
+        "speed": 144.04477734792988,
+        "cruiseSpeed": 144.04477734792988,
+        "burnSpeed": 246.93390402502263,
+        "mode": "intercept"
+      },
+      "runtimeErrors": []
+    },
+    {
+      "name": "landscape",
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "result": "PASS",
+      "defaults": {
+        "cruiseSpeed": 112,
+        "burnSpeed": 204
+      },
+      "focusCycle": {
+        "forward": [
+          "sky-cruise-speed",
+          "sky-burn-speed",
+          "sky-speed-reset",
+          "sky-restart",
+          "sky-home",
+          "sky-resume"
+        ],
+        "backward": [
+          "sky-home",
+          "sky-restart",
+          "sky-speed-reset",
+          "sky-burn-speed",
+          "sky-cruise-speed",
+          "sky-resume"
+        ]
+      },
+      "pausedAudioShortcut": {
+        "before": false,
+        "states": [
+          {
+            "phase": "first keydown",
+            "sound": true,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          },
+          {
+            "phase": "autoRepeat keydown",
+            "sound": true,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          },
+          {
+            "phase": "keyup",
+            "sound": true,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          },
+          {
+            "phase": "second press restores audio",
+            "sound": false,
+            "mode": "paused",
+            "bubbleKeydowns": 0
+          }
+        ],
+        "restored": false
+      },
+      "nativeArrow": {
+        "before": 218,
+        "after": 219,
+        "output": "219 节"
+      },
+      "linkedBounds": {
+        "cruise": 300,
+        "burn": 300,
+        "burnMin": 300
+      },
+      "reset": {
+        "cruiseSpeed": 112,
+        "burnSpeed": 204,
+        "cruiseDisplay": 218,
+        "burnDisplay": 397
+      },
+      "touchSlider": {
+        "before": 230,
+        "after": 275,
+        "start": {
+          "x": 427.36,
+          "y": 189.03125
+        },
+        "end": {
+          "x": 475.64,
+          "y": 189.03125
+        }
+      },
+      "pausedFrozen": {
+        "speed": 112,
+        "fuel": 100,
+        "pos": {
+          "x": 4989.403099784523,
+          "y": 638.0002043906892,
+          "z": 7092.554671441156
+        },
+        "time": 0.06670000000000005
+      },
+      "resumeButton": {
+        "cruiseSpeed": 144.04477734792988,
+        "burnSpeed": 246.93390402502263,
+        "active": {
+          "id": "",
+          "tag": "BODY",
+          "insidePause": false,
+          "hidden": false
+        }
+      },
+      "shortPopup": {
+        "touchScrollTop": 213,
+        "reachable": {
+          "sky-resume": {
+            "x": 422,
+            "y": 189.53125,
+            "width": 284,
+            "height": 40,
+            "hit": true,
+            "hitId": "sky-resume",
+            "modalScrollTop": 4,
+            "visible": true
+          },
+          "sky-cruise-speed": {
+            "x": 422,
+            "y": 189.03125,
+            "width": 284,
+            "height": 32,
+            "hit": true,
+            "hitId": "sky-cruise-speed",
+            "modalScrollTop": 113,
+            "visible": true
+          },
+          "sky-burn-speed": {
+            "x": 422,
+            "y": 189.53125,
+            "width": 284,
+            "height": 32,
+            "hit": true,
+            "hitId": "sky-burn-speed",
+            "modalScrollTop": 178,
+            "visible": true
+          },
+          "sky-speed-reset": {
+            "x": 422,
+            "y": 221.125,
+            "width": 284,
+            "height": 36,
+            "hit": true,
+            "hitId": "sky-speed-reset",
+            "modalScrollTop": 219,
+            "visible": true
+          },
+          "sky-restart": {
+            "x": 348.5,
+            "y": 278.125,
+            "width": 137,
+            "height": 40,
+            "hit": true,
+            "hitId": "sky-restart",
+            "modalScrollTop": 219,
+            "visible": true
+          },
+          "sky-home": {
+            "x": 495.5,
+            "y": 278.125,
+            "width": 137,
+            "height": 40,
+            "hit": true,
+            "hitId": "sky-home",
+            "modalScrollTop": 219,
+            "visible": true
+          }
+        },
+        "left": 21,
+        "top": 51,
+        "right": 823,
+        "bottom": 328,
+        "clientHeight": 277,
+        "scrollHeight": 496
+      },
+      "screenshot": "shots/sky_speed_landscape.png",
+      "screenshotValues": {
+        "cruise": 280,
+        "burn": 480
+      },
+      "bottomScreenshot": "shots/sky_speed_landscape_bottom.png",
+      "isolationBeforeKeyup": {
+        "view": 1,
+        "shots": 0,
+        "burning": false,
+        "steering": {
+          "sx": 0,
+          "sy": 0,
+          "burn": false,
+          "alt": 0,
+          "turn": 0,
+          "topView": false,
+          "mouseBlend": 1
+        }
+      },
+      "resumeIsolation": true,
+      "touchBoost": {
+        "held": true,
+        "released": false,
+        "cap": 246.93390402502263
+      },
+      "restart": {
+        "speed": 144.04477734792988,
+        "cruiseSpeed": 144.04477734792988,
+        "burnSpeed": 246.93390402502263,
+        "mode": "free"
+      },
+      "modeSwitch": {
+        "speed": 144.04477734792988,
+        "cruiseSpeed": 144.04477734792988,
+        "burnSpeed": 246.93390402502263,
+        "mode": "intercept"
+      },
+      "runtimeErrors": []
+    }
+  ],
+  "screenshots": [
+    "shots/sky_speed_desktop.png",
+    "shots/sky_speed_portrait.png",
+    "shots/sky_speed_landscape.png",
+    "shots/sky_speed_landscape_bottom.png"
+  ],
+  "runtimeErrors": [],
+  "executionPaths": {
+    "keyboard": "CDP Input.dispatchKeyEvent; native ArrowRight, Tab and Shift+Tab defaults are preserved",
+    "touch": "CDP Input.dispatchTouchEvent; native range drag and held boost button",
+    "numericFixture": "Range value assignment followed by a bubbling input event; native editing is separately exercised",
+    "simulation": "__PI.freeze/step; actual pause is also checked with freeze(false) across browser frames",
+    "legacy": "Existing tools/test_wasd.js plus default cruise/boost fallback checks"
+  },
+  "browser": {
+    "Browser": "Chrome/157.0.8103.80",
+    "File-Path-Style": "posix",
+    "Protocol-Version": "1.3",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+    "V8-Version": "15.7.112.43",
+    "WebKit-Version": "537.36 (@5cb0fce6746acfc926045c45b23d811d479c49b9)",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:61328/devtools/browser/481944f4-4a79-4486-968a-4e57ff517a77"
+  },
+  "legacy": {
+    "result": "PASS",
+    "wasd": {
+      "mode": "play",
+      "view": 0,
+      "chase": {
+        "y0": 2.304,
+        "yD": 2.768,
+        "yA": 2.475,
+        "rollD": -0.98,
+        "p0": 0.02,
+        "pW": 0.542,
+        "pS": 0.002
+      },
+      "top": {
+        "yTop0": 2.305,
+        "yTopD": -2.946,
+        "alt0": 1051.2,
+        "altW": 1063.8,
+        "altS": 1061.2,
+        "pitchTop": 0.357
+      },
+      "errors": []
+    },
+    "defaults": {
+      "cruise": 112,
+      "burn": 204
+    }
+  },
+  "cleanup": {
+    "ownChromeStopped": true,
+    "ownProfileDeleted": true
+  },
+  "finishedAt": "2026-11-21T11:14:49.830Z"
+}

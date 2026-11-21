@@ -212,12 +212,9 @@ function collectDrawables() {
   if (p && !p.dead && G.cockpitAlpha < 0.62) {
     push(G.meshes.player, p.pos, p.renderBasis, 1, { maxDist: 10000 });
     // under-wing stores
-    const b = p.renderBasis;
     for (let i = 0; i < Math.min(4, p.missiles); i++) {
-      const side = (i % 2 === 0 ? -1 : 1) * (2.2 + Math.floor(i / 2) * 1.05);
-      const back = 0.8 + Math.floor(i / 2) * 1.35;
-      const pos = vadd(vadd(vadd(p.pos, vmul(b.right, side)), vmul(b.up, -0.52)), vmul(b.fwd, back));
-      push(G.meshes.missile, pos, b, 0.9, { maxDist: 800 });
+      const slot = ((p.nextRail || 0) + i) % 4;
+      push(G.meshes.missile, wingRailPosition(p, slot), p.renderBasis, 0.9, { maxDist: 800 });
     }
   }
   for (const e of G.enemies) {
@@ -337,6 +334,8 @@ function ensurePlay() {
   G.enemies.length = 0;
   G.ground.length = 0;
   G.missiles.length = 0;
+  G.missileTrails.length = 0;
+  G.bullets.length = 0;
   G.effects.length = 0;
   G.tracers.length = 0;
   G.popups.length = 0;

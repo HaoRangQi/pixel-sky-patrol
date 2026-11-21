@@ -1,0 +1,1806 @@
+{
+  "startedAt": "2026-11-21T11:46:06.474Z",
+  "url": "http://127.0.0.1:8765/sky-patrol/?adapt=0",
+  "result": "PASS",
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "result": "PASS",
+      "errors": [],
+      "standby": {
+        "text": "C干扰弹 3",
+        "key": "C",
+        "disabled": true,
+        "title": "干扰弹，C 或 X；剩余 3，冷却 0 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 3，冷却 0 秒",
+        "rect": {
+          "x": 533.578125,
+          "y": 833,
+          "width": 74.125,
+          "height": 40,
+          "right": 607.703125,
+          "bottom": 873
+        }
+      },
+      "layout": {
+        "button": {
+          "x": 570.640625,
+          "y": 853,
+          "width": 74.125,
+          "height": 40,
+          "hit": true,
+          "visible": true
+        },
+        "stage": {
+          "x": 40,
+          "y": 76,
+          "width": 1360,
+          "height": 740,
+          "right": 1400,
+          "bottom": 816
+        },
+        "footer": {
+          "x": 40,
+          "y": 832,
+          "width": 1360,
+          "height": 56,
+          "right": 1400,
+          "bottom": 888
+        },
+        "controls": [
+          {
+            "label": "鼠标 / WASD 转向",
+            "x": 40,
+            "y": 833,
+            "right": 151.625,
+            "bottom": 873,
+            "width": 111.625,
+            "height": 40
+          },
+          {
+            "label": "Q桶滚",
+            "x": 164.625,
+            "y": 833,
+            "right": 217.625,
+            "bottom": 873,
+            "width": 53,
+            "height": 40
+          },
+          {
+            "label": "Shift加速",
+            "x": 230.625,
+            "y": 833,
+            "right": 301.734375,
+            "bottom": 873,
+            "width": 71.109375,
+            "height": 40
+          },
+          {
+            "label": "左键/F机炮",
+            "x": 314.734375,
+            "y": 833,
+            "right": 411.15625,
+            "bottom": 873,
+            "width": 96.421875,
+            "height": 40
+          },
+          {
+            "label": "右键/E导弹",
+            "x": 424.15625,
+            "y": 833,
+            "right": 520.578125,
+            "bottom": 873,
+            "width": 96.421875,
+            "height": 40
+          },
+          {
+            "label": "C干扰弹 3",
+            "x": 533.578125,
+            "y": 833,
+            "right": 607.703125,
+            "bottom": 873,
+            "width": 74.125,
+            "height": 40
+          },
+          {
+            "label": "Space视角",
+            "x": 620.703125,
+            "y": 833,
+            "right": 691.8125,
+            "bottom": 873,
+            "width": 71.109375,
+            "height": 40
+          },
+          {
+            "label": "Esc暂停",
+            "x": 704.8125,
+            "y": 833,
+            "right": 763.875,
+            "bottom": 873,
+            "width": 59.0625,
+            "height": 40
+          },
+          {
+            "label": "导弹\n      \n        \n        \n        \n        \n      \n      04/04",
+            "x": 39,
+            "y": 831,
+            "right": 40,
+            "bottom": 832,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "status": {
+          "rect": {
+            "x": 40,
+            "y": 884.40625,
+            "width": 178,
+            "height": 12.59375,
+            "right": 218,
+            "bottom": 897
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "-10px",
+            "fontSize": "9px",
+            "lineHeight": "12.6px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "72%"
+          }
+        }
+      },
+      "pointer": {
+        "method": "CDP native mouse",
+        "before": 3,
+        "after": 2,
+        "effects": 6,
+        "cooldown": 7,
+        "feedback": {
+          "text": "C干扰弹 7s",
+          "key": "C",
+          "disabled": true,
+          "title": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "rect": {
+            "x": 533.578125,
+            "y": 833,
+            "width": 79.3125,
+            "height": 40,
+            "right": 612.890625,
+            "bottom": 873
+          }
+        }
+      },
+      "cooldownLayout": {
+        "button": {
+          "x": 573.234375,
+          "y": 853,
+          "width": 79.3125,
+          "height": 40,
+          "hit": true,
+          "visible": true
+        },
+        "stage": {
+          "x": 40,
+          "y": 76,
+          "width": 1360,
+          "height": 740,
+          "right": 1400,
+          "bottom": 816
+        },
+        "footer": {
+          "x": 40,
+          "y": 832,
+          "width": 1360,
+          "height": 56,
+          "right": 1400,
+          "bottom": 888
+        },
+        "controls": [
+          {
+            "label": "鼠标 / WASD 转向",
+            "x": 40,
+            "y": 833,
+            "right": 151.625,
+            "bottom": 873,
+            "width": 111.625,
+            "height": 40
+          },
+          {
+            "label": "Q桶滚",
+            "x": 164.625,
+            "y": 833,
+            "right": 217.625,
+            "bottom": 873,
+            "width": 53,
+            "height": 40
+          },
+          {
+            "label": "Shift加速",
+            "x": 230.625,
+            "y": 833,
+            "right": 301.734375,
+            "bottom": 873,
+            "width": 71.109375,
+            "height": 40
+          },
+          {
+            "label": "左键/F机炮",
+            "x": 314.734375,
+            "y": 833,
+            "right": 411.15625,
+            "bottom": 873,
+            "width": 96.421875,
+            "height": 40
+          },
+          {
+            "label": "右键/E导弹",
+            "x": 424.15625,
+            "y": 833,
+            "right": 520.578125,
+            "bottom": 873,
+            "width": 96.421875,
+            "height": 40
+          },
+          {
+            "label": "C干扰弹 7s",
+            "x": 533.578125,
+            "y": 833,
+            "right": 612.890625,
+            "bottom": 873,
+            "width": 79.3125,
+            "height": 40
+          },
+          {
+            "label": "Space视角",
+            "x": 625.890625,
+            "y": 833,
+            "right": 697,
+            "bottom": 873,
+            "width": 71.109375,
+            "height": 40
+          },
+          {
+            "label": "Esc暂停",
+            "x": 710,
+            "y": 833,
+            "right": 769.0625,
+            "bottom": 873,
+            "width": 59.0625,
+            "height": 40
+          },
+          {
+            "label": "导弹\n      \n        \n        \n        \n        \n      \n      04/04",
+            "x": 39,
+            "y": 831,
+            "right": 40,
+            "bottom": 832,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "status": {
+          "rect": {
+            "x": 40,
+            "y": 884.40625,
+            "width": 178,
+            "height": 12.59375,
+            "right": 218,
+            "bottom": 897
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "-10px",
+            "fontSize": "9px",
+            "lineHeight": "12.6px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "72%"
+          }
+        }
+      },
+      "screenshot": "shots/sky_flare_desktop.png",
+      "screenshotState": {
+        "mode": "play",
+        "time": 0.5000333333333331,
+        "realTime": 2.3494333333333306,
+        "view": 1,
+        "shots": 0,
+        "flares": 2,
+        "flareCd": 6.916666666666667,
+        "missiles": 4,
+        "dead": false,
+        "flareEffects": 6,
+        "button": {
+          "text": "C干扰弹 7s",
+          "key": "C",
+          "disabled": true,
+          "title": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "rect": {
+            "x": 533.578125,
+            "y": 833,
+            "width": 79.3125,
+            "height": 40,
+            "right": 612.890625,
+            "bottom": 873
+          }
+        },
+        "systemFlare": "2 · 7s",
+        "stage": {
+          "x": 40,
+          "y": 76,
+          "width": 1360,
+          "height": 740,
+          "right": 1400,
+          "bottom": 816
+        },
+        "footer": {
+          "x": 40,
+          "y": 832,
+          "width": 1360,
+          "height": 56,
+          "right": 1400,
+          "bottom": 888
+        },
+        "status": {
+          "rect": {
+            "x": 40,
+            "y": 884.40625,
+            "width": 178,
+            "height": 12.59375,
+            "right": 218,
+            "bottom": 897
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "-10px",
+            "fontSize": "9px",
+            "lineHeight": "12.6px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "72%"
+          }
+        },
+        "document": {
+          "width": 1440,
+          "height": 900,
+          "viewportWidth": 1440,
+          "viewportHeight": 900
+        },
+        "active": "",
+        "errors": [],
+        "exceptions": []
+      },
+      "cooldownTick": {
+        "before": 6.916666666666667,
+        "after": 5.9166666666666705,
+        "feedback": {
+          "text": "C干扰弹 6s",
+          "key": "C",
+          "disabled": true,
+          "title": "干扰弹，C 或 X；剩余 2，冷却 6 秒",
+          "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 6 秒",
+          "rect": {
+            "x": 533.578125,
+            "y": 833,
+            "width": 80.0625,
+            "height": 40,
+            "right": 613.640625,
+            "bottom": 873
+          }
+        }
+      },
+      "recovered": {
+        "text": "C干扰弹 2",
+        "key": "C",
+        "disabled": false,
+        "title": "干扰弹，C 或 X；剩余 2，冷却 0 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 0 秒",
+        "rect": {
+          "x": 533.578125,
+          "y": 833,
+          "width": 73.875,
+          "height": 40,
+          "right": 607.453125,
+          "bottom": 873
+        }
+      },
+      "enter": {
+        "before": 2,
+        "after": 1,
+        "effects": 6,
+        "view": 1,
+        "shots": 0,
+        "missiles": 4
+      },
+      "space": {
+        "before": 1,
+        "after": 0,
+        "effects": 6,
+        "view": 1,
+        "shots": 0,
+        "missiles": 4
+      },
+      "exhaustedLayout": {
+        "button": {
+          "x": 578.1640625,
+          "y": 853,
+          "width": 89.171875,
+          "height": 40,
+          "hit": true,
+          "visible": true
+        },
+        "stage": {
+          "x": 40,
+          "y": 76,
+          "width": 1360,
+          "height": 740,
+          "right": 1400,
+          "bottom": 816
+        },
+        "footer": {
+          "x": 40,
+          "y": 832,
+          "width": 1360,
+          "height": 56,
+          "right": 1400,
+          "bottom": 888
+        },
+        "controls": [
+          {
+            "label": "鼠标 / WASD 转向",
+            "x": 40,
+            "y": 833,
+            "right": 151.625,
+            "bottom": 873,
+            "width": 111.625,
+            "height": 40
+          },
+          {
+            "label": "Q桶滚",
+            "x": 164.625,
+            "y": 833,
+            "right": 217.625,
+            "bottom": 873,
+            "width": 53,
+            "height": 40
+          },
+          {
+            "label": "Shift加速",
+            "x": 230.625,
+            "y": 833,
+            "right": 301.734375,
+            "bottom": 873,
+            "width": 71.109375,
+            "height": 40
+          },
+          {
+            "label": "左键/F机炮",
+            "x": 314.734375,
+            "y": 833,
+            "right": 411.15625,
+            "bottom": 873,
+            "width": 96.421875,
+            "height": 40
+          },
+          {
+            "label": "右键/E导弹",
+            "x": 424.15625,
+            "y": 833,
+            "right": 520.578125,
+            "bottom": 873,
+            "width": 96.421875,
+            "height": 40
+          },
+          {
+            "label": "C干扰弹 用尽",
+            "x": 533.578125,
+            "y": 833,
+            "right": 622.75,
+            "bottom": 873,
+            "width": 89.171875,
+            "height": 40
+          },
+          {
+            "label": "Space视角",
+            "x": 635.75,
+            "y": 833,
+            "right": 706.859375,
+            "bottom": 873,
+            "width": 71.109375,
+            "height": 40
+          },
+          {
+            "label": "Esc暂停",
+            "x": 719.859375,
+            "y": 833,
+            "right": 778.921875,
+            "bottom": 873,
+            "width": 59.0625,
+            "height": 40
+          },
+          {
+            "label": "导弹\n      \n        \n        \n        \n        \n      \n      04/04",
+            "x": 39,
+            "y": 831,
+            "right": 40,
+            "bottom": 832,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "status": {
+          "rect": {
+            "x": 40,
+            "y": 884.40625,
+            "width": 178,
+            "height": 12.59375,
+            "right": 218,
+            "bottom": 897
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "-10px",
+            "fontSize": "9px",
+            "lineHeight": "12.6px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "72%"
+          }
+        }
+      },
+      "exhausted": {
+        "text": "C干扰弹 用尽",
+        "key": "C",
+        "disabled": true,
+        "title": "干扰弹，C 或 X；剩余 0，冷却 0 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 0，冷却 0 秒",
+        "rect": {
+          "x": 533.578125,
+          "y": 833,
+          "width": 89.171875,
+          "height": 40,
+          "right": 622.75,
+          "bottom": 873
+        }
+      },
+      "shortcuts": [
+        {
+          "code": "KeyC",
+          "before": 3,
+          "after": 2,
+          "effects": 6
+        },
+        {
+          "code": "KeyX",
+          "before": 2,
+          "after": 1,
+          "effects": 6
+        }
+      ],
+      "paused": {
+        "text": "C干扰弹 7s",
+        "key": "C",
+        "disabled": true,
+        "title": "干扰弹，C 或 X；剩余 1，冷却 7 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 1，冷却 7 秒",
+        "rect": {
+          "x": 533.578125,
+          "y": 833,
+          "width": 79.3125,
+          "height": 40,
+          "right": 612.890625,
+          "bottom": 873
+        }
+      },
+      "runtimeErrors": []
+    },
+    {
+      "name": "portrait",
+      "width": 390,
+      "height": 844,
+      "mobile": true,
+      "result": "PASS",
+      "errors": [],
+      "standby": {
+        "text": "C干扰弹 3",
+        "key": "C",
+        "disabled": true,
+        "title": "干扰弹，C 或 X；剩余 3，冷却 0 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 3，冷却 0 秒",
+        "rect": {
+          "x": 130.390625,
+          "y": 742,
+          "width": 66.328125,
+          "height": 40,
+          "right": 196.71875,
+          "bottom": 782
+        }
+      },
+      "layout": {
+        "button": {
+          "x": 163.5546875,
+          "y": 787,
+          "width": 66.328125,
+          "height": 40,
+          "hit": true,
+          "visible": true
+        },
+        "stage": {
+          "x": 12,
+          "y": 60,
+          "width": 366,
+          "height": 657,
+          "right": 378,
+          "bottom": 717
+        },
+        "footer": {
+          "x": 12,
+          "y": 727,
+          "width": 366,
+          "height": 101,
+          "right": 378,
+          "bottom": 828
+        },
+        "controls": [
+          {
+            "label": "鼠标 / WASD 转向",
+            "x": 12,
+            "y": 727,
+            "right": 113.953125,
+            "bottom": 767,
+            "width": 101.953125,
+            "height": 40
+          },
+          {
+            "label": "Q桶滚",
+            "x": 137.46875,
+            "y": 727,
+            "right": 184.46875,
+            "bottom": 767,
+            "width": 47,
+            "height": 40
+          },
+          {
+            "label": "Shift加速",
+            "x": 207.96875,
+            "y": 727,
+            "right": 270.0625,
+            "bottom": 767,
+            "width": 62.09375,
+            "height": 40
+          },
+          {
+            "label": "左键/F机炮",
+            "x": 293.578125,
+            "y": 727,
+            "right": 378,
+            "bottom": 767,
+            "width": 84.421875,
+            "height": 40
+          },
+          {
+            "label": "右键/E导弹",
+            "x": 12,
+            "y": 767,
+            "right": 96.421875,
+            "bottom": 807,
+            "width": 84.421875,
+            "height": 40
+          },
+          {
+            "label": "C干扰弹 3",
+            "x": 130.390625,
+            "y": 767,
+            "right": 196.71875,
+            "bottom": 807,
+            "width": 66.328125,
+            "height": 40
+          },
+          {
+            "label": "Space视角",
+            "x": 230.671875,
+            "y": 767,
+            "right": 292.765625,
+            "bottom": 807,
+            "width": 62.09375,
+            "height": 40
+          },
+          {
+            "label": "Esc暂停",
+            "x": 326.734375,
+            "y": 767,
+            "right": 378,
+            "bottom": 807,
+            "width": 51.265625,
+            "height": 40
+          },
+          {
+            "label": "导弹\n      \n        \n        \n        \n        \n      \n      04/04",
+            "x": 377,
+            "y": 726,
+            "right": 378,
+            "bottom": 727,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "status": {
+          "rect": {
+            "x": 12,
+            "y": 809.40625,
+            "width": 164.6875,
+            "height": 12.59375,
+            "right": 176.6875,
+            "bottom": 822
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "5px",
+            "fontSize": "9px",
+            "lineHeight": "12.6px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "45%"
+          }
+        }
+      },
+      "pointer": {
+        "method": "CDP native touch",
+        "before": 3,
+        "after": 2,
+        "effects": 6,
+        "cooldown": 7,
+        "feedback": {
+          "text": "C干扰弹 7s",
+          "key": "C",
+          "disabled": true,
+          "title": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "rect": {
+            "x": 128.796875,
+            "y": 767,
+            "width": 71.09375,
+            "height": 40,
+            "right": 199.890625,
+            "bottom": 807
+          }
+        }
+      },
+      "cooldownLayout": {
+        "button": {
+          "x": 164.34375,
+          "y": 787,
+          "width": 71.09375,
+          "height": 40,
+          "hit": true,
+          "visible": true
+        },
+        "stage": {
+          "x": 12,
+          "y": 60,
+          "width": 366,
+          "height": 657,
+          "right": 378,
+          "bottom": 717
+        },
+        "footer": {
+          "x": 12,
+          "y": 727,
+          "width": 366,
+          "height": 101,
+          "right": 378,
+          "bottom": 828
+        },
+        "controls": [
+          {
+            "label": "鼠标 / WASD 转向",
+            "x": 12,
+            "y": 727,
+            "right": 113.953125,
+            "bottom": 767,
+            "width": 101.953125,
+            "height": 40
+          },
+          {
+            "label": "Q桶滚",
+            "x": 137.46875,
+            "y": 727,
+            "right": 184.46875,
+            "bottom": 767,
+            "width": 47,
+            "height": 40
+          },
+          {
+            "label": "Shift加速",
+            "x": 207.96875,
+            "y": 727,
+            "right": 270.0625,
+            "bottom": 767,
+            "width": 62.09375,
+            "height": 40
+          },
+          {
+            "label": "左键/F机炮",
+            "x": 293.578125,
+            "y": 727,
+            "right": 378,
+            "bottom": 767,
+            "width": 84.421875,
+            "height": 40
+          },
+          {
+            "label": "右键/E导弹",
+            "x": 12,
+            "y": 767,
+            "right": 96.421875,
+            "bottom": 807,
+            "width": 84.421875,
+            "height": 40
+          },
+          {
+            "label": "C干扰弹 7s",
+            "x": 128.796875,
+            "y": 767,
+            "right": 199.890625,
+            "bottom": 807,
+            "width": 71.09375,
+            "height": 40
+          },
+          {
+            "label": "Space视角",
+            "x": 232.265625,
+            "y": 767,
+            "right": 294.359375,
+            "bottom": 807,
+            "width": 62.09375,
+            "height": 40
+          },
+          {
+            "label": "Esc暂停",
+            "x": 326.734375,
+            "y": 767,
+            "right": 378,
+            "bottom": 807,
+            "width": 51.265625,
+            "height": 40
+          },
+          {
+            "label": "导弹\n      \n        \n        \n        \n        \n      \n      04/04",
+            "x": 377,
+            "y": 726,
+            "right": 378,
+            "bottom": 727,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "status": {
+          "rect": {
+            "x": 12,
+            "y": 809.40625,
+            "width": 164.6875,
+            "height": 12.59375,
+            "right": 176.6875,
+            "bottom": 822
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "5px",
+            "fontSize": "9px",
+            "lineHeight": "12.6px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "45%"
+          }
+        }
+      },
+      "screenshot": "shots/sky_flare_portrait.png",
+      "screenshotState": {
+        "mode": "play",
+        "time": 0.5000333333333333,
+        "realTime": 2.0493333333571724,
+        "view": 1,
+        "shots": 0,
+        "flares": 2,
+        "flareCd": 6.916666666666667,
+        "missiles": 4,
+        "dead": false,
+        "flareEffects": 6,
+        "button": {
+          "text": "C干扰弹 7s",
+          "key": "C",
+          "disabled": true,
+          "title": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "rect": {
+            "x": 128.796875,
+            "y": 767,
+            "width": 71.09375,
+            "height": 40,
+            "right": 199.890625,
+            "bottom": 807
+          }
+        },
+        "systemFlare": "2 · 7s",
+        "stage": {
+          "x": 12,
+          "y": 60,
+          "width": 366,
+          "height": 657,
+          "right": 378,
+          "bottom": 717
+        },
+        "footer": {
+          "x": 12,
+          "y": 727,
+          "width": 366,
+          "height": 101,
+          "right": 378,
+          "bottom": 828
+        },
+        "status": {
+          "rect": {
+            "x": 12,
+            "y": 809.40625,
+            "width": 164.6875,
+            "height": 12.59375,
+            "right": 176.6875,
+            "bottom": 822
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "5px",
+            "fontSize": "9px",
+            "lineHeight": "12.6px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "45%"
+          }
+        },
+        "document": {
+          "width": 390,
+          "height": 844,
+          "viewportWidth": 390,
+          "viewportHeight": 844
+        },
+        "active": "",
+        "errors": [],
+        "exceptions": []
+      },
+      "cooldownTick": {
+        "before": 6.916666666666667,
+        "after": 5.9166666666666705,
+        "feedback": {
+          "text": "C干扰弹 6s",
+          "key": "C",
+          "disabled": true,
+          "title": "干扰弹，C 或 X；剩余 2，冷却 6 秒",
+          "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 6 秒",
+          "rect": {
+            "x": 128.578125,
+            "y": 767,
+            "width": 71.765625,
+            "height": 40,
+            "right": 200.34375,
+            "bottom": 807
+          }
+        }
+      },
+      "recovered": {
+        "text": "C干扰弹 2",
+        "key": "C",
+        "disabled": false,
+        "title": "干扰弹，C 或 X；剩余 2，冷却 0 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 0 秒",
+        "rect": {
+          "x": 130.46875,
+          "y": 767,
+          "width": 66.09375,
+          "height": 40,
+          "right": 196.5625,
+          "bottom": 807
+        }
+      },
+      "enter": {
+        "before": 2,
+        "after": 1,
+        "effects": 6,
+        "view": 1,
+        "shots": 0,
+        "missiles": 4
+      },
+      "space": {
+        "before": 1,
+        "after": 0,
+        "effects": 6,
+        "view": 1,
+        "shots": 0,
+        "missiles": 4
+      },
+      "exhaustedLayout": {
+        "button": {
+          "x": 165.8125,
+          "y": 787,
+          "width": 79.9375,
+          "height": 40,
+          "hit": true,
+          "visible": true
+        },
+        "stage": {
+          "x": 12,
+          "y": 60,
+          "width": 366,
+          "height": 657,
+          "right": 378,
+          "bottom": 717
+        },
+        "footer": {
+          "x": 12,
+          "y": 727,
+          "width": 366,
+          "height": 101,
+          "right": 378,
+          "bottom": 828
+        },
+        "controls": [
+          {
+            "label": "鼠标 / WASD 转向",
+            "x": 12,
+            "y": 727,
+            "right": 113.953125,
+            "bottom": 767,
+            "width": 101.953125,
+            "height": 40
+          },
+          {
+            "label": "Q桶滚",
+            "x": 137.46875,
+            "y": 727,
+            "right": 184.46875,
+            "bottom": 767,
+            "width": 47,
+            "height": 40
+          },
+          {
+            "label": "Shift加速",
+            "x": 207.96875,
+            "y": 727,
+            "right": 270.0625,
+            "bottom": 767,
+            "width": 62.09375,
+            "height": 40
+          },
+          {
+            "label": "左键/F机炮",
+            "x": 293.578125,
+            "y": 727,
+            "right": 378,
+            "bottom": 767,
+            "width": 84.421875,
+            "height": 40
+          },
+          {
+            "label": "右键/E导弹",
+            "x": 12,
+            "y": 767,
+            "right": 96.421875,
+            "bottom": 807,
+            "width": 84.421875,
+            "height": 40
+          },
+          {
+            "label": "C干扰弹 用尽",
+            "x": 125.84375,
+            "y": 767,
+            "right": 205.78125,
+            "bottom": 807,
+            "width": 79.9375,
+            "height": 40
+          },
+          {
+            "label": "Space视角",
+            "x": 235.21875,
+            "y": 767,
+            "right": 297.3125,
+            "bottom": 807,
+            "width": 62.09375,
+            "height": 40
+          },
+          {
+            "label": "Esc暂停",
+            "x": 326.734375,
+            "y": 767,
+            "right": 378,
+            "bottom": 807,
+            "width": 51.265625,
+            "height": 40
+          },
+          {
+            "label": "导弹\n      \n        \n        \n        \n        \n      \n      04/04",
+            "x": 377,
+            "y": 726,
+            "right": 378,
+            "bottom": 727,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "status": {
+          "rect": {
+            "x": 12,
+            "y": 809.40625,
+            "width": 164.6875,
+            "height": 12.59375,
+            "right": 176.6875,
+            "bottom": 822
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "5px",
+            "fontSize": "9px",
+            "lineHeight": "12.6px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "45%"
+          }
+        }
+      },
+      "exhausted": {
+        "text": "C干扰弹 用尽",
+        "key": "C",
+        "disabled": true,
+        "title": "干扰弹，C 或 X；剩余 0，冷却 0 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 0，冷却 0 秒",
+        "rect": {
+          "x": 125.84375,
+          "y": 767,
+          "width": 79.9375,
+          "height": 40,
+          "right": 205.78125,
+          "bottom": 807
+        }
+      },
+      "shortcuts": [
+        {
+          "code": "KeyC",
+          "before": 3,
+          "after": 2,
+          "effects": 6
+        },
+        {
+          "code": "KeyX",
+          "before": 2,
+          "after": 1,
+          "effects": 6
+        }
+      ],
+      "paused": {
+        "text": "C干扰弹 7s",
+        "key": "C",
+        "disabled": true,
+        "title": "干扰弹，C 或 X；剩余 1，冷却 7 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 1，冷却 7 秒",
+        "rect": {
+          "x": 128.796875,
+          "y": 767,
+          "width": 71.09375,
+          "height": 40,
+          "right": 199.890625,
+          "bottom": 807
+        }
+      },
+      "runtimeErrors": []
+    },
+    {
+      "name": "landscape",
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "result": "PASS",
+      "errors": [],
+      "standby": {
+        "text": "C干扰弹 3",
+        "key": "C",
+        "disabled": true,
+        "title": "干扰弹，C 或 X；剩余 3，冷却 0 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 3，冷却 0 秒",
+        "rect": {
+          "x": 432.890625,
+          "y": 337,
+          "width": 64.328125,
+          "height": 40,
+          "right": 497.21875,
+          "bottom": 377
+        }
+      },
+      "layout": {
+        "button": {
+          "x": 465.0546875,
+          "y": 357,
+          "width": 64.328125,
+          "height": 40,
+          "hit": true,
+          "visible": true
+        },
+        "stage": {
+          "x": 20,
+          "y": 50,
+          "width": 804,
+          "height": 279,
+          "right": 824,
+          "bottom": 329
+        },
+        "footer": {
+          "x": 20,
+          "y": 337,
+          "width": 804,
+          "height": 45,
+          "right": 824,
+          "bottom": 382
+        },
+        "controls": [
+          {
+            "label": "鼠标 / WASD 转向",
+            "x": 20,
+            "y": 337,
+            "right": 120.953125,
+            "bottom": 377,
+            "width": 100.953125,
+            "height": 40
+          },
+          {
+            "label": "Q桶滚",
+            "x": 129.953125,
+            "y": 337,
+            "right": 174.953125,
+            "bottom": 377,
+            "width": 45,
+            "height": 40
+          },
+          {
+            "label": "Shift加速",
+            "x": 183.953125,
+            "y": 337,
+            "right": 245.046875,
+            "bottom": 377,
+            "width": 61.09375,
+            "height": 40
+          },
+          {
+            "label": "左键/F机炮",
+            "x": 254.046875,
+            "y": 337,
+            "right": 334.46875,
+            "bottom": 377,
+            "width": 80.421875,
+            "height": 40
+          },
+          {
+            "label": "右键/E导弹",
+            "x": 343.46875,
+            "y": 337,
+            "right": 423.890625,
+            "bottom": 377,
+            "width": 80.421875,
+            "height": 40
+          },
+          {
+            "label": "C干扰弹 3",
+            "x": 432.890625,
+            "y": 337,
+            "right": 497.21875,
+            "bottom": 377,
+            "width": 64.328125,
+            "height": 40
+          },
+          {
+            "label": "Space视角",
+            "x": 506.21875,
+            "y": 337,
+            "right": 567.3125,
+            "bottom": 377,
+            "width": 61.09375,
+            "height": 40
+          },
+          {
+            "label": "Esc暂停",
+            "x": 576.3125,
+            "y": 337,
+            "right": 626.578125,
+            "bottom": 377,
+            "width": 50.265625,
+            "height": 40
+          },
+          {
+            "label": "导弹\n      \n        \n        \n        \n        \n      \n      04/04",
+            "x": 19,
+            "y": 336,
+            "right": 20,
+            "bottom": 337,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "status": {
+          "rect": {
+            "x": 20,
+            "y": 376.8125,
+            "width": 159,
+            "height": 11.1875,
+            "right": 179,
+            "bottom": 388
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "-7px",
+            "fontSize": "8px",
+            "lineHeight": "11.2px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "72%"
+          }
+        }
+      },
+      "pointer": {
+        "method": "CDP native touch",
+        "before": 3,
+        "after": 2,
+        "effects": 6,
+        "cooldown": 7,
+        "feedback": {
+          "text": "C干扰弹 7s",
+          "key": "C",
+          "disabled": true,
+          "title": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "rect": {
+            "x": 432.890625,
+            "y": 337,
+            "width": 69.09375,
+            "height": 40,
+            "right": 501.984375,
+            "bottom": 377
+          }
+        }
+      },
+      "cooldownLayout": {
+        "button": {
+          "x": 467.4375,
+          "y": 357,
+          "width": 69.09375,
+          "height": 40,
+          "hit": true,
+          "visible": true
+        },
+        "stage": {
+          "x": 20,
+          "y": 50,
+          "width": 804,
+          "height": 279,
+          "right": 824,
+          "bottom": 329
+        },
+        "footer": {
+          "x": 20,
+          "y": 337,
+          "width": 804,
+          "height": 45,
+          "right": 824,
+          "bottom": 382
+        },
+        "controls": [
+          {
+            "label": "鼠标 / WASD 转向",
+            "x": 20,
+            "y": 337,
+            "right": 120.953125,
+            "bottom": 377,
+            "width": 100.953125,
+            "height": 40
+          },
+          {
+            "label": "Q桶滚",
+            "x": 129.953125,
+            "y": 337,
+            "right": 174.953125,
+            "bottom": 377,
+            "width": 45,
+            "height": 40
+          },
+          {
+            "label": "Shift加速",
+            "x": 183.953125,
+            "y": 337,
+            "right": 245.046875,
+            "bottom": 377,
+            "width": 61.09375,
+            "height": 40
+          },
+          {
+            "label": "左键/F机炮",
+            "x": 254.046875,
+            "y": 337,
+            "right": 334.46875,
+            "bottom": 377,
+            "width": 80.421875,
+            "height": 40
+          },
+          {
+            "label": "右键/E导弹",
+            "x": 343.46875,
+            "y": 337,
+            "right": 423.890625,
+            "bottom": 377,
+            "width": 80.421875,
+            "height": 40
+          },
+          {
+            "label": "C干扰弹 7s",
+            "x": 432.890625,
+            "y": 337,
+            "right": 501.984375,
+            "bottom": 377,
+            "width": 69.09375,
+            "height": 40
+          },
+          {
+            "label": "Space视角",
+            "x": 510.984375,
+            "y": 337,
+            "right": 572.078125,
+            "bottom": 377,
+            "width": 61.09375,
+            "height": 40
+          },
+          {
+            "label": "Esc暂停",
+            "x": 581.078125,
+            "y": 337,
+            "right": 631.34375,
+            "bottom": 377,
+            "width": 50.265625,
+            "height": 40
+          },
+          {
+            "label": "导弹\n      \n        \n        \n        \n        \n      \n      04/04",
+            "x": 19,
+            "y": 336,
+            "right": 20,
+            "bottom": 337,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "status": {
+          "rect": {
+            "x": 20,
+            "y": 376.8125,
+            "width": 159,
+            "height": 11.1875,
+            "right": 179,
+            "bottom": 388
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "-7px",
+            "fontSize": "8px",
+            "lineHeight": "11.2px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "72%"
+          }
+        }
+      },
+      "screenshot": "shots/sky_flare_landscape.png",
+      "screenshotState": {
+        "mode": "play",
+        "time": 0.4833333333333333,
+        "realTime": 2.1423333333571724,
+        "view": 1,
+        "shots": 0,
+        "flares": 2,
+        "flareCd": 6.916666666666667,
+        "missiles": 4,
+        "dead": false,
+        "flareEffects": 6,
+        "button": {
+          "text": "C干扰弹 7s",
+          "key": "C",
+          "disabled": true,
+          "title": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 7 秒",
+          "rect": {
+            "x": 432.890625,
+            "y": 337,
+            "width": 69.09375,
+            "height": 40,
+            "right": 501.984375,
+            "bottom": 377
+          }
+        },
+        "systemFlare": "2 · 7s",
+        "stage": {
+          "x": 20,
+          "y": 50,
+          "width": 804,
+          "height": 279,
+          "right": 824,
+          "bottom": 329
+        },
+        "footer": {
+          "x": 20,
+          "y": 337,
+          "width": 804,
+          "height": 45,
+          "right": 824,
+          "bottom": 382
+        },
+        "status": {
+          "rect": {
+            "x": 20,
+            "y": 376.8125,
+            "width": 159,
+            "height": 11.1875,
+            "right": 179,
+            "bottom": 388
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "-7px",
+            "fontSize": "8px",
+            "lineHeight": "11.2px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "72%"
+          }
+        },
+        "document": {
+          "width": 844,
+          "height": 390,
+          "viewportWidth": 844,
+          "viewportHeight": 390
+        },
+        "active": "",
+        "errors": [],
+        "exceptions": []
+      },
+      "cooldownTick": {
+        "before": 6.916666666666667,
+        "after": 5.9166666666666705,
+        "feedback": {
+          "text": "C干扰弹 6s",
+          "key": "C",
+          "disabled": true,
+          "title": "干扰弹，C 或 X；剩余 2，冷却 6 秒",
+          "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 6 秒",
+          "rect": {
+            "x": 432.890625,
+            "y": 337,
+            "width": 69.765625,
+            "height": 40,
+            "right": 502.65625,
+            "bottom": 377
+          }
+        }
+      },
+      "recovered": {
+        "text": "C干扰弹 2",
+        "key": "C",
+        "disabled": false,
+        "title": "干扰弹，C 或 X；剩余 2，冷却 0 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 2，冷却 0 秒",
+        "rect": {
+          "x": 432.890625,
+          "y": 337,
+          "width": 64.09375,
+          "height": 40,
+          "right": 496.984375,
+          "bottom": 377
+        }
+      },
+      "enter": {
+        "before": 2,
+        "after": 1,
+        "effects": 6,
+        "view": 1,
+        "shots": 0,
+        "missiles": 4
+      },
+      "space": {
+        "before": 1,
+        "after": 0,
+        "effects": 6,
+        "view": 1,
+        "shots": 0,
+        "missiles": 4
+      },
+      "exhaustedLayout": {
+        "button": {
+          "x": 471.859375,
+          "y": 357,
+          "width": 77.9375,
+          "height": 40,
+          "hit": true,
+          "visible": true
+        },
+        "stage": {
+          "x": 20,
+          "y": 50,
+          "width": 804,
+          "height": 279,
+          "right": 824,
+          "bottom": 329
+        },
+        "footer": {
+          "x": 20,
+          "y": 337,
+          "width": 804,
+          "height": 45,
+          "right": 824,
+          "bottom": 382
+        },
+        "controls": [
+          {
+            "label": "鼠标 / WASD 转向",
+            "x": 20,
+            "y": 337,
+            "right": 120.953125,
+            "bottom": 377,
+            "width": 100.953125,
+            "height": 40
+          },
+          {
+            "label": "Q桶滚",
+            "x": 129.953125,
+            "y": 337,
+            "right": 174.953125,
+            "bottom": 377,
+            "width": 45,
+            "height": 40
+          },
+          {
+            "label": "Shift加速",
+            "x": 183.953125,
+            "y": 337,
+            "right": 245.046875,
+            "bottom": 377,
+            "width": 61.09375,
+            "height": 40
+          },
+          {
+            "label": "左键/F机炮",
+            "x": 254.046875,
+            "y": 337,
+            "right": 334.46875,
+            "bottom": 377,
+            "width": 80.421875,
+            "height": 40
+          },
+          {
+            "label": "右键/E导弹",
+            "x": 343.46875,
+            "y": 337,
+            "right": 423.890625,
+            "bottom": 377,
+            "width": 80.421875,
+            "height": 40
+          },
+          {
+            "label": "C干扰弹 用尽",
+            "x": 432.890625,
+            "y": 337,
+            "right": 510.828125,
+            "bottom": 377,
+            "width": 77.9375,
+            "height": 40
+          },
+          {
+            "label": "Space视角",
+            "x": 519.828125,
+            "y": 337,
+            "right": 580.921875,
+            "bottom": 377,
+            "width": 61.09375,
+            "height": 40
+          },
+          {
+            "label": "Esc暂停",
+            "x": 589.921875,
+            "y": 337,
+            "right": 640.1875,
+            "bottom": 377,
+            "width": 50.265625,
+            "height": 40
+          },
+          {
+            "label": "导弹\n      \n        \n        \n        \n        \n      \n      04/04",
+            "x": 19,
+            "y": 336,
+            "right": 20,
+            "bottom": 337,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "status": {
+          "rect": {
+            "x": 20,
+            "y": 376.8125,
+            "width": 159,
+            "height": 11.1875,
+            "right": 179,
+            "bottom": 388
+          },
+          "text": "自由巡航：不受战斗伤害，撞地仍会损毁。",
+          "css": {
+            "bottom": "-7px",
+            "fontSize": "8px",
+            "lineHeight": "11.2px",
+            "whiteSpace": "nowrap",
+            "maxWidth": "72%"
+          }
+        }
+      },
+      "exhausted": {
+        "text": "C干扰弹 用尽",
+        "key": "C",
+        "disabled": true,
+        "title": "干扰弹，C 或 X；剩余 0，冷却 0 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 0，冷却 0 秒",
+        "rect": {
+          "x": 432.890625,
+          "y": 337,
+          "width": 77.9375,
+          "height": 40,
+          "right": 510.828125,
+          "bottom": 377
+        }
+      },
+      "shortcuts": [
+        {
+          "code": "KeyC",
+          "before": 3,
+          "after": 2,
+          "effects": 6
+        },
+        {
+          "code": "KeyX",
+          "before": 2,
+          "after": 1,
+          "effects": 6
+        }
+      ],
+      "paused": {
+        "text": "C干扰弹 7s",
+        "key": "C",
+        "disabled": true,
+        "title": "干扰弹，C 或 X；剩余 1，冷却 7 秒",
+        "ariaLabel": "干扰弹，C 或 X；剩余 1，冷却 7 秒",
+        "rect": {
+          "x": 432.890625,
+          "y": 337,
+          "width": 69.09375,
+          "height": 40,
+          "right": 501.984375,
+          "bottom": 377
+        }
+      },
+      "runtimeErrors": []
+    }
+  ],
+  "screenshots": [
+    "shots/sky_flare_desktop.png",
+    "shots/sky_flare_portrait.png",
+    "shots/sky_flare_landscape.png"
+  ],
+  "errors": [],
+  "browser": {
+    "Browser": "Chrome/157.0.8103.80",
+    "File-Path-Style": "posix",
+    "Protocol-Version": "1.3",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+    "V8-Version": "15.7.112.43",
+    "WebKit-Version": "537.36 (@5cb0fce6746acfc926045c45b23d811d479c49b9)",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:50375/devtools/browser/4096b968-0816-479b-8a81-9999bcea92e2"
+  },
+  "cleanup": {
+    "ownChromeStopped": true,
+    "ownProfileDeleted": true
+  },
+  "finishedAt": "2026-11-21T11:46:15.724Z"
+}

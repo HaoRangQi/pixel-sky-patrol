@@ -93,7 +93,7 @@ function spawnDrone(index = 0) {
     kind: 'drone', isGround: false,
     pos: { x, y: alt, z },
     yaw: Math.atan2(p.pos.x - x, -(p.pos.z - z)),
-    pitch: 0, roll: 0, speed: 108, energy: 100,
+    pitch: 0, roll: 0, speed: 108 * (G.enemySpeedScale ?? 1), energy: 100,
     hp: DRONE_MAX_HP, dead: false, aware: 0, state: 'patrol', fleeT: 0,
     missileCd: rr(3.0, 7.0), gunCd: rr(1, 2.5), gunBurst: 0,
     losTimer: rr(0, 0.3), los: true, age: 0,
@@ -123,6 +123,20 @@ function targetConcealed(t) {
   return G.map.cloudDensity(t.pos.x, t.pos.y + 1, t.pos.z) > 0.28;
 }
 
+// 近俯视中只把屏外目标的标记放在对应的画框边，不移动目标或改变世界判定。
+function projectTargetMarker(pos, s) {
+  s.edge = false;
+  const projected = projectToScreen(pos, s);
+  if (G.view !== 0 || G.viewBlend < 1) return projected;
+  const cx = VW / 2, cy = VH / 2;
+  if (projected && s.x >= 18 && s.x <= VW-18 && s.y >= 18 && s.y <= VH-18) return true;
+  const dx = pos.x - G.player.pos.x, dz = pos.z - G.player.pos.z;
+  if (Math.abs(dx) + Math.abs(dz) < .001) return false;
+  const scale = 1 / Math.max(Math.abs(dx)/(cx-18), Math.abs(dz)/(cy-18));
+  s.x = cx + dx*scale; s.y = cy + dz*scale; s.edge = true;
+  return true;
+}
+
 function updateLockOn(dt) {
   const p = G.player;
   const L = G.lock;
@@ -140,7 +154,7 @@ function updateLockOn(dt) {
     const dir = vnorm(vsub(t.pos, p.pos));
     if (vdot(dir, p.basis.fwd) < 0.25) continue;
     if (targetConcealed(t)) continue;
-    if (!projectToScreen({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.5), z: t.pos.z }, tmp)) continue;
+    if (!projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.5), z: t.pos.z }, tmp)) continue;
     if (tmp.x < -20 || tmp.x > VW + 20 || tmp.y < -20 || tmp.y > VH + 20) continue;
     const dx = tmp.x - aim.x, dy = tmp.y - aim.y;
     const d2 = dx * dx + dy * dy;
@@ -166,7 +180,7 @@ function updateLockOn(dt) {
     // break if the target slips out of the cone or is concealed
     const d = vdist(p.pos, t.pos);
     const dir = vnorm(vsub(t.pos, p.pos));
-    const off = projectToScreen({ x: t.pos.x, y: t.pos.y + 1.5, z: t.pos.z }, tmp);
+    const off = projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.5), z: t.pos.z }, tmp);
     const far = !off || Math.hypot(tmp.x - aim.x, tmp.y - aim.y) > radius * 1.34;
     if (d > 2900 || vdot(dir, p.basis.fwd) < 0.12 || far || targetConcealed(t)) {
       L.progress = Math.max(0, L.progress - dt * 3.5);
@@ -203,6 +217,18 @@ function updatePlayerGuns(dt) {
   if (INPUT.left || INPUT.keys.has('KeyF') || INPUT.touchGun) firePlayerGuns();
 }
 
+function spawnGunBullet(origin, velocity, owner, damage, color = '#f2c270') {
+  const b = {
+    owner, pos: vcopy(origin), vel: vcopy(velocity), damage,
+    life: GUN_BULLET_LIFE, radius: 1.8, color,
+  };
+  G.bullets.push(b);
+  if (G.bullets.length > 240) G.bullets.shift();
+  const tail = vsub(origin, vmul(vnorm(velocity), 13));
+  addTracer(tail, origin, color, owner === 'player' ? 1.3 : 1.1);
+  return b;
+}
+
 function firePlayerGuns() {
   const p = G.player;
   if (!p || p.dead || G.mode !== 'play' || p.gunCd > 1e-6) return;
@@ -210,66 +236,90 @@ function firePlayerGuns() {
   G.stats.shots++;
   const b = p.basis;
   const origin = vadd(p.pos, vmul(b.fwd, 6));
-  let distance = GUN_RANGE, target = null;
-  for (const t of collectTargets()) {
-    const offset = vsub(targetAimPoint(t), origin);
-    const along = vdot(offset, b.fwd);
-    const radius = (t.radius || 7) + 3;
-    const side2 = vdot(offset, offset) - along * along;
-    if (side2 > radius * radius || along < 0) continue;
-    const entry = Math.max(0, along - Math.sqrt(Math.max(0, radius * radius - side2)));
-    if (entry < distance) { distance = entry; target = t; }
-  }
-  // 沿射线检查山体，不能隔着地形命中敌机。
-  const steps = Math.max(1, Math.ceil(distance / 12));
-  for (let i = 0; i <= steps; i++) {
-    const d = distance * i / steps;
-    const point = vadd(origin, vmul(b.fwd, d));
-    if (point.y <= Math.max(0, G.map.heightAt(point.x, point.z)) + 1) {
-      distance = d; target = null;
-      spawnSparks(point, 2, '#d4a16a');
-      break;
-    }
-  }
-  const end = vadd(origin, vmul(b.fwd, distance));
-  addTracer(origin, end, '#f2c270', 1);
+  const velocity = vmul(b.fwd, GUN_BULLET_SPEED);
+  spawnGunBullet(origin, velocity, 'player', GUN_DAMAGE, '#f2c270');
   spawnBurst(origin, 2, '#e9ae56', 3, 0.06);
-  if (target) {
-    if (target.isGround) hitGround(target, GUN_DAMAGE, end);
-    else hitDrone(target, GUN_DAMAGE, end);
-  }
   AudioSys.gunshot(0.7);
 }
 
+function segmentHitsTerrain(from, to, clearance = 1) {
+  const length = vdist(from, to);
+  const steps = Math.max(1, Math.ceil(length / 10));
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const point = vlerp(from, to, t);
+    const ground = Math.max(G.map.heightAt(point.x, point.z), 0) + clearance;
+    if (point.y <= ground) {
+      const prev = vlerp(from, to, Math.max(0, (i - 1) / steps));
+      const denom = point.y - prev.y;
+      const hitT = Math.abs(denom) > 1e-6 ? clamp((ground - prev.y) / denom, 0, 1) : 0;
+      return vlerp(prev, point, hitT);
+    }
+  }
+  return null;
+}
+
+function updateGunBullets(dt) {
+  for (const b of G.bullets) {
+    if (b.dead) continue;
+    b.life -= dt;
+    if (b.life <= 0) { b.dead = true; continue; }
+    const from = vcopy(b.pos);
+    b.vel.y -= GUN_BULLET_GRAVITY * dt;
+    b.pos = vadd(b.pos, vmul(b.vel, dt));
+    addTracer(vsub(b.pos, vmul(vnorm(b.vel), 13)), b.pos, b.color, b.owner === 'player' ? 1.3 : 1.1);
+    const terrain = segmentHitsTerrain(from, b.pos, 1);
+    if (terrain) {
+      b.dead = true;
+      spawnSparks(terrain, 2, '#d4a16a');
+      continue;
+    }
+    const targets = b.owner === 'player' ? collectTargets() : (G.player && !G.player.dead ? [G.player] : []);
+    let hit = null;
+    for (const target of targets) {
+      const point = targetAimPoint(target) || target.pos;
+      if (missilePassesNear(from, b.pos, point, (target.radius || 7) + b.radius)) { hit = target; break; }
+    }
+    if (hit) {
+      b.dead = true;
+      if (b.owner === 'player') {
+        if (hit.isGround) hitGround(hit, b.damage, hit.pos); else hitDrone(hit, b.damage, hit.pos);
+      } else {
+        damagePlayer(b.damage, 'guns');
+        spawnSparks(G.player.pos, 2, '#ffbf80');
+      }
+    }
+  }
+  G.bullets = G.bullets.filter(b => !b.dead);
+}
+
 // --------------------------------------------------------------- missiles ---
-function makeMissileOwnerRef(owner) { return owner; }
+function wingRailPosition(p, slot) {
+  const b = p.renderBasis || p.basis, outer = Math.floor(slot / 2);
+  const side = (slot % 2 ? 1 : -1) * (2.2 + outer * 1.05);
+  return vmad(vmad(vmad(p.pos, b.right, side), b.up, -0.52), b.fwd, 0.8 + outer * 1.35);
+}
 
 function spawnPlayerMissile() {
   const p = G.player;
-  const t = G.lock.phase === 'locked' ? G.lock.target : null;
-  const b = p.basis;
-  const side = (p.railFlip = !p.railFlip ? 1 : -1);
-  const lateral = side > 0 ? 3.55 : -3.0;
-  const origin = vadd(vadd(p.pos, vmul(b.right, lateral)), vadd(vmul(b.up, -0.45), vmul(b.fwd, 1.8)));
-  const dir = vnorm(b.fwd);
-  const speed = p.speed + 35;
+  const t = G.lock.phase === 'locked' && G.lock.target && !G.lock.target.dead ? G.lock.target : null;
+  const slot = p.nextRail || 0, origin = wingRailPosition(p, slot);
+  p.nextRail = (slot + 1) % 4;
+  const dir = (p.renderBasis || p.basis).fwd;
+  const speed = Math.max(MISSILE_PLAYER_SPEED, p.speed + 35);
   const m = {
     owner: 'player', kind: 'player',
     pos: origin, vel: vmul(dir, speed), speed,
     target: t, alive: true, dead: false,
-    life: 6.5, age: 0, turnRate: 2.9,
-    smokeTimer: 0, trailTimer: 0,
+    life: 14, age: 0, turnRate: 2.9, gravity: MISSILE_GRAVITY,
+    accel: 110, maxSpeed: MISSILE_PLAYER_MAX_SPEED,
+    trail: startMissileTrail(origin, dir),
     lost: false, lostTimer: 0,
-    offset: { x: rr(-0.6, 0.6), y: rr(-0.3, 0.3), z: rr(-0.6, 0.6) },
     hitRadius: 20, damage: 130,
-    surface: null, smokeBig: false,
   };
   G.missiles.push(m);
   G.stats.shots++;
-  spawnBurst(origin, 6, '#ffd08a', 14);
-  for (let i = 0; i < 2; i++) {
-    addSmoke(vadd(origin, { x: rr(-1.5, 1.5), y: rr(-1.5, 1.5), z: rr(-1.5, 1.5) }), rr(0.9, 1.8), 0.45, true, 1.2);
-  }
+  spawnBurst(origin, 4, '#ffd08a', 11);
   addShake(0.18);
   G.flash = Math.max(G.flash, 0.1);
   AudioSys.launch();
@@ -291,21 +341,19 @@ function spawnEnemyMissile(origin, aimedAt, source) {
   const p = G.player;
   const targetPos = aimedAt || p.pos;
   const dir = vnorm(vsub(targetPos, origin));
-  const wave = G.wave || 1;
-  const speed = Math.min(230, 150 + wave * 6) * 0.55;
+  const speed = MISSILE_ENEMY_SPEED;
   const m = {
     owner: 'enemy', kind: 'enemy',
     pos: vcopy(origin), vel: vmul(dir, speed), speed,
     target: p, dead: false,
-    life: 9.5, age: 0, turnRate: 1.05,
-    smokeTimer: 0, trailTimer: 0,
+    life: 9.5, age: 0, turnRate: 1.35, gravity: MISSILE_GRAVITY,
+    accel: 42, maxSpeed: MISSILE_ENEMY_MAX_SPEED,
+    trail: startMissileTrail(origin, dir),
     lost: false, lostTimer: 0, decoy: false,
-    damage: 30 + Math.min(14, wave * 1.4),
+    damage: 30 + Math.min(14, (G.wave || 1) * 1.4),
     hitRadius: 12, source,
-    smokeBig: true,
   };
   G.missiles.push(m);
-  for (let i = 0; i < 2; i++) addSmoke(vadd(origin, { x: rr(-2, 2), y: rr(-1.5, 1.5), z: rr(-2, 2) }), rr(1.2, 2.2), 0.5, true, 1.5);
   const d = vdist(origin, G.player.pos);
   if (d < 1700) AudioSys.launch();
   return m;
@@ -350,100 +398,74 @@ function updateMissiles(dt) {
     let desired = null;
     if (m.owner === 'player') {
       if (m.target && !m.target.dead) {
-        if (m.target.isGround) {
-          if (G.map.cloudDensity(m.target.pos.x, m.target.pos.y + 1, m.target.pos.z) > 0.4 && rng() < dt * 2) { m.lost = true; }
-        }
+        if (m.target.isGround && G.map.cloudDensity(m.target.pos.x, m.target.pos.y + 1, m.target.pos.z) > 0.4 && rng() < dt * 2) m.lost = true;
         if (!m.lost) desired = targetAimPoint(m.target);
-      } else {
-        m.target = null;
-      }
-      m.speed = Math.min(325, m.speed + 110 * dt);
-    } else {
-      // enemy missile
-      if (m.lost) {
-        m.lostTimer -= dt;
-        if (m.lostTimer <= 0) { m.dead = true; spawnExplosion(m.pos, 0.3, 'air', { smoke: 2 }); continue; }
-      } else if (p && !p.dead) {
-        if (p.invuln > 0.25 && vdist(m.pos, p.pos) < 32) {
-          m.lost = true; m.lostTimer = 0.7;
-        }
-        const conceal = G.map.cloudDensity(p.pos.x, p.pos.y, p.pos.z);
-        const concealChance = (conceal > 0.28 ? 0.55 : 0) + (p.agl < 42 ? 0.2 : 0) + (p.skimming ? 0.25 : 0);
-        if (concealChance > 0 && rng() < concealChance * dt * 1.8) {
-          m.lost = true; m.lostTimer = 1.0;
-        }
-        if (m.decoy && rng() < dt * 3) { m.lost = true; m.lostTimer = 0.5; }
-        if (!m.lost) {
-          const lead = vadd(p.pos, vmul(p.basis.fwd, p.speed * 0.35));
-          desired = lead;
-        }
-      }
-      m.speed = Math.min(m.speed + 22 * dt, 250);
-    }
-    if (desired) {
-      const dir = vnorm(m.vel);
-      const want = vnorm(vsub(desired, m.pos));
-      const nd = rotateTowards(dir, want, m.turnRate * dt);
-      m.vel = vmul(nd, m.speed);
-    } else {
-      m.vel = vmul(vnorm(m.vel), m.speed);
-    }
-    const previousPos = vcopy(m.pos);
-    m.pos.x += m.vel.x * dt;
-    m.pos.y += m.vel.y * dt;
-    m.pos.z += m.vel.z * dt;
-
-    // trail
-    m.smokeTimer -= dt;
-    if (m.smokeTimer <= 0) {
-      m.smokeTimer = m.smokeBig ? 0.022 : 0.03;
-      addSmoke(m.pos, m.smokeBig ? rr(1.5, 3.0) : rr(0.8, 1.7), m.smokeBig ? 1.5 : 0.95, true, m.smokeBig ? 2.2 : 1.5);
-      if (m.owner === 'player' && Math.random() < 0.5) spawnBurst(m.pos, 1, '#ffcf8a', 3, 0.15);
+      } else m.target = null;
+    } else if (m.lost) {
+      m.lostTimer -= dt;
+      if (m.lostTimer <= 0) { m.dead = true; spawnExplosion(m.pos, 0.3, 'air', { smoke: 2 }); continue; }
+    } else if (p && !p.dead) {
+      if (p.invuln > 0.25 && vdist(m.pos, p.pos) < 32) { m.lost = true; m.lostTimer = 0.7; }
+      const conceal = G.map.cloudDensity(p.pos.x, p.pos.y, p.pos.z);
+      const concealChance = (conceal > 0.28 ? 0.55 : 0) + (p.agl < 42 ? 0.2 : 0) + (p.skimming ? 0.25 : 0);
+      if (concealChance > 0 && rng() < concealChance * dt * 1.8) { m.lost = true; m.lostTimer = 1.0; }
+      if (m.decoy && rng() < dt * 3) { m.lost = true; m.lostTimer = 0.5; }
+      if (!m.lost) desired = vadd(p.pos, vmul(p.basis.fwd, p.speed * 0.35));
     }
 
-    // terrain impact
-    const gh = G.map.heightAt(m.pos.x, m.pos.z);
-    if (m.pos.y <= Math.max(gh, 0) + 1.0) {
-      m.dead = true;
-      const water = gh < 0;
-      const point = { x: m.pos.x, y: Math.max(gh, 0) + 0.5, z: m.pos.z };
-      spawnExplosion(point, m.owner === 'player' ? 1.1 : 0.9, water ? 'water' : 'ground');
-      if (m.owner === 'player') detonatePlayerMissile(m, point);
-      else if (p && !p.dead && vdist(point, p.pos) < 35 && !m.lost) damagePlayer(m.damage * 0.5, 'missile');
-      AudioSys.explosion(0.6, false);
-      addShake(0.2);
-      continue;
-    }
+    const steps = Math.max(1, Math.ceil(dt / 0.0125));
+    const stepDt = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const oldVelocity = m.vel, from = m.pos;
+      const age = m.age - dt + (i + 0.5) * stepDt;
+      const steer = m.owner === 'player' ? smoothstep(0.12, 0.32, age) : 1;
+      if (desired && steer > 0) {
+        const dir = rotateTowards(vnorm(m.vel), vnorm(vsub(desired, from)), m.turnRate * steer * stepDt);
+        m.vel = vmul(dir, Math.min(m.maxSpeed, m.speed + m.accel * stepDt));
+      } else m.vel = vcopy(oldVelocity);
+      m.vel.y -= (m.gravity || MISSILE_GRAVITY) * stepDt;
+      m.speed = vlen(m.vel);
+      m.pos = vmad(from, vadd(oldVelocity, m.vel), 0.5 * stepDt);
 
-    // proximity / target hit
-    if (m.owner === 'player') {
-      let hit = false;
-      if (m.target && !m.target.dead) {
-        const aim = targetAimPoint(m.target);
-        if (missilePassesNear(previousPos, m.pos, aim, m.hitRadius + (m.target.isGround ? 8 : 4))) {
-          hit = true;
-          detonatePlayerMissile(m, aim);
-        }
-      } else {
-        // proximity fuse on any target
-        for (const t of collectTargets()) {
-          const ap = targetAimPoint(t);
-          if (missilePassesNear(previousPos, m.pos, ap, 16)) { m.target = t; hit = true; detonatePlayerMissile(m, ap); break; }
-        }
-      }
-      if (hit) { m.dead = true; continue; }
-    } else {
-      if (p && !p.dead && missilePassesNear(previousPos, m.pos, p.pos, m.hitRadius)) {
+      const terrain = segmentHitsTerrain(from, m.pos, 1);
+      if (m.trail) sampleMissileTrail(m.trail, vmad(terrain || m.pos, m.vel, -3 / (m.speed || 1)));
+      if (terrain) {
         m.dead = true;
-        const wasInvuln = p.invuln > 0.2;
-        if (!wasInvuln) {
+        const gh = G.map.heightAt(terrain.x, terrain.z), water = gh < 0;
+        const point = { x: terrain.x, y: Math.max(gh, 0) + 0.5, z: terrain.z };
+        if (m.owner === 'player') detonatePlayerMissile(m, point);
+        else {
+          spawnExplosion(point, 0.9, water ? 'water' : 'ground');
+          if (p && !p.dead && vdist(point, p.pos) < 35 && !m.lost) damagePlayer(m.damage * 0.5, 'missile');
+          AudioSys.explosion(0.6, false);
+          addShake(0.2);
+        }
+        break;
+      }
+
+      if (m.owner === 'player') {
+        let hit = false;
+        if (m.target && !m.target.dead) {
+          const aim = targetAimPoint(m.target);
+          if (missilePassesNear(from, m.pos, aim, m.hitRadius + (m.target.isGround ? 8 : 4))) {
+            detonatePlayerMissile(m, aim);
+            hit = true;
+          }
+        } else {
+          for (const t of collectTargets()) {
+            const aim = targetAimPoint(t);
+            if (missilePassesNear(from, m.pos, aim, m.hitRadius)) { m.target = t; detonatePlayerMissile(m, aim); hit = true; break; }
+          }
+        }
+        if (hit) { m.dead = true; break; }
+      } else if (p && !p.dead && missilePassesNear(from, m.pos, p.pos, m.hitRadius)) {
+        m.dead = true;
+        if (p.invuln <= 0.2) {
           damagePlayer(m.damage, 'missile');
           spawnExplosion(p.pos, 0.9, 'air', { player: true });
           G.flash = 0.5;
-        } else {
-          spawnExplosion(m.pos, 0.45, 'air', { smoke: 4 });
-        }
-        continue;
+        } else spawnExplosion(m.pos, 0.45, 'air', { smoke: 4 });
+        break;
       }
     }
   }
@@ -636,7 +658,7 @@ function updateEnemies(dt) {
       e.pitch = Math.max(e.pitch, 0.16);
     }
     steerDrone(e, desired, dt);
-    e.speed = damp(e.speed, speedTarget, 1.4, dt);
+    e.speed = damp(e.speed, speedTarget * (G.enemySpeedScale ?? 1), 1.4, dt);
     const f = e.basis.fwd;
     e.pos.x += f.x * e.speed * dt;
     e.pos.y += f.y * e.speed * dt;
@@ -689,24 +711,16 @@ function updateEnemies(dt) {
 function fireDroneGuns(e, p, dist) {
   const muzzle = vadd(vadd(e.pos, vmul(e.basis.fwd, 5.0)), vmul(e.basis.right, rr(-1.5, 1.5)));
   const conceal = playerExposureFactor(p);
-  const invuln = p.invuln > 0.2;
-  let hitChance = clamp(0.42 - dist / 1600, 0.05, 0.4) * (conceal > 0.6 ? 0.75 : 0.35);
-  if (invuln) hitChance = 0;
-  const tracers = 4;
-  for (let i = 0; i < tracers; i++) {
-    const t = 0.35 + i * 0.06;
-    const target = vadd(p.pos, { x: rr(-12, 12), y: rr(-8, 8), z: rr(-12, 12) });
-    const end = vlerp(muzzle, target, t + 0.12);
-    addTracer(muzzle, end, '#ffca8a', 2);
-    addTracer(muzzle, vlerp(muzzle, end, 0.65), '#fff0c8', 1);
+  const spread = 8 + (1 - conceal) * 26;
+  const bulletSpeed = GUN_BULLET_SPEED * 0.82;
+  const leadTime = Math.min(0.9, dist / bulletSpeed);
+  for (let i = 0; i < 4; i++) {
+    const target = vadd(vadd(p.pos, vmul(p.basis.fwd, p.speed * leadTime)), {
+      x: rr(-spread, spread), y: rr(-spread * 0.6, spread * 0.6), z: rr(-spread, spread),
+    });
+    spawnGunBullet(muzzle, vmul(vnorm(vsub(target, muzzle)), bulletSpeed), 'enemy', 4.2 + Math.min(2, G.wave * 0.2), '#ffca8a');
   }
   spawnBurst(muzzle, 2, '#ffd9a0', 6, 0.18);
-  if (Math.random() < hitChance) {
-    const dmg = 3.2 + Math.min(4, G.wave * 0.35);
-    damagePlayer(dmg, 'guns');
-    spawnSparks(p.pos, 3, '#ffbf80');
-    addTracer(muzzle, p.pos, '#fff5cf', 1);
-  }
   if (dist < 900) AudioSys.gunshot(clamp(1 - dist / 1400, 0.1, 1));
 }
 
@@ -746,9 +760,9 @@ function updateGround(dt) {
 function capEffects() {
   while (G.effects.length > 820) G.effects.shift();
 }
-function addSmoke(pos, size, life, dark = false, growth = null) {
+function addSmoke(pos, size, life, dark = false, growth = null, rise = rr(1, 5)) {
   G.effects.push({
-    type: 'smoke', pos: vcopy(pos), vel: { x: rr(-2, 2), y: rr(1, 5), z: rr(-2, 2) },
+    type: 'smoke', pos: vcopy(pos), vel: { x: rr(-2, 2), y: rise, z: rr(-2, 2) },
     life, maxLife: life, size, growth: growth === null ? rr(3, 10) : growth, dark,
     drift: rr(0, TAU)
   });
@@ -777,6 +791,23 @@ function spawnDebris(pos, baseVel) {
 function addTracer(a, b, color, width = 1) {
   G.tracers.push({ a: vcopy(a), b: vcopy(b), color, width, life: 0.09, maxLife: 0.09 });
   if (G.tracers.length > 120) G.tracers.shift();
+}
+function startMissileTrail(origin, dir) {
+  const tail = vmad(origin, dir, -3);
+  const trail = { points: [{ pos: tail, life: MISSILE_TRAIL_LIFE }], tip: tail, tipLife: MISSILE_TRAIL_LIFE, carry: 0 };
+  G.missileTrails.push(trail);
+  if (G.missileTrails.length > 28) G.missileTrails.shift();
+  return trail;
+}
+function sampleMissileTrail(trail, tail) {
+  const from = trail.tip, length = vdist(from, tail);
+  // 把上一段不足一个采样间距的余量带过来，低帧率也不断线。
+  for (let d = MISSILE_TRAIL_SPACING - trail.carry; d <= length; d += MISSILE_TRAIL_SPACING) {
+    trail.points.push({ pos: vlerp(from, tail, d / length), life: MISSILE_TRAIL_LIFE });
+    if (trail.points.length > 112) trail.points.shift();
+  }
+  trail.carry = (trail.carry + length) % MISSILE_TRAIL_SPACING;
+  trail.tip = tail; trail.tipLife = MISSILE_TRAIL_LIFE;
 }
 function addWingTrail(pos, side, strong = false) {
   G.vapor.push({ pos: vcopy(pos), side, life: strong ? 0.7 : 0.45, maxLife: strong ? 0.7 : 0.45, size: strong ? 1.8 : 1.1 });
@@ -835,7 +866,11 @@ function spawnExplosion(pos, scale = 1, kind = 'air', opts = {}) {
     G.effects.push({ type: 'ring', pos: at, vel: { x: 0, y: 0, z: 0 }, life: 0.5, maxLife: 0.5,
       size: 5 * s, growth: 40 * s, color: '#e5cfa8', flat: true, delay });
     addScorch(at, 18 * s);
-    for (let i = 0; i < 5; i++) addSmoke({ x: at.x + rr(-10, 10), y: at.y + rr(4, 12), z: at.z + rr(-10, 10) }, rr(6, 14), 2.5, true);
+    // 火光只闪一下，分层升起的烟才让玩家看清远岸的落点。
+    for (let i = 0; i < 5; i++) {
+      const puff = { x: at.x + rr(-12, 12) * s, y: at.y + 3 + i * 2, z: at.z + rr(-9, 9) * s };
+      addSmoke(puff, (8 + i) * s, 2.2 + i * 0.24, true, (5 + i) * s, (13 + i * 8) * s);
+    }
   } else {
     // air burst
     G.effects.push({ type: 'fire', pos: at, vel: { x: 0, y: 3, z: 0 }, life: 0.5, maxLife: 0.5, size: 9 * s, growth: 30 * s, color: '#fff2c8', delay });
@@ -866,6 +901,13 @@ function addScorch(pos, size) {
 }
 
 function updateEffects(dt) {
+  for (let i = G.missileTrails.length - 1; i >= 0; i--) {
+    const trail = G.missileTrails[i];
+    for (const point of trail.points) point.life -= dt;
+    while (trail.points.length && trail.points[0].life <= 0) trail.points.shift();
+    trail.tipLife -= dt;
+    if (trail.tipLife <= 0 && !trail.points.length) G.missileTrails.splice(i, 1);
+  }
   for (let i = G.effects.length - 1; i >= 0; i--) {
     const f = G.effects[i];
     if (f.delay > 0) { f.delay -= dt; continue; }

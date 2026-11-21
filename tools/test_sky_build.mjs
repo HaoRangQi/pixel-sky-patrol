@@ -35,6 +35,24 @@ test('新版单HTML独立构建，不修改原版入口与共享源码', () => {
     assert.equal(position, html.lastIndexOf(`// ===== ${file} =====`));
     previous = position;
   }
+  for (const file of ['25_lake_world.js', '35_autumn_pixels.js', '36_autumn_forest.js', '37_player_airframe.js', '54_cockpit.js']) {
+    assert(html.includes(`// ===== ${file} =====`), `${file}必须只在新版入口接入`);
+  }
+  for (const shader of ['SCENE_FS', 'CLOUD_FS', 'POST_FS', 'MESH_VS', 'MESH_FS']) {
+    assert.match(html, new RegExp(`let ${shader} =`), `${shader}需在新版独立构建产物中可覆盖`);
+  }
+  assert.match(html, /const SUN_AZ = 0\.12;/, '新版夕照应落在正后镜头的画面右侧');
+  assert(html.indexOf('// ===== 50_ui_hud.js =====') < html.indexOf('// ===== 54_cockpit.js ====='));
+  assert(html.indexOf('// ===== 54_cockpit.js =====') < html.indexOf('// ===== 60_main.js ====='));
+  assert.match(html, /const SUN_EL = 0\.12;/, '新版低角度夕阳应留在开阔追尾构图内');
+  assert.match(html, /G\.player\.pos\.y = Math\.max\(G\.map\.heightAt\(G\.player\.pos\.x, G\.player\.pos\.z\) \+ 250, 320\);/);
+  assert.match(html, /const targetAlt = Math\.max\(gh \+ 250, 320\);/);
+  assert(html.indexOf('// ===== 20_world.js =====') < html.indexOf('// ===== 25_lake_world.js ====='));
+  assert(html.indexOf('// ===== 30_shaders.js =====') < html.indexOf('// ===== 35_autumn_pixels.js ====='));
+  assert(html.indexOf('// ===== 33_forest.js =====') < html.indexOf('// ===== 36_autumn_forest.js ====='));
+  assert(html.indexOf('// ===== 32_meshes.js =====') < html.indexOf('// ===== 37_player_airframe.js ====='));
+  assert(html.indexOf('// ===== 37_player_airframe.js =====') < html.indexOf('// ===== 40_game.js ====='));
+  assert(html.indexOf('// ===== 35_autumn_pixels.js =====') < html.indexOf('// ===== 60_main.js ====='));
   assert.deepEqual(Object.fromEntries(originals.map(f => [f, hash(f)])), before, '新版构建不得改变原版');
   const first = html;
   const repeat = spawnSync(process.execPath, [`${root}sky-patrol/build.mjs`], { encoding: 'utf8' });

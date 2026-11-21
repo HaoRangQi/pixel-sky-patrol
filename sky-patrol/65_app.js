@@ -1,5 +1,5 @@
 // 使用运行时赋值，避免函数声明提升到原版boot之前。
-let flightMode = 'intercept';
+let flightMode = 'intercept', inlandFlight = false;
 const skyGet = id => document.getElementById(id);
 const skyApp = skyGet('sky-app');
 const skyStage = skyGet('stage');
@@ -11,6 +11,101 @@ const skyKeyHolds = new Map();
 const skyKeyClicks = new WeakSet();
 let skyNotice = '', skyNoticeUntil = 0, skyLastMode = '';
 let skyBoostTimer = 0;
+const skyFlightSpeeds = { cruise: SPEED_CRUISE, burn: 500 / 1.94384 };
+const skyControlSettings = { mouse: false, enemySpeed: 0.65 };
+G.enemySpeedScale = skyControlSettings.enemySpeed;
+let skyTurnGesture = null;
+
+function skyBurnMinimum() { return Math.min(500, Math.round(skyFlightSpeeds.cruise * 1.94384) + 50); }
+
+function skySetFlightSpeed(kind, knots) {
+  if (G.mode !== 'paused' || !['cruise', 'burn'].includes(kind) || !Number.isFinite(Number(knots))) return;
+  const value = Math.round(Number(knots));
+  if (kind === 'cruise') {
+    skyFlightSpeeds.cruise = clamp(value, 100, 500) / 1.94384;
+    skyFlightSpeeds.burn = Math.max(skyFlightSpeeds.burn, skyBurnMinimum() / 1.94384);
+  } else {
+    skyFlightSpeeds.burn = clamp(value, skyBurnMinimum(), 500) / 1.94384;
+  }
+  G.player.cruiseSpeed = skyFlightSpeeds.cruise;
+  G.player.burnSpeed = skyFlightSpeeds.burn;
+  skySync();
+}
+function skyResetFlightSpeeds() {
+  if (G.mode !== 'paused') return;
+  skyFlightSpeeds.cruise = G.player.cruiseSpeed = SPEED_CRUISE;
+  skyFlightSpeeds.burn = G.player.burnSpeed = 500 / 1.94384;
+  skySync();
+}
+function skySyncFlightSpeeds() {
+  for (const kind of ['cruise', 'burn']) {
+    const input = skyGet(`sky-${kind}-speed`);
+    const knots = String(Math.round(skyFlightSpeeds[kind] * 1.94384));
+    input.disabled = !BOOT.ready || !!BOOT.error || G.mode !== 'paused';
+    input.min = kind === 'burn' ? String(skyBurnMinimum()) : '100';
+    if (kind === 'burn' && input.min === '500') input.disabled = true;
+    if (input.value !== knots) input.value = knots;
+    skyAttribute(input, 'aria-valuetext', `${knots} 节`);
+    skyText(`sky-${kind}-speed-value`, `${knots} 节${kind === 'burn' && input.min === '500' ? ' · 已达上限' : ''}`);
+  }
+  const enabled = BOOT.ready && !BOOT.error && G.mode === 'paused';
+  const enemy = skyGet('sky-enemy-speed'), mouse = skyGet('sky-mouse-steering');
+  enemy.disabled = mouse.disabled = !enabled;
+  enemy.value = String(Math.round(skyControlSettings.enemySpeed * 100));
+  mouse.checked = skyControlSettings.mouse;
+  skyText('sky-enemy-speed-value', `${enemy.value}%`);
+  skyAttribute(enemy, 'aria-valuetext', `${enemy.value}%`);
+}
+
+function skySetControlSetting(kind, value) {
+  if (G.mode !== 'paused') return;
+  if (kind === 'mouse' && typeof value === 'boolean') {
+    skyControlSettings.mouse = G.player.mouseSteering = value;
+    resetMouseSteering();
+  } else if (kind === 'enemySpeed' && Number.isFinite(Number(value))) {
+    skyControlSettings.enemySpeed = G.enemySpeedScale = clamp(Math.round(Number(value) / 5) * 5, 30, 120) / 100;
+  }
+  skySync();
+}
+
+function skyTrackTurnGesture(code, down, repeat = false) {
+  if (!['KeyA', 'KeyD'].includes(code) || repeat || G.mode !== 'play') return;
+  const p = G.player, now = G.realTime;
+  if (!p || p.dead || p.halfRoll || p.rollT > 0) { skyTurnGesture = null; return; }
+  const other = code === 'KeyA' ? 'KeyD' : 'KeyA';
+  if (INPUT.keys.has(other)) { skyTurnGesture = null; return; }
+  if (down) {
+    if (skyTurnGesture?.code === code && now <= skyTurnGesture.armedUntil) {
+      if (skyTurnGesture.tap != null && now - skyTurnGesture.tap <= 0.35) {
+        const from = p.inversionRoll || 0, direction = code === 'KeyA' ? 1 : -1;
+        p.halfRoll = { from, to: from + direction * Math.PI, time: 0 };
+        skyReport('正在翻转 180°');
+        skyTurnGesture = null;
+        return;
+      }
+      skyTurnGesture.tap = now;
+    } else skyTurnGesture = { code, started: now, armedUntil: -1, tap: null };
+  } else if (skyTurnGesture?.code === code && now - skyTurnGesture.started >= 2 - 1e-6 && skyTurnGesture.armedUntil < 0) {
+    skyTurnGesture.armedUntil = now + 1.2;
+    skyReport(`双击 ${code === 'KeyA' ? 'A' : 'D'}：翻转 180°`);
+  }
+}
+
+const skyUpdateFlight = updateFlight;
+updateFlight = function (dt) {
+  const p = G.player;
+  if (p?.halfRoll && !p.dead) {
+    const r = p.halfRoll;
+    r.time = Math.min(1.6, r.time + dt);
+    p.inversionRoll = lerp(r.from, r.to, smoothstep(0, 1.6, r.time));
+    if (r.time >= 1.6 - 1e-6) {
+      p.inversionRoll = Math.abs(Math.cos(r.to) + 1) < 1e-6 ? (r.to < 0 ? -Math.PI : Math.PI) : 0;
+      p.halfRoll = null;
+      skyReport(p.inversionRoll ? '已倒飞 · 重复操作可翻回' : '已恢复正飞');
+    }
+  }
+  skyUpdateFlight(dt);
+};
 
 function skyText(id, value) {
   const el = typeof id === 'string' ? skyGet(id) : id, text = String(value);
@@ -38,6 +133,7 @@ function skyRefreshHolds() {
   }
 }
 function skyClearInput() {
+  skyTurnGesture = null;
   clearTimeout(skyBoostTimer); skyBoostTimer = 0;
   skyPointerHolds.clear(); skyKeyHolds.clear();
   for (const held of UI_HOLDS.values()) if (held.onUp) held.onUp();
@@ -78,31 +174,52 @@ loadHighScore = function () {
   return G.highScore;
 };
 
+const skyMakePlayer = makePlayer;
+makePlayer = function (map, forTitle = false) {
+  const p = skyMakePlayer(map, forTitle);
+  if (!forTitle) {
+    p.cruiseSpeed = skyFlightSpeeds.cruise;
+    p.burnSpeed = skyFlightSpeeds.burn;
+    p.speed = p.targetSpeed = p.cruiseSpeed;
+    p.mouseSteering = skyControlSettings.mouse;
+    p.cockpitComfort = true; p.speedResponse = 1.6; p.inversionRoll = 0;
+  }
+  if (!forTitle && inlandFlight) {
+    // 东侧草谷轴不随种子移动；种子只改变林斑、地表与山肩细节。
+    const x = 6970, z = 7200;
+    p.groundH = map.heightAt(x, z); p.agl = 125;
+    p.pos = { x, y: p.groundH + p.agl, z };
+    p.yaw = 0.00755; p.basis = p.renderBasis = basisFrom(p.yaw, p.pitch, p.roll);
+  }
+  return p;
+};
 const skyStartRun = startRun;
-startRun = function (mode = flightMode) {
+startRun = function (mode = flightMode, inland = inlandFlight) {
   if (!BOOT.ready || BOOT.error || !G.map) return false;
   if (mode !== 'free' && mode !== 'intercept') return false;
-  flightMode = mode;
+  flightMode = mode; inlandFlight = mode === 'free' && inland;
+  G.skyScenic = mode === 'free' ? { oblique: false, from: 0, changedAt: 0 } : null;
   skyNotice = '';
   skyClearInput();
   G.pausedFrom = null; G.freeze = false;
   skyStartRun();
   if (flightMode === 'free') {
-    G.banner = { title: '自由巡航', sub: '无战斗伤害，仍需避开地形', t: 0, life: 3.4 };
+    G.banner = { title: inlandFlight ? '秋林低飞' : '自由巡航', sub: '无战斗伤害，仍需避开地形', t: 0, life: 3.4 };
   }
   setViewName('chase');
   skySync();
   return true;
 };
-function skyStart(mode = 'intercept') {
+function skyStart(mode = 'intercept', inland = false) {
   if (!BOOT.ready || BOOT.error) return false;
   AudioSys.init();
   if (G.sound) AudioSys.setEnabled(true);
-  return startRun(mode);
+  return startRun(mode, inland);
 }
 function skyHome() {
   if (!BOOT.ready || BOOT.error || !G.map) return false;
   skyClearInput(); skyNotice = '';
+  G.skyScenic = null;
   G.mode = 'title'; G.pausedFrom = null; G.freeze = false;
   G.banner = null; G.shake = G.damageFlash = G.flash = G.hitStop = G.fade = 0;
   G.threatList.length = 0;
@@ -127,6 +244,8 @@ toggleSound = function () {
   skySync();
 };
 const skyKeyDown = onKeyDown;
+const skyBarrelRoll = triggerBarrelRoll;
+triggerBarrelRoll = function () { if (!G.player?.halfRoll) skyBarrelRoll(); };
 onKeyDown = function (code) {
   if (G.mode === 'title') {
     if (code === 'Enter' || code === 'NumpadEnter') skyStart('intercept');
@@ -166,9 +285,16 @@ function skySync() {
   const mode = ready ? G.mode : 'loading';
   const active = skyActive();
   const view = ['top', 'chase', 'cockpit'][G.view] || 'chase';
+  const chase = skyGet('sky-chase'), showChase = !!G.skyScenic && view === 'chase' && (active || mode === 'paused');
+  if (chase.hidden === showChase) chase.hidden = !showChase;
+  skyAttribute(chase, 'aria-pressed', showChase && G.skyScenic.oblique);
+  const scenic = skyScenicView();
+  skyAttribute(skyApp, 'data-scenic', scenic);
   skyAttribute(skyApp, 'data-mode', mode);
   skyAttribute(skyApp, 'data-view', view);
   skyAttribute(skyApp, 'data-flight', flightMode);
+  const fullHUD = !!G.player && view !== 'cockpit' && ['play', 'waveclear', 'paused', 'dying'].includes(mode);
+  skyAttribute(skyApp, 'data-hud', fullHUD ? 'flight' : 'shell');
   const modalOpen = ready && (mode === 'paused' || mode === 'failed');
   for (const id of ['sky-header', 'sky-controls']) {
     const el = skyGet(id);
@@ -178,19 +304,28 @@ function skySync() {
     const el = skyGet(id); if (el && el.hidden === show) el.hidden = !show;
   }
   const enabled = {
-    'sky-intercept': ready && mode === 'title', 'sky-cruise': ready && mode === 'title',
-    'sky-camera': ready && (active || mode === 'title'), 'sky-sound': ready,
+    'sky-intercept': ready && mode === 'title', 'sky-cruise': ready && mode === 'title', 'sky-inland': ready && mode === 'title',
+    'sky-camera': ready && (active || mode === 'title'), 'sky-chase': showChase && active, 'sky-sound': ready,
     'sky-fullscreen': ready && typeof skyApp.requestFullscreen === 'function' && document.fullscreenEnabled !== false,
     'sky-resume': ready && mode === 'paused', 'sky-restart': ready && mode === 'paused', 'sky-home': ready && mode === 'paused',
+    'sky-speed-reset': ready && mode === 'paused',
     'sky-again': ready && mode === 'failed' && G.failTimer > 0.5, 'sky-result-home': ready && mode === 'failed'
   };
   for (const b of skyButtons) {
     const action = b.dataset.skyAction;
-    const on = action ? (action === 'pause' ? active || (ready && mode === 'paused') : action === 'roll' ? active && mode === 'play' : active) : !!enabled[b.id];
+    let on = action ? (action === 'pause' ? active || (ready && mode === 'paused') : action === 'roll' ? active && mode === 'play' : active) : !!enabled[b.id];
+    if (action === 'flare') {
+      on = ready && mode === 'play' && G.player && !G.player.dead && G.player.flares > 0 && G.player.flareCd <= 0;
+      const remaining = G.player?.flares ?? 3, cooldown = Math.max(0, Math.ceil(G.player?.flareCd || 0));
+      skyText(b.querySelector('span'), remaining <= 0 ? '干扰弹 用尽' : cooldown ? `干扰弹 ${cooldown}s` : `干扰弹 ${remaining}`);
+      const label = `干扰弹，C 或 X；剩余 ${remaining}，冷却 ${cooldown} 秒`;
+      skyAttribute(b, 'aria-label', label); skyAttribute(b, 'title', label);
+    }
     if (b.disabled === on) b.disabled = !on;
   }
-  skyText('sky-mode-label', mode === 'title' ? '待命 / READY TO FLY' : flightMode === 'free' ? '自由巡航 / FREE FLIGHT' : '截击任务 / INTERCEPT');
-  const viewName = { top: '俯瞰视角', chase: '追尾视角', cockpit: '座舱视角' }[view];
+  skySyncFlightSpeeds();
+  skyText('sky-mode-label', mode === 'title' ? '待命 / READY TO FLY' : inlandFlight ? '秋林低飞 / VALLEY RUN' : flightMode === 'free' ? '自由巡航 / FREE FLIGHT' : '截击任务 / INTERCEPT');
+  const viewName = { top: '俯瞰视角', chase: scenic ? '斜后视角' : '追尾视角', cockpit: '座舱视角' }[view];
   skyText('sky-camera', viewName);
   skyAttribute(skyGet('sky-camera'), 'aria-label', `切换视角，当前${viewName}`);
   const sound = skyGet('sky-sound'), soundText = G.sound ? '音效开启' : '音效关闭';
@@ -201,12 +336,31 @@ function skySync() {
   skyAttribute(skyGet('sky-fullscreen'), 'aria-pressed', fullscreen);
   skyAttribute(skyGet('sky-fullscreen'), 'aria-label', fullscreen ? '退出全屏' : '进入全屏');
   const p = G.player;
+  skyText('sky-direction-label', skyControlSettings.mouse ? '鼠标 / WASD 转向' : 'WASD / 方向键转向');
+  const boost = skyActions.find(b => b.dataset.skyAction === 'boost');
+  if (boost) {
+    const capped = !!p && p.burnSpeed <= p.cruiseSpeed + .01;
+    skyText(boost.querySelector('span'), capped ? '已达上限' : p?.burning ? `加力 ${Math.round(p.targetSpeed * 1.94384)}节` : '加速');
+  }
   skyText('sky-alt', p ? skyNumber(p.pos.y * 3.28084) : '—');
   skyText('sky-speed', p ? skyNumber(p.speed * 1.94384) : '—');
   skyText('sky-wave', `第 ${pad(G.wave, 2)} 波 · ${G.waveKills}/${G.waveTotal}`);
   skyText('sky-score', skyNumber(G.score));
   skyText('sky-shield', p ? Math.ceil(Math.max(0, p.shield)) : 100);
   skyText('sky-fuel', p ? Math.ceil(Math.max(0, p.fuel)) : 100);
+  const systems = skyGet('sky-systems');
+  const showSystems = !!p && view !== 'cockpit' && (active || mode === 'paused');
+  if (systems && systems.hidden === showSystems) systems.hidden = !showSystems;
+  if (p) {
+    for (const [i, [, value, state]] of skySystemReadings(p).entries()) {
+      const id = ['fuel', 'shield', 'gun', 'missile', 'boost', 'flare'][i];
+      skyText(`sky-system-${id}-value`, value);
+      skyAttribute(skyGet(`sky-system-${id}`), 'data-state', state);
+    }
+    for (const id of ['fuel', 'shield']) {
+      skyAttribute(skyGet(`sky-system-${id}-meter`), 'value', Math.round(clamp01(p[id] / 100) * 1000) / 10);
+    }
+  }
   skyText('sky-result-score', skyNumber(G.score)); skyText('sky-result-kills', skyNumber(G.stats.kills));
   const ammo = p ? p.missiles : 4;
   skyText('sky-ammo-count', `${pad(ammo, 2)}/04`);
@@ -215,14 +369,15 @@ function skySync() {
     skyAttribute(skyAmmo[i], 'data-empty', i >= ammo);
   }
   skyAttribute(skyGet('sky-ammo'), 'aria-label', `导弹 ${ammo} / 4`);
-  const status = BOOT.error || (!ready ? `正在准备飞行 · ${BOOT.stage}` : mode === 'title' ? '选择开始截击或自由巡航；回车开始截击。' : mode === 'paused' ? '飞行已暂停。' : mode === 'failed' ? '飞行结束，可重新起飞或返回主界面。' : flightMode === 'free' ? '自由巡航：不受战斗伤害，撞地仍会损毁。' : '截击任务：消灭敌机，注意地形与来袭导弹。');
+  const status = BOOT.error || (!ready ? `正在准备飞行 · ${BOOT.stage}` : mode === 'title' ? '可从湖岸或秋林起飞；回车开始截击。' : mode === 'paused' ? '飞行已暂停。' : mode === 'failed' ? '飞行结束，可重新起飞或返回主界面。' : flightMode === 'free' ? '自由巡航：不受战斗伤害，撞地仍会损毁。' : '截击任务：消灭敌机，注意地形与来袭导弹。');
   skyText('sky-status', skyNotice && performance.now() < skyNoticeUntil ? skyNotice : status);
   if (!Number.isFinite(G.highScore)) G.highScore = 0;
   SKY_OCCLUSION.length = 0;
   const stage = uiCanvas.getBoundingClientRect();
-  if (stage.width && stage.height) for (const id of ['sky-brand', 'sky-telemetry', 'sky-camera', 'sky-combat']) {
+  if (systems && stage.height) skyAttribute(systems, 'style', `--hud-unit:${stage.height / VH}px`);
+  if (stage.width && stage.height) for (const id of ['sky-brand', 'sky-telemetry', 'sky-camera', 'sky-chase', 'sky-combat', 'sky-systems']) {
     const el = skyGet(id);
-    if (!el || el.hidden || (view === 'cockpit' && (id === 'sky-brand' || id === 'sky-telemetry'))) continue;
+    if (!el || el.hidden || fullHUD && ['sky-telemetry', 'sky-combat', 'sky-systems'].includes(id) || (id === 'sky-brand' && (mode !== 'title' && mode !== 'loading' || view === 'cockpit' || view === 'top' || scenic)) || (id === 'sky-telemetry' && view === 'cockpit')) continue;
     const r = el.getBoundingClientRect();
     if (r.width && r.height) SKY_OCCLUSION.push({ x: (r.left - stage.left) / stage.width * VW - 3, y: (r.top - stage.top) / stage.height * VH - 3, w: r.width / stage.width * VW + 6, h: r.height / stage.height * VH + 6 });
   }
@@ -230,8 +385,8 @@ function skySync() {
   if (mode !== skyLastMode) {
     skyLastMode = mode;
     const focus = mode === 'paused' ? skyGet('sky-resume') : mode === 'failed' ? skyGet('sky-result-home') : null;
-    if (focus) focus.focus({ preventScroll: true });
-    else if (mode === 'play' && document.activeElement?.tagName === 'BUTTON') document.activeElement.blur();
+    if (focus) focus.focus();
+    else if ((mode === 'play' || mode === 'waveclear') && ['BUTTON', 'INPUT'].includes(document.activeElement?.tagName)) document.activeElement.blur();
   }
 }
 
@@ -263,21 +418,36 @@ for (const type of ['pointerup', 'pointercancel', 'mouseup']) window.addEventLis
 window.addEventListener('keydown', e => {
   const modal = G.mode === 'paused' ? skyGet('sky-pause') : G.mode === 'failed' ? skyGet('sky-result') : null;
   if (modal && e.code === 'Tab') {
-    const buttons = [...modal.querySelectorAll('button')].filter(b => !b.disabled);
-    const index = buttons.indexOf(document.activeElement);
-    if (index < 0 || (e.shiftKey ? index === 0 : index === buttons.length - 1)) {
+    const controls = [...modal.querySelectorAll('button, input')].filter(b => !b.disabled);
+    const index = controls.indexOf(document.activeElement);
+    if (index < 0 || (e.shiftKey ? index === 0 : index === controls.length - 1)) {
       e.preventDefault();
-      buttons[e.shiftKey ? buttons.length - 1 : 0]?.focus({ preventScroll: true });
+      controls[e.shiftKey ? controls.length - 1 : 0]?.focus();
     }
     e.stopImmediatePropagation();
     return;
   }
+  if (G.mode === 'paused') {
+    if (e.code === 'KeyM') {
+      if (!e.repeat) toggleSound();
+    } else if (['Escape', 'KeyP'].includes(e.code)) {
+      e.preventDefault();
+      if (!e.repeat) togglePause();
+    } else if (['Enter', 'NumpadEnter'].includes(e.code) && e.target.tagName !== 'BUTTON') {
+      e.preventDefault();
+      if (!e.repeat) togglePause();
+    }
+    e.stopImmediatePropagation();
+    return; // 保留控件原生行为，暂停按键不进入飞行输入。
+  }
   const button = e.target.closest?.('button');
+  skyTrackTurnGesture(e.code, true, e.repeat);
   if (!button || !['Space', 'Enter', 'NumpadEnter'].includes(e.code)) return;
   if (!e.repeat) { skyHold(button, e.code, true); skyKeyClicks.add(button); }
   e.stopImmediatePropagation(); // 保留按钮原生激活，不拦截WASD等其他快捷键。
 }, true);
 window.addEventListener('keyup', e => {
+  skyTrackTurnGesture(e.code, false);
   skyKeyHolds.delete(e.code); skyRefreshHolds();
 }, true);
 window.addEventListener('blur', skyClearInput);
@@ -288,11 +458,25 @@ function skyClick(id, action) {
 }
 skyClick('sky-intercept', () => skyStart('intercept'));
 skyClick('sky-cruise', () => skyStart('free'));
+skyClick('sky-inland', () => skyStart('free', true));
 skyClick('sky-resume', () => togglePause());
+skyClick('sky-speed-reset', skyResetFlightSpeeds);
+for (const kind of ['cruise', 'burn']) {
+  const input = skyGet(`sky-${kind}-speed`);
+  input.addEventListener('input', () => skySetFlightSpeed(kind, input.value));
+}
+skyGet('sky-enemy-speed').addEventListener('input', e => skySetControlSetting('enemySpeed', e.target.value));
+skyGet('sky-mouse-steering').addEventListener('change', e => skySetControlSetting('mouse', e.target.checked));
 skyClick('sky-restart', () => startRun(flightMode));
 skyClick('sky-again', () => startRun(flightMode));
 skyClick('sky-home', skyHome); skyClick('sky-result-home', skyHome);
 skyClick('sky-camera', () => cycleView()); skyClick('sky-sound', () => toggleSound());
+skyClick('sky-chase', () => {
+  const scenic = G.skyScenic;
+  scenic.from = skyChaseBlend(); scenic.changedAt = G.time;
+  scenic.oblique = !scenic.oblique;
+  AudioSys.uiTick();
+});
 skyClick('sky-fullscreen', async () => {
   try {
     if (document.fullscreenElement === skyApp) await document.exitFullscreen();
@@ -320,6 +504,7 @@ for (const button of skyActions) button.addEventListener('click', e => {
     skyKeyClicks.delete(button);
   } else if (action === 'roll') triggerBarrelRoll();
   else if (action === 'missile') firePlayerMissile();
+  else if (action === 'flare') tryFlares();
   else if (action === 'view') cycleView();
   else if (action === 'pause') togglePause();
   skySync();

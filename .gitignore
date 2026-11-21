@@ -1,2 +1,17 @@
 .DS_Store
 .superpowers/
+shots/*_failed.png
+
+# 本机迭代试拍；正式文档引用的截图与录像仍纳入版本管理。
+shots/reference_flight_*.png
+shots/reference_missile_baseline_*.png
+shots/reference_missile_chase_before.png
+shots/reference_missile_chase_60ms.png
+shots/reference_missile_chase_200ms.png
+shots/reference_missile_chase_900ms.png
+shots/reference_missile_chase_1600ms.png
+shots/sky_reference_*.png
+!shots/sky_reference_unlocked_visible.png
+shots/sky_top_inland_rework.png
+shots/sky_top_intercept_rework.png
+shots/sky_valley_flight_60.png

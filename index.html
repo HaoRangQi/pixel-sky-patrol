@@ -2576,6 +2576,16 @@ const DRONE_MAX_HP = 100;
 const GUN_INTERVAL = 0.1;
 const GUN_RANGE = 1100;
 const GUN_DAMAGE = 12;
+const GUN_BULLET_SPEED = 720;
+const GUN_BULLET_GRAVITY = 38;
+const GUN_BULLET_LIFE = 2.2;
+const MISSILE_GRAVITY = 70;
+const MISSILE_PLAYER_SPEED = 430;
+const MISSILE_PLAYER_MAX_SPEED = 520;
+const MISSILE_ENEMY_SPEED = 280;
+const MISSILE_ENEMY_MAX_SPEED = 430;
+const MISSILE_TRAIL_SPACING = 15;
+const MISSILE_TRAIL_LIFE = 1.8;
 const MOUSE_STEER_TIMEOUT = 0.42;
 
 const G = {
@@ -2584,7 +2594,7 @@ const G = {
   time: 0, realTime: 0, missionTime: 0,
   map: null, meshes: null, seed: 1337,
   player: null, camera: null,
-  enemies: [], ground: [], missiles: [], effects: [], tracers: [], popups: [], decals: [], vapor: [],
+  enemies: [], ground: [], missiles: [], missileTrails: [], bullets: [], effects: [], tracers: [], popups: [], decals: [], vapor: [],
   view: 1, prevView: 1, viewBlend: 1,
   cockpitAlpha: 0,
   shake: 0, damageFlash: 0, flash: 0, hitStop: 0, fade: 0,
@@ -2638,7 +2648,7 @@ function makePlayer(map, forTitle = false) {
     shield: PLAYER_MAX_SHIELD, fuel: 100,
     agl: 0, groundH: 0, gLoad: 1, pitchRate: 0, yawRate: 0,
     rollT: 0, rollCd: 0, invuln: 0, spin: 0,
-    missiles: 4, reloads: [], flares: 3, flareCd: 0, gunCd: 0,
+    missiles: 4, nextRail: 0, reloads: [], flares: 3, flareCd: 0, gunCd: 0,
     lastHit: -99, dead: false, burning: false,
     inCloud: 0, skimming: false, terrainWarn: false, speedDisplay: 0,
     basis: null, renderBasis: null,
@@ -2653,7 +2663,7 @@ function makePlayer(map, forTitle = false) {
 function setupTitleWorld() {
   G.player = makePlayer(G.map, true);
   G.player.pos.y = Math.max(G.map.heightAt(G.player.pos.x, G.player.pos.z) + 320, 520);
-  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0;
+  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
   G.effects.length = 0; G.tracers.length = 0; G.popups.length = 0; G.decals.length = 0; G.vapor.length = 0;
   G.view = 1; G.prevView = 1; G.viewBlend = 1; G.cockpitAlpha = 0;
   G.chaseInit = false;
@@ -2674,7 +2684,7 @@ function startRun() {
   G.missionTime = 0;
   G.time = 0;
   G.player = makePlayer(G.map, false);
-  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0;
+  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
   G.effects.length = 0; G.tracers.length = 0; G.popups.length = 0; G.decals.length = 0; G.vapor.length = 0;
   G.lock = { target: null, progress: 0, phase: 'search', tick: 0, lockTone: 0 };
   G.score = 0;
@@ -2752,10 +2762,11 @@ function computePose(view, allowSmooth = true) {
   const p = G.player;
   const b = p.basis;
   if (view === 0) {
-    const camY = Math.max(p.pos.y + 2350, 2100);
+    const aspect = VW / VH;
+    const fit = Math.max(.8, Math.min(1, 1.84 / aspect), .68 / aspect);
     return {
-      pos: { x: p.pos.x, y: camY, z: p.pos.z },
-      target: { x: p.pos.x, y: 0, z: p.pos.z },
+      pos: { x: p.pos.x, y: p.pos.y + 26 * fit, z: p.pos.z },
+      target: vcopy(p.pos),
       up: { x: 0, y: 0, z: -1 },
       fov: 0.95
     };
@@ -2767,7 +2778,7 @@ function computePose(view, allowSmooth = true) {
       pos,
       target: vadd(pos, vmul(cockpit.fwd, 160)),
       up: vcopy(cockpit.up),
-      fov: 1.18 + clamp((p.speed - SPEED_CRUISE) / 500, 0, 0.06)
+      fov: p.cockpitComfort ? 1.18 : 1.18 + clamp((p.speed - SPEED_CRUISE) / 500, 0, 0.06)
     };
   }
   // chase
@@ -2818,12 +2829,49 @@ function buildCamera(pose, shakeAmt = 0) {
   };
 }
 
+function blendCameraPose(a, b, t, arc) {
+  // 球面插值完整朝向，避免正飞与倒飞的up向量在中点抵消。
+  const orientation = pose => {
+    const f = vnorm(vsub(pose.target, pose.pos)), r = vnorm(vcross(f, pose.up)), u = vcross(r, f);
+    const m = [[r.x, u.x, -f.x], [r.y, u.y, -f.y], [r.z, u.z, -f.z]], q = [0, 0, 0, 0];
+    const trace = m[0][0] + m[1][1] + m[2][2];
+    if (trace > 0) {
+      const s = 2 * Math.sqrt(1 + trace);
+      q[3] = s / 4;
+      q[0] = (m[2][1] - m[1][2]) / s; q[1] = (m[0][2] - m[2][0]) / s; q[2] = (m[1][0] - m[0][1]) / s;
+    } else {
+      const i = m[0][0] > m[1][1] && m[0][0] > m[2][2] ? 0 : m[1][1] > m[2][2] ? 1 : 2;
+      const j = (i + 1) % 3, k = (i + 2) % 3, s = 2 * Math.sqrt(1 + m[i][i] - m[j][j] - m[k][k]);
+      q[i] = s / 4; q[3] = (m[k][j] - m[j][k]) / s;
+      q[j] = (m[j][i] + m[i][j]) / s; q[k] = (m[k][i] + m[i][k]) / s;
+    }
+    return q;
+  };
+  const qa = orientation(a), qb = orientation(b), dotOf = (a, b) => a.reduce((sum, v, i) => sum + v * b[i], 0);
+  // 一次过渡只选一次弧；近180°时不能让浮点符号逐帧改变旋转方向。
+  if (arc.from) {
+    for (const [q, previous] of [[qa, arc.from], [qb, arc.to]])
+      if (dotOf(q, previous) < 0) for (let i = 0; i < 4; i++) q[i] = -q[i];
+  } else if (dotOf(qa, qb) < 0) for (let i = 0; i < 4; i++) qb[i] = -qb[i];
+  arc.from = qa; arc.to = qb;
+  const dot = dotOf(qa, qb);
+  const angle = Math.acos(clamp(dot, -1, 1)), sine = Math.sin(angle);
+  const wa = sine > 1e-5 ? Math.sin((1 - t) * angle) / sine : 1 - t;
+  const wb = sine > 1e-5 ? Math.sin(t * angle) / sine : t;
+  const q = qa.map((v, i) => v * wa + qb[i] * wb), length = Math.hypot(...q);
+  const [x, y, z, w] = q.map(v => v / length);
+  const fwd = { x: -2 * (x * z + y * w), y: -2 * (y * z - x * w), z: 2 * (x * x + y * y) - 1 };
+  const up = { x: 2 * (x * y - z * w), y: 1 - 2 * (x * x + z * z), z: 2 * (y * z + x * w) };
+  const pos = vlerp(a.pos, b.pos, t);
+  return { pos, target: vmad(pos, fwd, lerp(vdist(a.pos, a.target), vdist(b.pos, b.target), t)), up, fov: lerp(a.fov, b.fov, t) };
+}
+
 function updateCamera(dt) {
   if (!G.player) return;
   const p = G.player;
   // base basis of the airframe (flight), then a render basis with barrel-roll spin
-  p.basis = basisFrom(p.yaw, p.pitch, p.roll);
-  const rp = p.roll + p.spin;
+  p.basis = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0));
+  const rp = p.roll + (p.inversionRoll || 0) + p.spin;
   p.renderBasis = basisFrom(p.yaw, p.pitch, rp);
 
   let pose;
@@ -2831,7 +2879,8 @@ function updateCamera(dt) {
     const a = computePose(G.prevView, false);
     const b = computePose(G.view, false);
     const t = smoothstep(0, 1, clamp01(G.viewBlend));
-    pose = {
+    if (p.cockpitComfort && (!G.cameraBlendArc || G.viewBlend === 0)) G.cameraBlendArc = {};
+    pose = p.cockpitComfort ? blendCameraPose(a, b, t, G.cameraBlendArc) : {
       pos: vlerp(a.pos, b.pos, t),
       target: vlerp(a.target, b.target, t),
       up: vnorm(vlerp(a.up, b.up, t)),
@@ -2839,6 +2888,7 @@ function updateCamera(dt) {
     };
     G.viewBlend = Math.min(1, G.viewBlend + dt / 1.0);
   } else {
+    G.cameraBlendArc = null;
     pose = computePose(G.view, true);
   }
   // clamp camera above the terrain even in a blended pose
@@ -2846,7 +2896,8 @@ function updateCamera(dt) {
     const gh = Math.max(G.map.heightAt(pose.pos.x, pose.pos.z), 0);
     if (pose.pos.y < gh + 3) pose.pos.y = gh + 3;
   }
-  const shake = G.shake * (G.view === 2 ? 0.45 : 1);
+  // 外部镜头不随机晃动；受击仍保留护盾读数、告警、闪边和音效。
+  const shake = G.view === 2 ? G.shake * 0.45 : 0;
   G.camera = buildCamera(pose, shake);
 
   // cockpit overlay fades with view intent
@@ -2884,8 +2935,8 @@ function lineOfSightClear(a, b, steps = 14) {
 function readSteering() {
   const p = G.player;
   const topView = G.view === 0;
-  const mouseBlend = G.testInput || TOUCH.active || (INPUT.touchMode && !Number.isFinite(INPUT.mouseSteerAge)) ? 1
-    : 1 - clamp((INPUT.mouseSteerAge - 0.14) / (MOUSE_STEER_TIMEOUT - 0.14), 0, 1);
+  const mouseBlend = G.testInput || TOUCH.active ? 1 : p.mouseSteering === false ? 0
+    : INPUT.touchMode && !Number.isFinite(INPUT.mouseSteerAge) ? 1 : 1 - clamp((INPUT.mouseSteerAge - 0.14) / (MOUSE_STEER_TIMEOUT - 0.14), 0, 1);
   let sx = 0, sy = 0, burn = false, alt = 0, turn = 0;
   const keyLeft = INPUT.keys.has('KeyA') || INPUT.keys.has('ArrowLeft');
   const keyRight = INPUT.keys.has('KeyD') || INPUT.keys.has('ArrowRight');
@@ -2938,16 +2989,13 @@ function updateFlight(dt) {
   G.lastDt = dt;
 
   // afterburner / fuel
-  const wantBurn = st.burn && p.fuel > 0.5 && G.mode !== 'failed';
+  const wantBurn = st.burn && p.fuel > 0.5 && G.mode !== 'failed' && (!p.speedResponse || (p.burnSpeed ?? SPEED_BURN) > (p.cruiseSpeed ?? SPEED_CRUISE) + 0.01);
   p.burning = wantBurn;
-  const targetSpeed = wantBurn ? SPEED_BURN : SPEED_CRUISE;
-  if (p.burning) {
-    p.speed = Math.min(SPEED_BURN, p.speed + 62 * dt);
-    p.fuel = Math.max(0, p.fuel - 15.5 * dt);
-  } else {
-    p.speed = damp(p.speed, SPEED_CRUISE, p.speed > SPEED_CRUISE ? 0.75 : 0.55, dt);
-    p.fuel = Math.min(100, p.fuel + 10.5 * dt);
-  }
+  const targetSpeed = p.targetSpeed = wantBurn ? (p.burnSpeed ?? SPEED_BURN) : (p.cruiseSpeed ?? SPEED_CRUISE);
+  p.speed = wantBurn && p.speed <= targetSpeed
+    ? Math.min(targetSpeed, p.speed + 62 * dt)
+    : damp(p.speed, targetSpeed, p.speedResponse ?? (p.speed > targetSpeed ? 0.75 : 0.55), dt);
+  p.fuel = wantBurn ? Math.max(0, p.fuel - 15.5 * dt) : Math.min(100, p.fuel + 10.5 * dt);
   const speedFactor = clamp(125 / Math.max(80, p.speed), 0.56, 1.15);
 
   if (st.topView) {
@@ -2977,22 +3025,24 @@ function updateFlight(dt) {
     p.pitchRate = 0;
     p.gLoad = clamp(1 + Math.abs(turn) * p.speed / 9.81 * 0.10, 1, 6);
   } else {
-    const targetRoll = -st.sx * BANK_MAX;
-    p.roll = angleLerp(p.roll, targetRoll, 1 - Math.exp(-6.5 * dt));
+    const comfortable = !!p.cockpitComfort && G.view === 2;
+    const targetRoll = -st.sx * (comfortable ? 0.56 : BANK_MAX);
+    const bankStep = wrapAngle(targetRoll - p.roll) * (1 - Math.exp(-(comfortable ? 2.2 : 6.5) * dt));
+    p.roll += comfortable ? clamp(bankStep, -0.6 * dt, 0.6 * dt) : bankStep;
     const oldPitch = p.pitch;
-    const pitchRate = st.sy * 1.08;
+    const pitchRate = st.sy * (comfortable ? 0.52 : 1.08);
     if (Math.abs(st.sy) > 0.03) p.pitch += pitchRate * dt;
     else p.pitch = damp(p.pitch, 0, 2.2, dt);
     p.pitch = clamp(p.pitch, -1.02, 1.02);
     p.pitchRate = (p.pitch - oldPitch) / Math.max(dt, 1e-6);
-    if (Math.abs(st.sx) < 0.03 && Math.abs(p.roll) < 0.25) p.roll *= 1 - 1.6 * dt;
+    if (!comfortable && Math.abs(st.sx) < 0.03 && Math.abs(p.roll) < 0.25) p.roll *= 1 - 1.6 * dt;
     const turnRate = 1.28 * speedFactor * (p.burning ? 0.70 : 1) * (1 - Math.abs(p.pitch) * 0.25);
-    const yawDelta = -Math.sin(p.roll) * turnRate;
+    const yawDelta = comfortable ? clamp(-Math.sin(p.roll) * turnRate * 0.52, -0.38, 0.38) : -Math.sin(p.roll) * turnRate;
     p.yaw = wrapAngle(p.yaw + yawDelta * dt);
     p.yawRate = yawDelta;
     p.gLoad = clamp(1 + Math.abs(yawDelta) * p.speed / 9.81 * 0.42 + Math.abs(pitchRate) * 0.6, 1, 9);
   }
-  p.basis = basisFrom(p.yaw, p.pitch, p.roll);
+  p.basis = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0));
 
   // barrel roll
   if (p.rollT > 0) {
@@ -3059,7 +3109,6 @@ function updateFlight(dt) {
       p.sprayTimer = 0.025;
       spawnSpray(vadd(p.pos, { x: 0, y: -p.agl, z: 0 }));
     }
-    if (Math.random() < 0.2) addWingTrail(p.pos, 0, true);
   }
 
   // clouds
@@ -3074,12 +3123,12 @@ function updateFlight(dt) {
 
   // vapour trails at high G / high speed
   p.vaporTimer -= dt;
-  const vap = (p.gLoad > 3.6 || p.speed > 178 || p.rollT > 0) && G.view !== 2;
+  const vap = (G.view === 0 || p.gLoad > 3.6 || p.speed > 178 || p.rollT > 0) && G.view !== 2;
   if (vap && p.vaporTimer <= 0) {
-    p.vaporTimer = 0.018;
-    const b = p.renderBasis;
-    addWingTrail(vadd(vadd(p.pos, vmul(b.right, 4.9)), vmul(b.fwd, 0.3)), 1);
-    addWingTrail(vadd(vadd(p.pos, vmul(b.right, -4.9)), vmul(b.fwd, 0.3)), -1);
+    p.vaporTimer += 0.05;
+    const b = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0) + p.spin);
+    addWingTrail(wingTipPosition(p, b, 1), 1);
+    addWingTrail(wingTipPosition(p, b, -1), -1);
   }
 
   // engine plume puffs
@@ -3098,6 +3147,10 @@ function updateFlight(dt) {
     AudioSys.lowWarn();
   }
   if (G.mode === 'play') G.missionTime += dt;
+}
+
+function wingTipPosition(p, b, side) {
+  return vadd(vadd(vadd(p.pos, vmul(b.right, 4.9 * side)), vmul(b.up, 0.235)), vmul(b.fwd, -2.675));
 }
 
 function triggerBarrelRoll() {
@@ -3121,7 +3174,7 @@ function triggerBarrelRoll() {
     }
   }
   // pilot style above the canopy
-  for (let i = 0; i < 2; i++) addWingTrail(vadd(p.pos, vmul(p.basis.right, i ? 4.9 : -4.9)), i ? 1 : -1, true);
+  for (let i = 0; i < 2; i++) addWingTrail(wingTipPosition(p, basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0) + p.spin), i ? 1 : -1), i ? 1 : -1, true);
 }
 
 // ------------------------------------------------------------ life cycle ----
@@ -3225,6 +3278,7 @@ function updateGame(dtRaw) {
     updateMissiles(dt);
     updateEnemies(dt);
     updateGround(dt);
+    updateGunBullets(dt);
     updateEffects(dt);
     updateVapor(dt);
     updateWaveLogic(dt);
@@ -3238,6 +3292,7 @@ function updateGame(dtRaw) {
     updateVapor(dt);
     updateEnemies(dt);
     updateMissiles(dt);
+    updateGunBullets(dt);
     updateGround(dt);
     updateCamera(dt);
     G.respite -= dt;
@@ -3260,6 +3315,7 @@ function updateGame(dtRaw) {
     G.dyingTimer -= raw;
     updateEffects(dt);
     updateMissiles(dt);
+    updateGunBullets(dt);
     updateVapor(dt);
     updateEnemies(dt * 0.6);
     updateCamera(dt);
@@ -3298,8 +3354,14 @@ function updateTitle(dt) {
   p.pos.y += fwd.y * p.speed * dt;
   if (p.pos.y < gh + 160) p.pos.y = gh + 160;
   if (G.map.heightAt(p.pos.x, p.pos.z) > p.pos.y - 60) p.pitch = 0.2;
-  // subtle trail
-  if (Math.random() < dt * 20) addWingTrail(vadd(p.pos, vmul(p.basis.right, -4.9)), -1);
+  // subtle paired wing-tip trails
+  p.vaporTimer -= dt;
+  if (p.vaporTimer <= 0) {
+    p.vaporTimer = 0.05;
+    const b = basisFrom(p.yaw, p.pitch, p.roll + p.spin);
+    addWingTrail(wingTipPosition(p, b, 1), 1);
+    addWingTrail(wingTipPosition(p, b, -1), -1);
+  }
   updateCamera(dt);
   updateEffects(dt);
   updateVapor(dt);
@@ -3545,7 +3607,7 @@ function spawnDrone(index = 0) {
     kind: 'drone', isGround: false,
     pos: { x, y: alt, z },
     yaw: Math.atan2(p.pos.x - x, -(p.pos.z - z)),
-    pitch: 0, roll: 0, speed: 108, energy: 100,
+    pitch: 0, roll: 0, speed: 108 * (G.enemySpeedScale ?? 1), energy: 100,
     hp: DRONE_MAX_HP, dead: false, aware: 0, state: 'patrol', fleeT: 0,
     missileCd: rr(3.0, 7.0), gunCd: rr(1, 2.5), gunBurst: 0,
     losTimer: rr(0, 0.3), los: true, age: 0,
@@ -3575,6 +3637,20 @@ function targetConcealed(t) {
   return G.map.cloudDensity(t.pos.x, t.pos.y + 1, t.pos.z) > 0.28;
 }
 
+// 近俯视中只把屏外目标的标记放在对应的画框边，不移动目标或改变世界判定。
+function projectTargetMarker(pos, s) {
+  s.edge = false;
+  const projected = projectToScreen(pos, s);
+  if (G.view !== 0 || G.viewBlend < 1) return projected;
+  const cx = VW / 2, cy = VH / 2;
+  if (projected && s.x >= 18 && s.x <= VW-18 && s.y >= 18 && s.y <= VH-18) return true;
+  const dx = pos.x - G.player.pos.x, dz = pos.z - G.player.pos.z;
+  if (Math.abs(dx) + Math.abs(dz) < .001) return false;
+  const scale = 1 / Math.max(Math.abs(dx)/(cx-18), Math.abs(dz)/(cy-18));
+  s.x = cx + dx*scale; s.y = cy + dz*scale; s.edge = true;
+  return true;
+}
+
 function updateLockOn(dt) {
   const p = G.player;
   const L = G.lock;
@@ -3592,7 +3668,7 @@ function updateLockOn(dt) {
     const dir = vnorm(vsub(t.pos, p.pos));
     if (vdot(dir, p.basis.fwd) < 0.25) continue;
     if (targetConcealed(t)) continue;
-    if (!projectToScreen({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.5), z: t.pos.z }, tmp)) continue;
+    if (!projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.5), z: t.pos.z }, tmp)) continue;
     if (tmp.x < -20 || tmp.x > VW + 20 || tmp.y < -20 || tmp.y > VH + 20) continue;
     const dx = tmp.x - aim.x, dy = tmp.y - aim.y;
     const d2 = dx * dx + dy * dy;
@@ -3618,7 +3694,7 @@ function updateLockOn(dt) {
     // break if the target slips out of the cone or is concealed
     const d = vdist(p.pos, t.pos);
     const dir = vnorm(vsub(t.pos, p.pos));
-    const off = projectToScreen({ x: t.pos.x, y: t.pos.y + 1.5, z: t.pos.z }, tmp);
+    const off = projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.5), z: t.pos.z }, tmp);
     const far = !off || Math.hypot(tmp.x - aim.x, tmp.y - aim.y) > radius * 1.34;
     if (d > 2900 || vdot(dir, p.basis.fwd) < 0.12 || far || targetConcealed(t)) {
       L.progress = Math.max(0, L.progress - dt * 3.5);
@@ -3655,6 +3731,18 @@ function updatePlayerGuns(dt) {
   if (INPUT.left || INPUT.keys.has('KeyF') || INPUT.touchGun) firePlayerGuns();
 }
 
+function spawnGunBullet(origin, velocity, owner, damage, color = '#f2c270') {
+  const b = {
+    owner, pos: vcopy(origin), vel: vcopy(velocity), damage,
+    life: GUN_BULLET_LIFE, radius: 1.8, color,
+  };
+  G.bullets.push(b);
+  if (G.bullets.length > 240) G.bullets.shift();
+  const tail = vsub(origin, vmul(vnorm(velocity), 13));
+  addTracer(tail, origin, color, owner === 'player' ? 1.3 : 1.1);
+  return b;
+}
+
 function firePlayerGuns() {
   const p = G.player;
   if (!p || p.dead || G.mode !== 'play' || p.gunCd > 1e-6) return;
@@ -3662,66 +3750,90 @@ function firePlayerGuns() {
   G.stats.shots++;
   const b = p.basis;
   const origin = vadd(p.pos, vmul(b.fwd, 6));
-  let distance = GUN_RANGE, target = null;
-  for (const t of collectTargets()) {
-    const offset = vsub(targetAimPoint(t), origin);
-    const along = vdot(offset, b.fwd);
-    const radius = (t.radius || 7) + 3;
-    const side2 = vdot(offset, offset) - along * along;
-    if (side2 > radius * radius || along < 0) continue;
-    const entry = Math.max(0, along - Math.sqrt(Math.max(0, radius * radius - side2)));
-    if (entry < distance) { distance = entry; target = t; }
-  }
-  // 沿射线检查山体，不能隔着地形命中敌机。
-  const steps = Math.max(1, Math.ceil(distance / 12));
-  for (let i = 0; i <= steps; i++) {
-    const d = distance * i / steps;
-    const point = vadd(origin, vmul(b.fwd, d));
-    if (point.y <= Math.max(0, G.map.heightAt(point.x, point.z)) + 1) {
-      distance = d; target = null;
-      spawnSparks(point, 2, '#d4a16a');
-      break;
-    }
-  }
-  const end = vadd(origin, vmul(b.fwd, distance));
-  addTracer(origin, end, '#f2c270', 1);
+  const velocity = vmul(b.fwd, GUN_BULLET_SPEED);
+  spawnGunBullet(origin, velocity, 'player', GUN_DAMAGE, '#f2c270');
   spawnBurst(origin, 2, '#e9ae56', 3, 0.06);
-  if (target) {
-    if (target.isGround) hitGround(target, GUN_DAMAGE, end);
-    else hitDrone(target, GUN_DAMAGE, end);
-  }
   AudioSys.gunshot(0.7);
 }
 
+function segmentHitsTerrain(from, to, clearance = 1) {
+  const length = vdist(from, to);
+  const steps = Math.max(1, Math.ceil(length / 10));
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const point = vlerp(from, to, t);
+    const ground = Math.max(G.map.heightAt(point.x, point.z), 0) + clearance;
+    if (point.y <= ground) {
+      const prev = vlerp(from, to, Math.max(0, (i - 1) / steps));
+      const denom = point.y - prev.y;
+      const hitT = Math.abs(denom) > 1e-6 ? clamp((ground - prev.y) / denom, 0, 1) : 0;
+      return vlerp(prev, point, hitT);
+    }
+  }
+  return null;
+}
+
+function updateGunBullets(dt) {
+  for (const b of G.bullets) {
+    if (b.dead) continue;
+    b.life -= dt;
+    if (b.life <= 0) { b.dead = true; continue; }
+    const from = vcopy(b.pos);
+    b.vel.y -= GUN_BULLET_GRAVITY * dt;
+    b.pos = vadd(b.pos, vmul(b.vel, dt));
+    addTracer(vsub(b.pos, vmul(vnorm(b.vel), 13)), b.pos, b.color, b.owner === 'player' ? 1.3 : 1.1);
+    const terrain = segmentHitsTerrain(from, b.pos, 1);
+    if (terrain) {
+      b.dead = true;
+      spawnSparks(terrain, 2, '#d4a16a');
+      continue;
+    }
+    const targets = b.owner === 'player' ? collectTargets() : (G.player && !G.player.dead ? [G.player] : []);
+    let hit = null;
+    for (const target of targets) {
+      const point = targetAimPoint(target) || target.pos;
+      if (missilePassesNear(from, b.pos, point, (target.radius || 7) + b.radius)) { hit = target; break; }
+    }
+    if (hit) {
+      b.dead = true;
+      if (b.owner === 'player') {
+        if (hit.isGround) hitGround(hit, b.damage, hit.pos); else hitDrone(hit, b.damage, hit.pos);
+      } else {
+        damagePlayer(b.damage, 'guns');
+        spawnSparks(G.player.pos, 2, '#ffbf80');
+      }
+    }
+  }
+  G.bullets = G.bullets.filter(b => !b.dead);
+}
+
 // --------------------------------------------------------------- missiles ---
-function makeMissileOwnerRef(owner) { return owner; }
+function wingRailPosition(p, slot) {
+  const b = p.renderBasis || p.basis, outer = Math.floor(slot / 2);
+  const side = (slot % 2 ? 1 : -1) * (2.2 + outer * 1.05);
+  return vmad(vmad(vmad(p.pos, b.right, side), b.up, -0.52), b.fwd, 0.8 + outer * 1.35);
+}
 
 function spawnPlayerMissile() {
   const p = G.player;
-  const t = G.lock.phase === 'locked' ? G.lock.target : null;
-  const b = p.basis;
-  const side = (p.railFlip = !p.railFlip ? 1 : -1);
-  const lateral = side > 0 ? 3.55 : -3.0;
-  const origin = vadd(vadd(p.pos, vmul(b.right, lateral)), vadd(vmul(b.up, -0.45), vmul(b.fwd, 1.8)));
-  const dir = vnorm(b.fwd);
-  const speed = p.speed + 35;
+  const t = G.lock.phase === 'locked' && G.lock.target && !G.lock.target.dead ? G.lock.target : null;
+  const slot = p.nextRail || 0, origin = wingRailPosition(p, slot);
+  p.nextRail = (slot + 1) % 4;
+  const dir = (p.renderBasis || p.basis).fwd;
+  const speed = Math.max(MISSILE_PLAYER_SPEED, p.speed + 35);
   const m = {
     owner: 'player', kind: 'player',
     pos: origin, vel: vmul(dir, speed), speed,
     target: t, alive: true, dead: false,
-    life: 6.5, age: 0, turnRate: 2.9,
-    smokeTimer: 0, trailTimer: 0,
+    life: 14, age: 0, turnRate: 2.9, gravity: MISSILE_GRAVITY,
+    accel: 110, maxSpeed: MISSILE_PLAYER_MAX_SPEED,
+    trail: startMissileTrail(origin, dir),
     lost: false, lostTimer: 0,
-    offset: { x: rr(-0.6, 0.6), y: rr(-0.3, 0.3), z: rr(-0.6, 0.6) },
     hitRadius: 20, damage: 130,
-    surface: null, smokeBig: false,
   };
   G.missiles.push(m);
   G.stats.shots++;
-  spawnBurst(origin, 6, '#ffd08a', 14);
-  for (let i = 0; i < 2; i++) {
-    addSmoke(vadd(origin, { x: rr(-1.5, 1.5), y: rr(-1.5, 1.5), z: rr(-1.5, 1.5) }), rr(0.9, 1.8), 0.45, true, 1.2);
-  }
+  spawnBurst(origin, 4, '#ffd08a', 11);
   addShake(0.18);
   G.flash = Math.max(G.flash, 0.1);
   AudioSys.launch();
@@ -3743,21 +3855,19 @@ function spawnEnemyMissile(origin, aimedAt, source) {
   const p = G.player;
   const targetPos = aimedAt || p.pos;
   const dir = vnorm(vsub(targetPos, origin));
-  const wave = G.wave || 1;
-  const speed = Math.min(230, 150 + wave * 6) * 0.55;
+  const speed = MISSILE_ENEMY_SPEED;
   const m = {
     owner: 'enemy', kind: 'enemy',
     pos: vcopy(origin), vel: vmul(dir, speed), speed,
     target: p, dead: false,
-    life: 9.5, age: 0, turnRate: 1.05,
-    smokeTimer: 0, trailTimer: 0,
+    life: 9.5, age: 0, turnRate: 1.35, gravity: MISSILE_GRAVITY,
+    accel: 42, maxSpeed: MISSILE_ENEMY_MAX_SPEED,
+    trail: startMissileTrail(origin, dir),
     lost: false, lostTimer: 0, decoy: false,
-    damage: 30 + Math.min(14, wave * 1.4),
+    damage: 30 + Math.min(14, (G.wave || 1) * 1.4),
     hitRadius: 12, source,
-    smokeBig: true,
   };
   G.missiles.push(m);
-  for (let i = 0; i < 2; i++) addSmoke(vadd(origin, { x: rr(-2, 2), y: rr(-1.5, 1.5), z: rr(-2, 2) }), rr(1.2, 2.2), 0.5, true, 1.5);
   const d = vdist(origin, G.player.pos);
   if (d < 1700) AudioSys.launch();
   return m;
@@ -3802,100 +3912,74 @@ function updateMissiles(dt) {
     let desired = null;
     if (m.owner === 'player') {
       if (m.target && !m.target.dead) {
-        if (m.target.isGround) {
-          if (G.map.cloudDensity(m.target.pos.x, m.target.pos.y + 1, m.target.pos.z) > 0.4 && rng() < dt * 2) { m.lost = true; }
-        }
+        if (m.target.isGround && G.map.cloudDensity(m.target.pos.x, m.target.pos.y + 1, m.target.pos.z) > 0.4 && rng() < dt * 2) m.lost = true;
         if (!m.lost) desired = targetAimPoint(m.target);
-      } else {
-        m.target = null;
-      }
-      m.speed = Math.min(325, m.speed + 110 * dt);
-    } else {
-      // enemy missile
-      if (m.lost) {
-        m.lostTimer -= dt;
-        if (m.lostTimer <= 0) { m.dead = true; spawnExplosion(m.pos, 0.3, 'air', { smoke: 2 }); continue; }
-      } else if (p && !p.dead) {
-        if (p.invuln > 0.25 && vdist(m.pos, p.pos) < 32) {
-          m.lost = true; m.lostTimer = 0.7;
-        }
-        const conceal = G.map.cloudDensity(p.pos.x, p.pos.y, p.pos.z);
-        const concealChance = (conceal > 0.28 ? 0.55 : 0) + (p.agl < 42 ? 0.2 : 0) + (p.skimming ? 0.25 : 0);
-        if (concealChance > 0 && rng() < concealChance * dt * 1.8) {
-          m.lost = true; m.lostTimer = 1.0;
-        }
-        if (m.decoy && rng() < dt * 3) { m.lost = true; m.lostTimer = 0.5; }
-        if (!m.lost) {
-          const lead = vadd(p.pos, vmul(p.basis.fwd, p.speed * 0.35));
-          desired = lead;
-        }
-      }
-      m.speed = Math.min(m.speed + 22 * dt, 250);
-    }
-    if (desired) {
-      const dir = vnorm(m.vel);
-      const want = vnorm(vsub(desired, m.pos));
-      const nd = rotateTowards(dir, want, m.turnRate * dt);
-      m.vel = vmul(nd, m.speed);
-    } else {
-      m.vel = vmul(vnorm(m.vel), m.speed);
-    }
-    const previousPos = vcopy(m.pos);
-    m.pos.x += m.vel.x * dt;
-    m.pos.y += m.vel.y * dt;
-    m.pos.z += m.vel.z * dt;
-
-    // trail
-    m.smokeTimer -= dt;
-    if (m.smokeTimer <= 0) {
-      m.smokeTimer = m.smokeBig ? 0.022 : 0.03;
-      addSmoke(m.pos, m.smokeBig ? rr(1.5, 3.0) : rr(0.8, 1.7), m.smokeBig ? 1.5 : 0.95, true, m.smokeBig ? 2.2 : 1.5);
-      if (m.owner === 'player' && Math.random() < 0.5) spawnBurst(m.pos, 1, '#ffcf8a', 3, 0.15);
+      } else m.target = null;
+    } else if (m.lost) {
+      m.lostTimer -= dt;
+      if (m.lostTimer <= 0) { m.dead = true; spawnExplosion(m.pos, 0.3, 'air', { smoke: 2 }); continue; }
+    } else if (p && !p.dead) {
+      if (p.invuln > 0.25 && vdist(m.pos, p.pos) < 32) { m.lost = true; m.lostTimer = 0.7; }
+      const conceal = G.map.cloudDensity(p.pos.x, p.pos.y, p.pos.z);
+      const concealChance = (conceal > 0.28 ? 0.55 : 0) + (p.agl < 42 ? 0.2 : 0) + (p.skimming ? 0.25 : 0);
+      if (concealChance > 0 && rng() < concealChance * dt * 1.8) { m.lost = true; m.lostTimer = 1.0; }
+      if (m.decoy && rng() < dt * 3) { m.lost = true; m.lostTimer = 0.5; }
+      if (!m.lost) desired = vadd(p.pos, vmul(p.basis.fwd, p.speed * 0.35));
     }
 
-    // terrain impact
-    const gh = G.map.heightAt(m.pos.x, m.pos.z);
-    if (m.pos.y <= Math.max(gh, 0) + 1.0) {
-      m.dead = true;
-      const water = gh < 0;
-      const point = { x: m.pos.x, y: Math.max(gh, 0) + 0.5, z: m.pos.z };
-      spawnExplosion(point, m.owner === 'player' ? 1.1 : 0.9, water ? 'water' : 'ground');
-      if (m.owner === 'player') detonatePlayerMissile(m, point);
-      else if (p && !p.dead && vdist(point, p.pos) < 35 && !m.lost) damagePlayer(m.damage * 0.5, 'missile');
-      AudioSys.explosion(0.6, false);
-      addShake(0.2);
-      continue;
-    }
+    const steps = Math.max(1, Math.ceil(dt / 0.0125));
+    const stepDt = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const oldVelocity = m.vel, from = m.pos;
+      const age = m.age - dt + (i + 0.5) * stepDt;
+      const steer = m.owner === 'player' ? smoothstep(0.12, 0.32, age) : 1;
+      if (desired && steer > 0) {
+        const dir = rotateTowards(vnorm(m.vel), vnorm(vsub(desired, from)), m.turnRate * steer * stepDt);
+        m.vel = vmul(dir, Math.min(m.maxSpeed, m.speed + m.accel * stepDt));
+      } else m.vel = vcopy(oldVelocity);
+      m.vel.y -= (m.gravity || MISSILE_GRAVITY) * stepDt;
+      m.speed = vlen(m.vel);
+      m.pos = vmad(from, vadd(oldVelocity, m.vel), 0.5 * stepDt);
 
-    // proximity / target hit
-    if (m.owner === 'player') {
-      let hit = false;
-      if (m.target && !m.target.dead) {
-        const aim = targetAimPoint(m.target);
-        if (missilePassesNear(previousPos, m.pos, aim, m.hitRadius + (m.target.isGround ? 8 : 4))) {
-          hit = true;
-          detonatePlayerMissile(m, aim);
-        }
-      } else {
-        // proximity fuse on any target
-        for (const t of collectTargets()) {
-          const ap = targetAimPoint(t);
-          if (missilePassesNear(previousPos, m.pos, ap, 16)) { m.target = t; hit = true; detonatePlayerMissile(m, ap); break; }
-        }
-      }
-      if (hit) { m.dead = true; continue; }
-    } else {
-      if (p && !p.dead && missilePassesNear(previousPos, m.pos, p.pos, m.hitRadius)) {
+      const terrain = segmentHitsTerrain(from, m.pos, 1);
+      if (m.trail) sampleMissileTrail(m.trail, vmad(terrain || m.pos, m.vel, -3 / (m.speed || 1)));
+      if (terrain) {
         m.dead = true;
-        const wasInvuln = p.invuln > 0.2;
-        if (!wasInvuln) {
+        const gh = G.map.heightAt(terrain.x, terrain.z), water = gh < 0;
+        const point = { x: terrain.x, y: Math.max(gh, 0) + 0.5, z: terrain.z };
+        if (m.owner === 'player') detonatePlayerMissile(m, point);
+        else {
+          spawnExplosion(point, 0.9, water ? 'water' : 'ground');
+          if (p && !p.dead && vdist(point, p.pos) < 35 && !m.lost) damagePlayer(m.damage * 0.5, 'missile');
+          AudioSys.explosion(0.6, false);
+          addShake(0.2);
+        }
+        break;
+      }
+
+      if (m.owner === 'player') {
+        let hit = false;
+        if (m.target && !m.target.dead) {
+          const aim = targetAimPoint(m.target);
+          if (missilePassesNear(from, m.pos, aim, m.hitRadius + (m.target.isGround ? 8 : 4))) {
+            detonatePlayerMissile(m, aim);
+            hit = true;
+          }
+        } else {
+          for (const t of collectTargets()) {
+            const aim = targetAimPoint(t);
+            if (missilePassesNear(from, m.pos, aim, m.hitRadius)) { m.target = t; detonatePlayerMissile(m, aim); hit = true; break; }
+          }
+        }
+        if (hit) { m.dead = true; break; }
+      } else if (p && !p.dead && missilePassesNear(from, m.pos, p.pos, m.hitRadius)) {
+        m.dead = true;
+        if (p.invuln <= 0.2) {
           damagePlayer(m.damage, 'missile');
           spawnExplosion(p.pos, 0.9, 'air', { player: true });
           G.flash = 0.5;
-        } else {
-          spawnExplosion(m.pos, 0.45, 'air', { smoke: 4 });
-        }
-        continue;
+        } else spawnExplosion(m.pos, 0.45, 'air', { smoke: 4 });
+        break;
       }
     }
   }
@@ -4088,7 +4172,7 @@ function updateEnemies(dt) {
       e.pitch = Math.max(e.pitch, 0.16);
     }
     steerDrone(e, desired, dt);
-    e.speed = damp(e.speed, speedTarget, 1.4, dt);
+    e.speed = damp(e.speed, speedTarget * (G.enemySpeedScale ?? 1), 1.4, dt);
     const f = e.basis.fwd;
     e.pos.x += f.x * e.speed * dt;
     e.pos.y += f.y * e.speed * dt;
@@ -4141,24 +4225,16 @@ function updateEnemies(dt) {
 function fireDroneGuns(e, p, dist) {
   const muzzle = vadd(vadd(e.pos, vmul(e.basis.fwd, 5.0)), vmul(e.basis.right, rr(-1.5, 1.5)));
   const conceal = playerExposureFactor(p);
-  const invuln = p.invuln > 0.2;
-  let hitChance = clamp(0.42 - dist / 1600, 0.05, 0.4) * (conceal > 0.6 ? 0.75 : 0.35);
-  if (invuln) hitChance = 0;
-  const tracers = 4;
-  for (let i = 0; i < tracers; i++) {
-    const t = 0.35 + i * 0.06;
-    const target = vadd(p.pos, { x: rr(-12, 12), y: rr(-8, 8), z: rr(-12, 12) });
-    const end = vlerp(muzzle, target, t + 0.12);
-    addTracer(muzzle, end, '#ffca8a', 2);
-    addTracer(muzzle, vlerp(muzzle, end, 0.65), '#fff0c8', 1);
+  const spread = 8 + (1 - conceal) * 26;
+  const bulletSpeed = GUN_BULLET_SPEED * 0.82;
+  const leadTime = Math.min(0.9, dist / bulletSpeed);
+  for (let i = 0; i < 4; i++) {
+    const target = vadd(vadd(p.pos, vmul(p.basis.fwd, p.speed * leadTime)), {
+      x: rr(-spread, spread), y: rr(-spread * 0.6, spread * 0.6), z: rr(-spread, spread),
+    });
+    spawnGunBullet(muzzle, vmul(vnorm(vsub(target, muzzle)), bulletSpeed), 'enemy', 4.2 + Math.min(2, G.wave * 0.2), '#ffca8a');
   }
   spawnBurst(muzzle, 2, '#ffd9a0', 6, 0.18);
-  if (Math.random() < hitChance) {
-    const dmg = 3.2 + Math.min(4, G.wave * 0.35);
-    damagePlayer(dmg, 'guns');
-    spawnSparks(p.pos, 3, '#ffbf80');
-    addTracer(muzzle, p.pos, '#fff5cf', 1);
-  }
   if (dist < 900) AudioSys.gunshot(clamp(1 - dist / 1400, 0.1, 1));
 }
 
@@ -4198,9 +4274,9 @@ function updateGround(dt) {
 function capEffects() {
   while (G.effects.length > 820) G.effects.shift();
 }
-function addSmoke(pos, size, life, dark = false, growth = null) {
+function addSmoke(pos, size, life, dark = false, growth = null, rise = rr(1, 5)) {
   G.effects.push({
-    type: 'smoke', pos: vcopy(pos), vel: { x: rr(-2, 2), y: rr(1, 5), z: rr(-2, 2) },
+    type: 'smoke', pos: vcopy(pos), vel: { x: rr(-2, 2), y: rise, z: rr(-2, 2) },
     life, maxLife: life, size, growth: growth === null ? rr(3, 10) : growth, dark,
     drift: rr(0, TAU)
   });
@@ -4229,6 +4305,23 @@ function spawnDebris(pos, baseVel) {
 function addTracer(a, b, color, width = 1) {
   G.tracers.push({ a: vcopy(a), b: vcopy(b), color, width, life: 0.09, maxLife: 0.09 });
   if (G.tracers.length > 120) G.tracers.shift();
+}
+function startMissileTrail(origin, dir) {
+  const tail = vmad(origin, dir, -3);
+  const trail = { points: [{ pos: tail, life: MISSILE_TRAIL_LIFE }], tip: tail, tipLife: MISSILE_TRAIL_LIFE, carry: 0 };
+  G.missileTrails.push(trail);
+  if (G.missileTrails.length > 28) G.missileTrails.shift();
+  return trail;
+}
+function sampleMissileTrail(trail, tail) {
+  const from = trail.tip, length = vdist(from, tail);
+  // 把上一段不足一个采样间距的余量带过来，低帧率也不断线。
+  for (let d = MISSILE_TRAIL_SPACING - trail.carry; d <= length; d += MISSILE_TRAIL_SPACING) {
+    trail.points.push({ pos: vlerp(from, tail, d / length), life: MISSILE_TRAIL_LIFE });
+    if (trail.points.length > 112) trail.points.shift();
+  }
+  trail.carry = (trail.carry + length) % MISSILE_TRAIL_SPACING;
+  trail.tip = tail; trail.tipLife = MISSILE_TRAIL_LIFE;
 }
 function addWingTrail(pos, side, strong = false) {
   G.vapor.push({ pos: vcopy(pos), side, life: strong ? 0.7 : 0.45, maxLife: strong ? 0.7 : 0.45, size: strong ? 1.8 : 1.1 });
@@ -4287,7 +4380,11 @@ function spawnExplosion(pos, scale = 1, kind = 'air', opts = {}) {
     G.effects.push({ type: 'ring', pos: at, vel: { x: 0, y: 0, z: 0 }, life: 0.5, maxLife: 0.5,
       size: 5 * s, growth: 40 * s, color: '#e5cfa8', flat: true, delay });
     addScorch(at, 18 * s);
-    for (let i = 0; i < 5; i++) addSmoke({ x: at.x + rr(-10, 10), y: at.y + rr(4, 12), z: at.z + rr(-10, 10) }, rr(6, 14), 2.5, true);
+    // 火光只闪一下，分层升起的烟才让玩家看清远岸的落点。
+    for (let i = 0; i < 5; i++) {
+      const puff = { x: at.x + rr(-12, 12) * s, y: at.y + 3 + i * 2, z: at.z + rr(-9, 9) * s };
+      addSmoke(puff, (8 + i) * s, 2.2 + i * 0.24, true, (5 + i) * s, (13 + i * 8) * s);
+    }
   } else {
     // air burst
     G.effects.push({ type: 'fire', pos: at, vel: { x: 0, y: 3, z: 0 }, life: 0.5, maxLife: 0.5, size: 9 * s, growth: 30 * s, color: '#fff2c8', delay });
@@ -4318,6 +4415,13 @@ function addScorch(pos, size) {
 }
 
 function updateEffects(dt) {
+  for (let i = G.missileTrails.length - 1; i >= 0; i--) {
+    const trail = G.missileTrails[i];
+    for (const point of trail.points) point.life -= dt;
+    while (trail.points.length && trail.points[0].life <= 0) trail.points.shift();
+    trail.tipLife -= dt;
+    if (trail.tipLife <= 0 && !trail.points.length) G.missileTrails.splice(i, 1);
+  }
   for (let i = G.effects.length - 1; i >= 0; i--) {
     const f = G.effects[i];
     if (f.delay > 0) { f.delay -= dt; continue; }
@@ -4524,15 +4628,46 @@ function drawScorchDecals() {
 }
 
 function drawVaporPoints() {
+  const bySide = new Map();
   for (const v of G.vapor) {
     const s = {};
     if (!projectToScreen(v.pos, s) || !s.visible) continue;
-    const a = clamp01(v.life / v.maxLife);
-    const ppm = pxPerM(s.dist);
-    const r = Math.max(0.6, v.size * ppm);
-    ctx.globalAlpha = a * 0.34;
-    ctx.fillStyle = '#e8f1f4';
-    ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, TAU); ctx.fill();
+    const side = v.side || 0;
+    const points = bySide.get(side) || [];
+    points.push({ v, s });
+    bySide.set(side, points);
+  }
+  for (const [side, points] of bySide) {
+    const last = points.at(-1).v;
+    if (side && G.player && !G.player.dead && G.view !== 2 && last.maxLife - last.life <= 0.1) {
+      // 衔接当帧真实翼尖，避免采样间隔和滚转带来的近端断口。
+      const pos = wingTipPosition(G.player, G.player.renderBasis, side), s = {};
+      if (projectToScreen(pos, s) && s.visible) points.push({ v: { pos, life: 1, maxLife: 1 }, s });
+    }
+    if (points.length < 2) continue;
+    ctx.save();
+    ctx.strokeStyle = '#e8f1f4';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    let open = false;
+    for (let i = 0; i < points.length; i++) {
+      const { v, s } = points[i];
+      const prev = points[i - 1];
+      const gap = prev && vdist(prev.v.pos, v.pos) > 120;
+      if (!open || gap) {
+        ctx.moveTo(s.x, s.y);
+        open = true;
+      } else {
+        ctx.lineTo(s.x, s.y);
+      }
+    }
+    const life = points.reduce((sum, point) => sum + clamp01(point.v.life / point.v.maxLife), 0) / points.length;
+    const ppm = points.reduce((sum, point) => sum + pxPerM(point.s.dist), 0) / points.length;
+    ctx.globalAlpha = life * 0.42;
+    ctx.lineWidth = Math.max(0.85, Math.min(1.65, ppm * 0.45));
+    ctx.stroke();
+    ctx.restore();
   }
   ctx.globalAlpha = 1;
 }
@@ -4560,7 +4695,67 @@ function drawTracers() {
   }
 }
 
+let missileSmokeStamp;
+function drawMissileTrails() {
+  if (!G.missileTrails.length) return;
+  if (!missileSmokeStamp) {
+    const tile = document.createElement('canvas'); tile.width = tile.height = 24;
+    const ink = tile.getContext('2d'), colors = ['#a49aa1', '#cbbcb4', '#e8d9c4', '#fff0d2'];
+    // 原创的小烟团只画一次；亮面和透空边缘随烟走，不在屏幕上抖动。
+    for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) {
+      const u = (x - 11.5) / 12, v = (y - 11.5) / 12;
+      const edge = Math.min(Math.hypot(u + 0.23, v + 0.10) / 0.68,
+        Math.hypot(u - 0.22, v - 0.05) / 0.67, Math.hypot(u + 0.03, v - 0.28) / 0.59);
+      const grain = bayer(x, y);
+      if (edge > 1.07 - grain * 0.22) continue;
+      ink.fillStyle = colors[clamp(Math.floor(2.65 - v * 1.4 - u * 0.72 - edge * 0.85 + grain * 0.90), 0, 3)];
+      ink.fillRect(x, y, 1, 1);
+    }
+    missileSmokeStamp = tile;
+  }
+  ctx.save();
+  ctx.lineCap = 'butt';
+  const a = {}, b = {}, drift = {};
+  for (const trail of G.missileTrails) {
+    let prev = a, next = b, projected = false;
+    for (let i = 0; i <= trail.points.length; i++) {
+      const tip = i === trail.points.length;
+      const pos = tip ? trail.tip : trail.points[i].pos;
+      const life = tip ? trail.tipLife : trail.points[i].life;
+      if (!pos || life <= 0) { projected = false; continue; }
+      const fresh = clamp01(life / MISSILE_TRAIL_LIFE), age = 1 - fresh;
+      // 只让冷烟在绘制时轻微上浮、卷散；不搬动飞行留下的世界采样点。
+      const phase = pos.x * 0.037 + pos.y * 0.021 + pos.z * 0.046;
+      const curl = age * age, ripple = Math.sin(phase);
+      drift.x = pos.x + curl * ripple * 1.8;
+      drift.y = pos.y + curl * (2.1 + Math.cos(phase * 0.72));
+      drift.z = pos.z + curl * Math.cos(phase) * 1.3;
+      const ok = projectToScreen(drift, next) && next.dist > 3;
+      if (projected && ok && (prev.visible || next.visible)) {
+        const depth = (prev.dist + next.dist) * 0.5;
+        const width = clamp(pxPerM(depth) * (0.44 + age * 1.25) * (1 + 0.20 * age * ripple), 0.70, 2.8);
+        const alpha = Math.pow(fresh, 1.25) * (0.18 + 0.82 * smoothstep(12, 70, depth)) * (1 + age * 0.15 * ripple);
+        ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(next.x, next.y);
+        ctx.lineWidth = width; ctx.strokeStyle = '#bdb5ae'; ctx.globalAlpha = 0.13 * alpha; ctx.stroke();
+        ctx.lineWidth = width * 0.62; ctx.strokeStyle = fresh > 0.72 ? '#ffedc9' : fresh > 0.4 ? '#e0d4c4' : '#c4c0bc';
+        ctx.globalAlpha = (0.10 + 0.28 * fresh) * alpha; ctx.stroke();
+      }
+      if (!tip && ok && next.visible) {
+        const size = clamp(pxPerM(next.dist) * (3.2 + 12 * age) * (1 + 0.15 * ripple), 1.1, 44);
+        const separation = projected ? Math.hypot(next.x - prev.x, next.y - prev.y) : size;
+        ctx.globalAlpha = Math.pow(fresh, 0.85) * (0.28 + 0.55 * smoothstep(9, 58, next.dist))
+          * clamp(separation / (size * 0.55), 0.23, 1);
+        ctx.drawImage(missileSmokeStamp, Math.round(next.x - size / 2), Math.round(next.y - size * 0.46), size, size * 0.92);
+      }
+      projected = ok;
+      const swap = prev; prev = next; next = swap;
+    }
+  }
+  ctx.restore();
+}
+
 function drawEffects() {
+  drawMissileTrails();
   const tmp = {};
   // smoke belongs behind the fireball and sparks, not on top of them
   const smokeRank = f => (f.type === 'smoke' || f.type === 'mist') ? 0 : 1;
@@ -4695,30 +4890,34 @@ function drawMissilesAndGlows() {
     const back = { x: m.pos.x - ux * 8, y: m.pos.y - uy * 8, z: m.pos.z - uz * 8 };
     if (!projectToScreen(back, t2)) continue;
     let dx = tmp.x - t2.x, dy = tmp.y - t2.y;
-    const dl = Math.hypot(dx, dy) || 1;
-    dx /= dl; dy /= dl;
-    const ppm = pxPerM(tmp.dist);
-    // stylised size floor keeps the missile readable at combat ranges
-    const len = clamp(Math.round(4.2 * ppm * 2.2), 9, 22);
-    const x = tmp.x, y = tmp.y;
+    const dl = Math.hypot(dx, dy);
+    dx /= dl || 1; dy /= dl || 1;
+    const ppm = pxPerM(tmp.dist), x = tmp.x, y = tmp.y;
+    // 端视时可见的是点状尾焰，不能把几乎为零的投影切线放大成一根黑棍。
+    const len = clamp(Math.min(4.2 * ppm, 1.6 + 0.65 * dl), 1.2, 18);
+    const enemy = m.owner === 'enemy', flameCol = enemy ? '#ff8a3d' : '#ffc46a';
+    if (len <= 2.6) {
+      const ix = Math.round(x), iy = Math.round(y);
+      ctx.save(); ctx.globalAlpha = 0.52; ctx.fillStyle = flameCol; ctx.fillRect(ix - 1, iy - 1, 3, 3);
+      ctx.globalAlpha = 0.94; ctx.fillStyle = '#fff3d2'; ctx.fillRect(ix, iy, 1, 1); ctx.restore();
+      continue;
+    }
     const nx = x + dx * len * 0.62, ny = y + dy * len * 0.62;
     const tx = x - dx * len * 0.38, ty = y - dy * len * 0.38;
     const px = -dy, py = dx;
-    const enemy = m.owner === 'enemy';
     const bodyCol = enemy ? '#d9c9b6' : '#efe8d4';
     const finCol = enemy ? '#6e2f2a' : '#8e929c';
     const noseCol = enemy ? '#ff5d47' : '#c24534';
-    const flameCol = enemy ? '#ff8a3d' : '#ffc46a';
     const flick = 0.75 + 0.25 * Math.sin(G.realTime * 40 + (m.age || 0) * 7);
-    const flameLen = (4 + len * 0.55) * flick;
+    const flameLen = (0.7 + len * 0.35) * flick;
     const ex = tx - dx * flameLen, ey = ty - dy * flameLen;
-    const thick = 2;
-    const fs = Math.max(2, len * 0.16);
-    // dark underlay keeps the missile legible over snow and cloud
-    pixelLine(ex, ey, nx, ny, '#0b0912', thick + 1);
-    // swept tail fins
-    pixelLine(tx - dx * 2 + px * fs, ty - dy * 2 + py * fs, tx + px * (fs + 1.4), ty + py * (fs + 1.4), finCol, 1);
-    pixelLine(tx - dx * 2 - px * fs, ty - dy * 2 - py * fs, tx - px * (fs + 1.4), ty - py * (fs + 1.4), finCol, 1);
+    const thick = len > 8 ? 2 : 1;
+    if (len > 6) {
+      const fs = Math.max(1, len * 0.14);
+      pixelLine(tx, ty, nx, ny, '#51474c', thick + 1);
+      pixelLine(tx - dx * 2 + px * fs, ty - dy * 2 + py * fs, tx + px * (fs + 1), ty + py * (fs + 1), finCol, 1);
+      pixelLine(tx - dx * 2 - px * fs, ty - dy * 2 - py * fs, tx - px * (fs + 1), ty - py * (fs + 1), finCol, 1);
+    }
     // body + red seeker
     pixelLine(tx, ty, nx, ny, bodyCol, thick);
     pixelLine(lerp(tx, nx, 0.76), lerp(ty, ny, 0.76), nx, ny, noseCol, thick);
@@ -4726,17 +4925,10 @@ function drawMissilesAndGlows() {
     pixelLine(ex, ey, tx, ty, flameCol, thick);
     pixelLine(lerp(ex, tx, 0.35), lerp(ey, ty, 0.35), tx, ty, '#fff3c8', 1);
     ctx.save();
-    const qx = Math.round(tx), qy = Math.round(ty);
-    // soft exhaust bloom, still blocky
-    ctx.globalAlpha = 0.16;
-    ctx.fillStyle = flameCol;
-    ctx.fillRect(qx - 3, qy - 1, 7, 3);
-    ctx.fillRect(qx - 1, qy - 3, 3, 7);
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = '#fff6d8';
-    ctx.fillRect(qx - 1, qy - 1, 2, 2);
-    ctx.globalAlpha = 0.35;
-    ctx.fillRect(Math.round(ex) - 1, Math.round(ey) - 1, 3, 3);
+    const qx = Math.round(tx), qy = Math.round(ty), glow = len > 7 ? 2 : 1;
+    ctx.globalAlpha = 0.18; ctx.fillStyle = flameCol;
+    ctx.fillRect(qx - glow, qy, 2 * glow + 1, 1); ctx.fillRect(qx, qy - glow, 1, 2 * glow + 1);
+    ctx.globalAlpha = 0.94; ctx.fillStyle = '#fff6d8'; ctx.fillRect(qx, qy, 1, 1);
     ctx.restore();
   }
   // engine glows
@@ -4853,7 +5045,6 @@ function drawHUD() {
   const cockpit = G.cockpitAlpha;
   drawPitchLadder(cockpit);
   drawHeadingTape();
-  if (G.view === 0 && G.viewBlend > 0.55) drawTopPlayerIcon();
   // target boxes sit under the instrument panels so they never scribble
   // over the shield/fuel/score readouts
   drawTargetMarkers();
@@ -4869,7 +5060,8 @@ function drawHUD() {
   }
   drawWarnings();
   drawBanner();
-  if ((G.mode === 'play' || G.mode === 'waveclear' || G.mode === 'dying') && (!INPUT.touchMode || TOUCH.active)) {
+  if ((G.mode === 'play' || G.mode === 'waveclear' || G.mode === 'dying') && (!INPUT.touchMode || TOUCH.active)
+      && (G.view !== 0 || TOUCH.active || INPUT.mouseSteerAge < MOUSE_STEER_TIMEOUT)) {
     drawMousePip(INPUT.mx, INPUT.my, cockpit > 0.5 ? '#b7e9df' : '#d8efe8');
   }
 }
@@ -5050,7 +5242,7 @@ function drawSpeedAlt() {
   // bank indicator
   const bx = 10, by = y1 + 58;
   drawText('坡度', bx, by, { size: 10, color: '#a99276' });
-  const bankDeg = Math.round(-p.roll * 180 / Math.PI);
+  const bankDeg = Math.round(-wrapAngle(p.roll + (p.inversionRoll || 0)) * 180 / Math.PI);
   const bankStr = String(Math.abs(bankDeg));
   const bankW = textWidth(bankStr, 9, true);
   drawText(bankStr, bx + 66, by, { size: 9, color: '#cbbd9f', mono: true, align: 'right', shadow: '#0b0912' });
@@ -5102,7 +5294,11 @@ function drawTargetMarkers() {
     if (d > 3400) continue;
     if (targetConcealed(t)) continue;
     const s = {};
-    if (!projectToScreen({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.2), z: t.pos.z }, s)) continue;
+    if (!projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.2), z: t.pos.z }, s)) continue;
+    if (s.edge) {
+      drawEdgeCue(s, d, t);
+      continue;
+    }
     if (!s.visible) {
       // edge cue for off-screen enemies
       if (!t.isGround && d < 3200 && s.w > 0) drawEdgeCue(s, d, t);
@@ -5180,7 +5376,8 @@ function drawTargetMarkers() {
     drawText(`${d > 1000 ? (d / 1000).toFixed(1) + 'K' : Math.round(d)}`, x, distY, {
       size: 8, color: col, align: 'center', shadow: '#0b0912', mono: true
     });
-    const labelY = y - (isLock ? 44 : r + 7);
+    const above = y - (isLock ? 44 : r + 7);
+    const labelY = hudBlocked(x, above) || hudBlocked(x, above - 19) ? y + (isLock ? 84 : r + 42) : above;
     drawText(isDrone ? '敌机' : (t.type === 'sam' ? '防空' : '装甲'), x, labelY, {
       size: 10, color: col, align: 'center', alpha: 0.9, shadow: '#0b0912'
     });
@@ -5242,57 +5439,23 @@ function drawEdgeCue(s, d, t) {
   const x = cx + dx * f, y = cy + dy * f;
   const a = Math.atan2(dy, dx);
   ctx.save();
-  ctx.globalAlpha = 0.45;
+  const selected = G.lock.target === t, color = selected ? '#ffe39a' : '#ff9b8c';
+  ctx.globalAlpha = selected ? .95 : .45;
   ctx.translate(x, y);
   ctx.rotate(a);
-  ctx.fillStyle = '#ff9b8c';
+  ctx.fillStyle = color;
   ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-3, -3); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
   ctx.restore();
-  drawText(`${(d / 1000).toFixed(1)}`, x - Math.cos(a) * 10, y - Math.sin(a) * 10 + 3, {
-    size: 5, color: '#ffb2a3', align: 'center', alpha: 0.6, shadow: '#0b0912'
+  const status = selected && s.edge ? (G.lock.phase === 'locked' ? '已锁定 ' : '锁定中 ') : '';
+  drawText(`${status}${(d / 1000).toFixed(1)}`, x - Math.cos(a) * 10, y - Math.sin(a) * 10 + 3, {
+    size: 5, color: selected ? color : '#ffb2a3', align: 'center', alpha: selected ? 1 : .6, shadow: '#0b0912'
   });
-}
-
-function drawTopPlayerIcon() {
-  const p = G.player;
-  if (!p) return;
-  const s = {};
-  if (!projectToScreen(p.pos, s) || !s.visible) return;
-  const x = Math.round(s.x), y = Math.round(s.y);
-  const ppm = pxPerM(s.dist);
-  const size = clamp(10 + 90 * ppm, 9, 17);
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(p.yaw);
-  ctx.fillStyle = 'rgba(8,6,12,0.8)';
-  ctx.beginPath();
-  ctx.moveTo(0, -size - 1);
-  ctx.lineTo(2, -size * 0.32); ctx.lineTo(size * 0.8, -1);
-  ctx.lineTo(size * 0.8, 2); ctx.lineTo(2, 2); ctx.lineTo(1.5, size * 0.42);
-  ctx.lineTo(-1.5, size * 0.42); ctx.lineTo(-2, 2); ctx.lineTo(-size * 0.8, 2);
-  ctx.lineTo(-size * 0.8, -1); ctx.lineTo(-2, -size * 0.32);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#ffd27a';
-  ctx.beginPath();
-  ctx.moveTo(0, -size);
-  ctx.lineTo(1.4, -size * 0.3); ctx.lineTo(size * 0.7, 0);
-  ctx.lineTo(1.4, 1.2); ctx.lineTo(1, size * 0.36);
-  ctx.lineTo(-1, size * 0.36); ctx.lineTo(-1.4, 1.2); ctx.lineTo(-size * 0.7, 0);
-  ctx.lineTo(-1.4, -size * 0.3);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#b7e5db';
-  ctx.fillRect(-1, -size * 0.35, 2, size * 0.5);
-  ctx.restore();
-  ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = '#ffe0a0';
-  ctx.beginPath(); ctx.arc(x, y, size + 3, 0, TAU); ctx.stroke();
-  ctx.restore();
 }
 
 function drawAimReticle() {
   if (G.view === 0) {
-    // top-down command reticle follows the cursor
+    if (!TOUCH.active && !(INPUT.mouseSteerAge < MOUSE_STEER_TIMEOUT)) return;
+    // 仅在实际鼠标或触控瞄准时绘制，闲置光标不能盖住近距机身。
     const x = Math.round(INPUT.mx), y = Math.round(INPUT.my);
     ctx.save();
     ctx.globalAlpha = 0.8;
@@ -6664,12 +6827,9 @@ function collectDrawables() {
   if (p && !p.dead && G.cockpitAlpha < 0.62) {
     push(G.meshes.player, p.pos, p.renderBasis, 1, { maxDist: 10000 });
     // under-wing stores
-    const b = p.renderBasis;
     for (let i = 0; i < Math.min(4, p.missiles); i++) {
-      const side = (i % 2 === 0 ? -1 : 1) * (2.2 + Math.floor(i / 2) * 1.05);
-      const back = 0.8 + Math.floor(i / 2) * 1.35;
-      const pos = vadd(vadd(vadd(p.pos, vmul(b.right, side)), vmul(b.up, -0.52)), vmul(b.fwd, back));
-      push(G.meshes.missile, pos, b, 0.9, { maxDist: 800 });
+      const slot = ((p.nextRail || 0) + i) % 4;
+      push(G.meshes.missile, wingRailPosition(p, slot), p.renderBasis, 0.9, { maxDist: 800 });
     }
   }
   for (const e of G.enemies) {
@@ -6789,6 +6949,8 @@ function ensurePlay() {
   G.enemies.length = 0;
   G.ground.length = 0;
   G.missiles.length = 0;
+  G.missileTrails.length = 0;
+  G.bullets.length = 0;
   G.effects.length = 0;
   G.tracers.length = 0;
   G.popups.length = 0;

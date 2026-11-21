@@ -11,6 +11,16 @@ const DRONE_MAX_HP = 100;
 const GUN_INTERVAL = 0.1;
 const GUN_RANGE = 1100;
 const GUN_DAMAGE = 12;
+const GUN_BULLET_SPEED = 720;
+const GUN_BULLET_GRAVITY = 38;
+const GUN_BULLET_LIFE = 2.2;
+const MISSILE_GRAVITY = 70;
+const MISSILE_PLAYER_SPEED = 430;
+const MISSILE_PLAYER_MAX_SPEED = 520;
+const MISSILE_ENEMY_SPEED = 280;
+const MISSILE_ENEMY_MAX_SPEED = 430;
+const MISSILE_TRAIL_SPACING = 15;
+const MISSILE_TRAIL_LIFE = 1.8;
 const MOUSE_STEER_TIMEOUT = 0.42;
 
 const G = {
@@ -19,7 +29,7 @@ const G = {
   time: 0, realTime: 0, missionTime: 0,
   map: null, meshes: null, seed: 1337,
   player: null, camera: null,
-  enemies: [], ground: [], missiles: [], effects: [], tracers: [], popups: [], decals: [], vapor: [],
+  enemies: [], ground: [], missiles: [], missileTrails: [], bullets: [], effects: [], tracers: [], popups: [], decals: [], vapor: [],
   view: 1, prevView: 1, viewBlend: 1,
   cockpitAlpha: 0,
   shake: 0, damageFlash: 0, flash: 0, hitStop: 0, fade: 0,
@@ -73,7 +83,7 @@ function makePlayer(map, forTitle = false) {
     shield: PLAYER_MAX_SHIELD, fuel: 100,
     agl: 0, groundH: 0, gLoad: 1, pitchRate: 0, yawRate: 0,
     rollT: 0, rollCd: 0, invuln: 0, spin: 0,
-    missiles: 4, reloads: [], flares: 3, flareCd: 0, gunCd: 0,
+    missiles: 4, nextRail: 0, reloads: [], flares: 3, flareCd: 0, gunCd: 0,
     lastHit: -99, dead: false, burning: false,
     inCloud: 0, skimming: false, terrainWarn: false, speedDisplay: 0,
     basis: null, renderBasis: null,
@@ -88,7 +98,7 @@ function makePlayer(map, forTitle = false) {
 function setupTitleWorld() {
   G.player = makePlayer(G.map, true);
   G.player.pos.y = Math.max(G.map.heightAt(G.player.pos.x, G.player.pos.z) + 320, 520);
-  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0;
+  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
   G.effects.length = 0; G.tracers.length = 0; G.popups.length = 0; G.decals.length = 0; G.vapor.length = 0;
   G.view = 1; G.prevView = 1; G.viewBlend = 1; G.cockpitAlpha = 0;
   G.chaseInit = false;
@@ -109,7 +119,7 @@ function startRun() {
   G.missionTime = 0;
   G.time = 0;
   G.player = makePlayer(G.map, false);
-  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0;
+  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
   G.effects.length = 0; G.tracers.length = 0; G.popups.length = 0; G.decals.length = 0; G.vapor.length = 0;
   G.lock = { target: null, progress: 0, phase: 'search', tick: 0, lockTone: 0 };
   G.score = 0;
@@ -187,10 +197,11 @@ function computePose(view, allowSmooth = true) {
   const p = G.player;
   const b = p.basis;
   if (view === 0) {
-    const camY = Math.max(p.pos.y + 2350, 2100);
+    const aspect = VW / VH;
+    const fit = Math.max(.8, Math.min(1, 1.84 / aspect), .68 / aspect);
     return {
-      pos: { x: p.pos.x, y: camY, z: p.pos.z },
-      target: { x: p.pos.x, y: 0, z: p.pos.z },
+      pos: { x: p.pos.x, y: p.pos.y + 26 * fit, z: p.pos.z },
+      target: vcopy(p.pos),
       up: { x: 0, y: 0, z: -1 },
       fov: 0.95
     };
@@ -202,7 +213,7 @@ function computePose(view, allowSmooth = true) {
       pos,
       target: vadd(pos, vmul(cockpit.fwd, 160)),
       up: vcopy(cockpit.up),
-      fov: 1.18 + clamp((p.speed - SPEED_CRUISE) / 500, 0, 0.06)
+      fov: p.cockpitComfort ? 1.18 : 1.18 + clamp((p.speed - SPEED_CRUISE) / 500, 0, 0.06)
     };
   }
   // chase
@@ -253,12 +264,49 @@ function buildCamera(pose, shakeAmt = 0) {
   };
 }
 
+function blendCameraPose(a, b, t, arc) {
+  // 球面插值完整朝向，避免正飞与倒飞的up向量在中点抵消。
+  const orientation = pose => {
+    const f = vnorm(vsub(pose.target, pose.pos)), r = vnorm(vcross(f, pose.up)), u = vcross(r, f);
+    const m = [[r.x, u.x, -f.x], [r.y, u.y, -f.y], [r.z, u.z, -f.z]], q = [0, 0, 0, 0];
+    const trace = m[0][0] + m[1][1] + m[2][2];
+    if (trace > 0) {
+      const s = 2 * Math.sqrt(1 + trace);
+      q[3] = s / 4;
+      q[0] = (m[2][1] - m[1][2]) / s; q[1] = (m[0][2] - m[2][0]) / s; q[2] = (m[1][0] - m[0][1]) / s;
+    } else {
+      const i = m[0][0] > m[1][1] && m[0][0] > m[2][2] ? 0 : m[1][1] > m[2][2] ? 1 : 2;
+      const j = (i + 1) % 3, k = (i + 2) % 3, s = 2 * Math.sqrt(1 + m[i][i] - m[j][j] - m[k][k]);
+      q[i] = s / 4; q[3] = (m[k][j] - m[j][k]) / s;
+      q[j] = (m[j][i] + m[i][j]) / s; q[k] = (m[k][i] + m[i][k]) / s;
+    }
+    return q;
+  };
+  const qa = orientation(a), qb = orientation(b), dotOf = (a, b) => a.reduce((sum, v, i) => sum + v * b[i], 0);
+  // 一次过渡只选一次弧；近180°时不能让浮点符号逐帧改变旋转方向。
+  if (arc.from) {
+    for (const [q, previous] of [[qa, arc.from], [qb, arc.to]])
+      if (dotOf(q, previous) < 0) for (let i = 0; i < 4; i++) q[i] = -q[i];
+  } else if (dotOf(qa, qb) < 0) for (let i = 0; i < 4; i++) qb[i] = -qb[i];
+  arc.from = qa; arc.to = qb;
+  const dot = dotOf(qa, qb);
+  const angle = Math.acos(clamp(dot, -1, 1)), sine = Math.sin(angle);
+  const wa = sine > 1e-5 ? Math.sin((1 - t) * angle) / sine : 1 - t;
+  const wb = sine > 1e-5 ? Math.sin(t * angle) / sine : t;
+  const q = qa.map((v, i) => v * wa + qb[i] * wb), length = Math.hypot(...q);
+  const [x, y, z, w] = q.map(v => v / length);
+  const fwd = { x: -2 * (x * z + y * w), y: -2 * (y * z - x * w), z: 2 * (x * x + y * y) - 1 };
+  const up = { x: 2 * (x * y - z * w), y: 1 - 2 * (x * x + z * z), z: 2 * (y * z + x * w) };
+  const pos = vlerp(a.pos, b.pos, t);
+  return { pos, target: vmad(pos, fwd, lerp(vdist(a.pos, a.target), vdist(b.pos, b.target), t)), up, fov: lerp(a.fov, b.fov, t) };
+}
+
 function updateCamera(dt) {
   if (!G.player) return;
   const p = G.player;
   // base basis of the airframe (flight), then a render basis with barrel-roll spin
-  p.basis = basisFrom(p.yaw, p.pitch, p.roll);
-  const rp = p.roll + p.spin;
+  p.basis = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0));
+  const rp = p.roll + (p.inversionRoll || 0) + p.spin;
   p.renderBasis = basisFrom(p.yaw, p.pitch, rp);
 
   let pose;
@@ -266,7 +314,8 @@ function updateCamera(dt) {
     const a = computePose(G.prevView, false);
     const b = computePose(G.view, false);
     const t = smoothstep(0, 1, clamp01(G.viewBlend));
-    pose = {
+    if (p.cockpitComfort && (!G.cameraBlendArc || G.viewBlend === 0)) G.cameraBlendArc = {};
+    pose = p.cockpitComfort ? blendCameraPose(a, b, t, G.cameraBlendArc) : {
       pos: vlerp(a.pos, b.pos, t),
       target: vlerp(a.target, b.target, t),
       up: vnorm(vlerp(a.up, b.up, t)),
@@ -274,6 +323,7 @@ function updateCamera(dt) {
     };
     G.viewBlend = Math.min(1, G.viewBlend + dt / 1.0);
   } else {
+    G.cameraBlendArc = null;
     pose = computePose(G.view, true);
   }
   // clamp camera above the terrain even in a blended pose
@@ -281,7 +331,8 @@ function updateCamera(dt) {
     const gh = Math.max(G.map.heightAt(pose.pos.x, pose.pos.z), 0);
     if (pose.pos.y < gh + 3) pose.pos.y = gh + 3;
   }
-  const shake = G.shake * (G.view === 2 ? 0.45 : 1);
+  // 外部镜头不随机晃动；受击仍保留护盾读数、告警、闪边和音效。
+  const shake = G.view === 2 ? G.shake * 0.45 : 0;
   G.camera = buildCamera(pose, shake);
 
   // cockpit overlay fades with view intent
@@ -319,8 +370,8 @@ function lineOfSightClear(a, b, steps = 14) {
 function readSteering() {
   const p = G.player;
   const topView = G.view === 0;
-  const mouseBlend = G.testInput || TOUCH.active || (INPUT.touchMode && !Number.isFinite(INPUT.mouseSteerAge)) ? 1
-    : 1 - clamp((INPUT.mouseSteerAge - 0.14) / (MOUSE_STEER_TIMEOUT - 0.14), 0, 1);
+  const mouseBlend = G.testInput || TOUCH.active ? 1 : p.mouseSteering === false ? 0
+    : INPUT.touchMode && !Number.isFinite(INPUT.mouseSteerAge) ? 1 : 1 - clamp((INPUT.mouseSteerAge - 0.14) / (MOUSE_STEER_TIMEOUT - 0.14), 0, 1);
   let sx = 0, sy = 0, burn = false, alt = 0, turn = 0;
   const keyLeft = INPUT.keys.has('KeyA') || INPUT.keys.has('ArrowLeft');
   const keyRight = INPUT.keys.has('KeyD') || INPUT.keys.has('ArrowRight');
@@ -373,16 +424,13 @@ function updateFlight(dt) {
   G.lastDt = dt;
 
   // afterburner / fuel
-  const wantBurn = st.burn && p.fuel > 0.5 && G.mode !== 'failed';
+  const wantBurn = st.burn && p.fuel > 0.5 && G.mode !== 'failed' && (!p.speedResponse || (p.burnSpeed ?? SPEED_BURN) > (p.cruiseSpeed ?? SPEED_CRUISE) + 0.01);
   p.burning = wantBurn;
-  const targetSpeed = wantBurn ? SPEED_BURN : SPEED_CRUISE;
-  if (p.burning) {
-    p.speed = Math.min(SPEED_BURN, p.speed + 62 * dt);
-    p.fuel = Math.max(0, p.fuel - 15.5 * dt);
-  } else {
-    p.speed = damp(p.speed, SPEED_CRUISE, p.speed > SPEED_CRUISE ? 0.75 : 0.55, dt);
-    p.fuel = Math.min(100, p.fuel + 10.5 * dt);
-  }
+  const targetSpeed = p.targetSpeed = wantBurn ? (p.burnSpeed ?? SPEED_BURN) : (p.cruiseSpeed ?? SPEED_CRUISE);
+  p.speed = wantBurn && p.speed <= targetSpeed
+    ? Math.min(targetSpeed, p.speed + 62 * dt)
+    : damp(p.speed, targetSpeed, p.speedResponse ?? (p.speed > targetSpeed ? 0.75 : 0.55), dt);
+  p.fuel = wantBurn ? Math.max(0, p.fuel - 15.5 * dt) : Math.min(100, p.fuel + 10.5 * dt);
   const speedFactor = clamp(125 / Math.max(80, p.speed), 0.56, 1.15);
 
   if (st.topView) {
@@ -412,22 +460,24 @@ function updateFlight(dt) {
     p.pitchRate = 0;
     p.gLoad = clamp(1 + Math.abs(turn) * p.speed / 9.81 * 0.10, 1, 6);
   } else {
-    const targetRoll = -st.sx * BANK_MAX;
-    p.roll = angleLerp(p.roll, targetRoll, 1 - Math.exp(-6.5 * dt));
+    const comfortable = !!p.cockpitComfort && G.view === 2;
+    const targetRoll = -st.sx * (comfortable ? 0.56 : BANK_MAX);
+    const bankStep = wrapAngle(targetRoll - p.roll) * (1 - Math.exp(-(comfortable ? 2.2 : 6.5) * dt));
+    p.roll += comfortable ? clamp(bankStep, -0.6 * dt, 0.6 * dt) : bankStep;
     const oldPitch = p.pitch;
-    const pitchRate = st.sy * 1.08;
+    const pitchRate = st.sy * (comfortable ? 0.52 : 1.08);
     if (Math.abs(st.sy) > 0.03) p.pitch += pitchRate * dt;
     else p.pitch = damp(p.pitch, 0, 2.2, dt);
     p.pitch = clamp(p.pitch, -1.02, 1.02);
     p.pitchRate = (p.pitch - oldPitch) / Math.max(dt, 1e-6);
-    if (Math.abs(st.sx) < 0.03 && Math.abs(p.roll) < 0.25) p.roll *= 1 - 1.6 * dt;
+    if (!comfortable && Math.abs(st.sx) < 0.03 && Math.abs(p.roll) < 0.25) p.roll *= 1 - 1.6 * dt;
     const turnRate = 1.28 * speedFactor * (p.burning ? 0.70 : 1) * (1 - Math.abs(p.pitch) * 0.25);
-    const yawDelta = -Math.sin(p.roll) * turnRate;
+    const yawDelta = comfortable ? clamp(-Math.sin(p.roll) * turnRate * 0.52, -0.38, 0.38) : -Math.sin(p.roll) * turnRate;
     p.yaw = wrapAngle(p.yaw + yawDelta * dt);
     p.yawRate = yawDelta;
     p.gLoad = clamp(1 + Math.abs(yawDelta) * p.speed / 9.81 * 0.42 + Math.abs(pitchRate) * 0.6, 1, 9);
   }
-  p.basis = basisFrom(p.yaw, p.pitch, p.roll);
+  p.basis = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0));
 
   // barrel roll
   if (p.rollT > 0) {
@@ -494,7 +544,6 @@ function updateFlight(dt) {
       p.sprayTimer = 0.025;
       spawnSpray(vadd(p.pos, { x: 0, y: -p.agl, z: 0 }));
     }
-    if (Math.random() < 0.2) addWingTrail(p.pos, 0, true);
   }
 
   // clouds
@@ -509,12 +558,12 @@ function updateFlight(dt) {
 
   // vapour trails at high G / high speed
   p.vaporTimer -= dt;
-  const vap = (p.gLoad > 3.6 || p.speed > 178 || p.rollT > 0) && G.view !== 2;
+  const vap = (G.view === 0 || p.gLoad > 3.6 || p.speed > 178 || p.rollT > 0) && G.view !== 2;
   if (vap && p.vaporTimer <= 0) {
-    p.vaporTimer = 0.018;
-    const b = p.renderBasis;
-    addWingTrail(vadd(vadd(p.pos, vmul(b.right, 4.9)), vmul(b.fwd, 0.3)), 1);
-    addWingTrail(vadd(vadd(p.pos, vmul(b.right, -4.9)), vmul(b.fwd, 0.3)), -1);
+    p.vaporTimer += 0.05;
+    const b = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0) + p.spin);
+    addWingTrail(wingTipPosition(p, b, 1), 1);
+    addWingTrail(wingTipPosition(p, b, -1), -1);
   }
 
   // engine plume puffs
@@ -533,6 +582,10 @@ function updateFlight(dt) {
     AudioSys.lowWarn();
   }
   if (G.mode === 'play') G.missionTime += dt;
+}
+
+function wingTipPosition(p, b, side) {
+  return vadd(vadd(vadd(p.pos, vmul(b.right, 4.9 * side)), vmul(b.up, 0.235)), vmul(b.fwd, -2.675));
 }
 
 function triggerBarrelRoll() {
@@ -556,7 +609,7 @@ function triggerBarrelRoll() {
     }
   }
   // pilot style above the canopy
-  for (let i = 0; i < 2; i++) addWingTrail(vadd(p.pos, vmul(p.basis.right, i ? 4.9 : -4.9)), i ? 1 : -1, true);
+  for (let i = 0; i < 2; i++) addWingTrail(wingTipPosition(p, basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0) + p.spin), i ? 1 : -1), i ? 1 : -1, true);
 }
 
 // ------------------------------------------------------------ life cycle ----
@@ -660,6 +713,7 @@ function updateGame(dtRaw) {
     updateMissiles(dt);
     updateEnemies(dt);
     updateGround(dt);
+    updateGunBullets(dt);
     updateEffects(dt);
     updateVapor(dt);
     updateWaveLogic(dt);
@@ -673,6 +727,7 @@ function updateGame(dtRaw) {
     updateVapor(dt);
     updateEnemies(dt);
     updateMissiles(dt);
+    updateGunBullets(dt);
     updateGround(dt);
     updateCamera(dt);
     G.respite -= dt;
@@ -695,6 +750,7 @@ function updateGame(dtRaw) {
     G.dyingTimer -= raw;
     updateEffects(dt);
     updateMissiles(dt);
+    updateGunBullets(dt);
     updateVapor(dt);
     updateEnemies(dt * 0.6);
     updateCamera(dt);
@@ -733,8 +789,14 @@ function updateTitle(dt) {
   p.pos.y += fwd.y * p.speed * dt;
   if (p.pos.y < gh + 160) p.pos.y = gh + 160;
   if (G.map.heightAt(p.pos.x, p.pos.z) > p.pos.y - 60) p.pitch = 0.2;
-  // subtle trail
-  if (Math.random() < dt * 20) addWingTrail(vadd(p.pos, vmul(p.basis.right, -4.9)), -1);
+  // subtle paired wing-tip trails
+  p.vaporTimer -= dt;
+  if (p.vaporTimer <= 0) {
+    p.vaporTimer = 0.05;
+    const b = basisFrom(p.yaw, p.pitch, p.roll + p.spin);
+    addWingTrail(wingTipPosition(p, b, 1), 1);
+    addWingTrail(wingTipPosition(p, b, -1), -1);
+  }
   updateCamera(dt);
   updateEffects(dt);
   updateVapor(dt);

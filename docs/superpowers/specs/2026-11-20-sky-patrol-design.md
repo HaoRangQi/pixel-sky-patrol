@@ -1,5 +1,7 @@
 # 天际巡航：参考站界面重制
 
+> 这是存档版 `37167ae` 的历史UI设计。2026-11-20 后续用户已要求在新分支整体复刻参考画风并撤销旧的禁夕阳/太阳限制；现行执行见 `../plans/2026-11-20-reference-pixel-world.md`。
+
 ## 目标
 在 `feature/sky-patrol-ui` 开发新的中文可玩空战入口 `sky-patrol/index.html`。参考用户提供的 Dusk Patrol 公开页面的界面结构，不复制品牌、源代码或素材。原版根目录 `index.html` 和 `src/` 保持不变；不自动提交或推送。
 
