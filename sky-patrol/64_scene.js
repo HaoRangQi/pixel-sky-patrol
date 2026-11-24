@@ -21,7 +21,7 @@ function skyObliquePose(p) {
   const pos = vmad(p.pos, fwd, -distance);
   pos.y += (8.8 - 3.3 * clamp(p.pitch, -.55, .55)) * fit;
   if (G.map) pos.y = Math.max(pos.y, Math.max(G.map.heightAt(pos.x, pos.z), 0) + 4.5);
-  const fov = .94 + clamp((p.speed - SPEED_CRUISE) / 900, 0, .05);
+  const fov = .94;
   // 镜头沿水平航向跟转，飞机保留自己的倾斜；视轴从机体向上抬，留出山线。
   const pitch = Math.atan2(p.pos.y - pos.y, distance) + Math.atan(.39 * Math.tan(fov / 2));
   const target = vmad(pos, fwd, 64);
@@ -31,6 +31,10 @@ function skyObliquePose(p) {
 
 computePose = function (view, allowSmooth = true) {
   const p = G.player, title = G.mode === 'title';
+  if (view === 0) return {
+    pos: { x: p.pos.x, y: p.pos.y + 85, z: p.pos.z },
+    target: vcopy(p.pos), up: { x: 0, y: 0, z: -1 }, fov: 1.10,
+  };
   if (view !== 1) return skyComputePose(view, allowSmooth);
   const blend = skyChaseBlend();
   if (blend === 1) return skyObliquePose(p);

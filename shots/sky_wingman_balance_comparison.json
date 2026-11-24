@@ -1,0 +1,256 @@
+{
+  "recordedAt": "2026-11-23T13:08:41.847242+00:00",
+  "scope": "只修改本地僚机输出与选敌范围；玩家、敌机、近距机炮窗口保持当前参数",
+  "alignedGunnery": {
+    "method": "真实44_ai与42_combat源码VM；固定机位，对准300米静止空中目标，6秒内调用正式开火及弹道；不把该理想射界视为自然战斗命中率",
+    "before": {
+      "seconds": 6,
+      "alignedTargetRange": 300,
+      "fire": [
+        {
+          "aggression": "low",
+          "rounds": 22,
+          "emittedDamage": 176,
+          "hitDamage": 160
+        },
+        {
+          "aggression": "normal",
+          "rounds": 30,
+          "emittedDamage": 240,
+          "hitDamage": 224
+        },
+        {
+          "aggression": "high",
+          "rounds": 37,
+          "emittedDamage": 296,
+          "hitDamage": 272
+        }
+      ],
+      "selection": [
+        {
+          "range": 500,
+          "localIntent": "cover_player",
+          "cover": true,
+          "locked": true
+        },
+        {
+          "range": 800,
+          "localIntent": "cover_player",
+          "cover": true,
+          "locked": true
+        },
+        {
+          "range": 1200,
+          "localIntent": "cover_player",
+          "cover": true,
+          "locked": true
+        },
+        {
+          "range": 2000,
+          "localIntent": "regroup",
+          "cover": true,
+          "locked": true
+        }
+      ]
+    },
+    "after": {
+      "seconds": 6,
+      "alignedTargetRange": 300,
+      "fire": [
+        {
+          "aggression": "low",
+          "rounds": 11,
+          "emittedDamage": 44,
+          "hitDamage": 40
+        },
+        {
+          "aggression": "normal",
+          "rounds": 14,
+          "emittedDamage": 56,
+          "hitDamage": 52
+        },
+        {
+          "aggression": "high",
+          "rounds": 17,
+          "emittedDamage": 68,
+          "hitDamage": 64
+        }
+      ],
+      "selection": [
+        {
+          "range": 500,
+          "localIntent": "cover_player",
+          "cover": true,
+          "locked": true
+        },
+        {
+          "range": 800,
+          "localIntent": "regroup",
+          "cover": false,
+          "locked": true
+        },
+        {
+          "range": 1200,
+          "localIntent": "regroup",
+          "cover": false,
+          "locked": false
+        },
+        {
+          "range": 2000,
+          "localIntent": "regroup",
+          "cover": false,
+          "locked": false
+        }
+      ]
+    },
+    "normalHitDamageReductionPercent": 76.8
+  },
+  "naturalCombat": {
+    "method": "实际引擎VM、固定种子1、平坦地形、默认第一关自然生成编队；100/500节各推进45秒，玩家无输入/无射击，无护盾或伤害作弊；before从本轮构建前的sky-patrol/index.html提取AI，after读取当前源码",
+    "samples": [
+      {
+        "version": "before",
+        "knots": 100,
+        "wingman": false,
+        "allyKills": 0,
+        "playerKills": 0,
+        "allyShots": 0,
+        "allyDamage": 0,
+        "wave": 1,
+        "shield": 100,
+        "playerDead": false,
+        "missionTime": 44.99999999999873,
+        "enemyRounds": 0,
+        "enemyMissiles": 0,
+        "enemyCount": 3,
+        "wingmanDistance": null
+      },
+      {
+        "version": "before",
+        "knots": 100,
+        "wingman": true,
+        "allyKills": 3,
+        "playerKills": 0,
+        "allyShots": 145,
+        "allyDamage": 216,
+        "wave": 1,
+        "shield": 100,
+        "playerDead": false,
+        "missionTime": 44.84399999999875,
+        "enemyRounds": 0,
+        "enemyMissiles": 0,
+        "enemyCount": 1,
+        "wingmanDistance": 391.03963389093053
+      },
+      {
+        "version": "before",
+        "knots": 500,
+        "wingman": false,
+        "allyKills": 0,
+        "playerKills": 0,
+        "allyShots": 0,
+        "allyDamage": 0,
+        "wave": 1,
+        "shield": 0,
+        "playerDead": true,
+        "missionTime": 28.683333333332985,
+        "enemyRounds": 6,
+        "enemyMissiles": 1,
+        "enemyCount": 3,
+        "wingmanDistance": null
+      },
+      {
+        "version": "before",
+        "knots": 500,
+        "wingman": true,
+        "allyKills": 2,
+        "playerKills": 0,
+        "allyShots": 56,
+        "allyDamage": 224,
+        "wave": 1,
+        "shield": 100,
+        "playerDead": false,
+        "missionTime": 44.89599999999873,
+        "enemyRounds": 6,
+        "enemyMissiles": 2,
+        "enemyCount": 2,
+        "wingmanDistance": 2365.226848426878
+      },
+      {
+        "version": "after",
+        "knots": 100,
+        "wingman": false,
+        "allyKills": 0,
+        "playerKills": 0,
+        "allyShots": 0,
+        "allyDamage": 0,
+        "wave": 1,
+        "shield": 100,
+        "playerDead": false,
+        "missionTime": 44.99999999999873,
+        "enemyRounds": 0,
+        "enemyMissiles": 0,
+        "enemyCount": 3,
+        "wingmanDistance": null
+      },
+      {
+        "version": "after",
+        "knots": 100,
+        "wingman": true,
+        "allyKills": 1,
+        "playerKills": 0,
+        "allyShots": 37,
+        "allyDamage": 116,
+        "wave": 1,
+        "shield": 100,
+        "playerDead": false,
+        "missionTime": 44.947999999998736,
+        "enemyRounds": 0,
+        "enemyMissiles": 0,
+        "enemyCount": 3,
+        "wingmanDistance": 256.37117665764123
+      },
+      {
+        "version": "after",
+        "knots": 500,
+        "wingman": false,
+        "allyKills": 0,
+        "playerKills": 0,
+        "allyShots": 0,
+        "allyDamage": 0,
+        "wave": 1,
+        "shield": 0,
+        "playerDead": true,
+        "missionTime": 28.683333333332985,
+        "enemyRounds": 6,
+        "enemyMissiles": 1,
+        "enemyCount": 3,
+        "wingmanDistance": null
+      },
+      {
+        "version": "after",
+        "knots": 500,
+        "wingman": true,
+        "allyKills": 1,
+        "playerKills": 0,
+        "allyShots": 18,
+        "allyDamage": 72,
+        "wave": 1,
+        "shield": 100,
+        "playerDead": false,
+        "missionTime": 44.94799999999873,
+        "enemyRounds": 6,
+        "enemyMissiles": 2,
+        "enemyCount": 3,
+        "wingmanDistance": 1725.0852799080408
+      }
+    ],
+    "limit": "不操作的500节无僚机样本在28.68秒损毁；该组用来检查行为变化，不能据此推导平均通关率或玩家水平。"
+  },
+  "balanceAssessment": {
+    "finding": "100节无僚机平地样本45秒敌机未发射机炮或导弹，近距同向脱离令尾追方向过于安全；僚机削弱后仍需评估敌机主动性。",
+    "preferredNext": "保留至少2秒辨认与机炮反应窗口，让战斗机在一段约3–4秒的射击机会后进行有预兆的侧向脱离/绕回攻击；无人机继续入门难度，运输机继续任务压力。",
+    "otherOptions": "单纯加耐久会拉长点射；单纯加敌机速度或瞬间掉头会恢复刚修好的追不上问题。",
+    "status": "评估建议，本轮未修改敌机和玩家平衡。"
+  }
+}

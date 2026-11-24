@@ -36,7 +36,8 @@ function skyDial(x,y,r,tag,fraction,value) {
   circleFill(x,y,1.8,'#c0a578'); circleFill(x,y,.75,'#46464b');
   skyStamp(tag,x,y+r*.51,Math.max(4, r*.24),'#d7d2be');
   if (value != null) {
-    const bw = Math.min(34,r*1.85); rect(x-bw/2,y+r+3,bw,8,'#272831');
+    const bw = Math.max(Math.min(34,r*1.85), textWidth(String(value),6,true)+6);
+    rect(x-bw/2,y+r+3,bw,8,'#272831');
     skyStamp(value,x,y+r+9,6,'#f5daa4');
   }
 }
@@ -80,9 +81,18 @@ function skyMapGlass(x,y,w,h,p) {
   circleLine(cx,cy,h*.25,'#efb561',.45); circleLine(cx,cy,h*.47,'#f6c17b',.46);
   line(x,cy,x+w,cy,'#f3b960',1,.35); line(cx,y,cx,y+h,'#f3b960',1,.35);
   for(let yy=y+2;yy<y+h;yy+=3) rect(x,yy,w,1,'#342621',.15);
-  for(const e of G.enemies) if(!e.dead&&!targetConcealed(e)) {
+  const contacts = G.defenseStage ? G.enemies.concat(G.ground) : G.enemies;
+  for(const e of contacts) if(!e.dead&&!targetConcealed(e)) {
     const dx=(e.pos.x-p.pos.x)*zoom, dz=(e.pos.z-p.pos.z)*zoom;
-    if(Math.abs(dx)<w/2&&Math.abs(dz)<h/2) rect(cx+dx-1,cy+dz-1,3,2,'#ffe0a1');
+    if(Math.abs(dx)>=w/2||Math.abs(dz)>=h/2) continue;
+    if(G.defenseStage) drawDefenseRadarContact(e,cx+dx,cy+dz);
+    else rect(cx+dx-1,cy+dz-1,3,2,'#ffe0a1');
+  }
+  for(const wing of G.allies || []) {
+    if(wing.dead) continue;
+    const dx=(wing.pos.x-p.pos.x)*zoom, dz=(wing.pos.z-p.pos.z)*zoom;
+    if(Math.abs(dx)>=w/2||Math.abs(dz)>=h/2) continue;
+    rect(cx+dx-1,cy+dz-1,3,2,'#9fe6c8');
   }
   const a=p.yaw, dx=Math.sin(a), dy=-Math.cos(a);
   line(cx,cy,cx+dx*h*.45,cy+dy*h*.45,'#ffc669');
@@ -92,10 +102,11 @@ function skyMapGlass(x,y,w,h,p) {
 function skySystemReadings(p) {
   const firing=G.mode==='play'&&(INPUT.left||INPUT.keys.has('KeyF')||INPUT.touchGun);
   const reload=p.reloads.length ? ` · ${Math.ceil(Math.max(0,Math.min(...p.reloads)))}s` : '';
+  const gun=p.gunCapacity?(p.gunReload>0?`补给${Math.ceil(p.gunReload)}s`:`${p.gunAmmo}/${p.gunCapacity}`):(firing?'连射':p.gunCd>0?'循环':'待发');
   return [
     ['燃油',`${Math.ceil(Math.max(0,p.fuel))}%`,p.fuel<18?'warn':p.burning?'active':'normal'],
     ['护盾',`${Math.ceil(Math.max(0,p.shield))}%`,p.shield<22?'warn':'normal'],
-    ['机炮',p.dead?'离线':firing?'连射':p.gunCd>0?'循环':'待发',p.dead?'warn':firing?'active':'normal'],
+    ['机炮',p.dead?'离线':gun,p.dead||p.gunReload>0?'warn':firing?'active':'normal'],
     ['导弹',`${p.missiles}/4${reload}`,p.missiles===0?'warn':reload?'active':'normal'],
     ['加力',p.burning?'接通':p.fuel<=.5?'低油':'待命',p.burning?'active':p.fuel<=.5?'warn':'normal'],
     ['干扰',`${p.flares}${p.flareCd>.1?` · ${Math.ceil(p.flareCd)}s`:''}`,p.flares===0?'warn':p.flareCd>.1?'active':'normal']
@@ -107,8 +118,9 @@ function skySystemRow(reading,x,y,w,size=6) {
   drawText(tag,x+5,y,{size,color:'#c5c2b6'});
   drawText(value,x+w,y,{size,color:ink,align:'right',mono:true});
 }
+function skyCockpitPanelTop() { return VH - (VW < 415 ? 116 : 92); }
 function skyCockpitPanel(p,bank,pitch) {
-  const w=VW,h=VH,compact=w<415, toe=h-(compact?116:92), systems=skySystemReadings(p);
+  const w=VW,h=VH,compact=w<415, toe=skyCockpitPanelTop(), systems=skySystemReadings(p);
   const unit=typeof cssRect==='object'&&cssRect.height ? cssRect.height/h : 2;
   const short=!compact&&unit<1.2, sysFont=short?Math.ceil(10/unit):6, sysLift=short?50:0;
   // 中央遮光罩拱起，两侧压低；上缘、受光面、返边与仪表板是不同的实体轮廓。
@@ -166,6 +178,20 @@ function skyCanopyPost() {
   skyMetalFace('#353844',[edge-8,knee-4,edge+2,knee-7,edge+5,knee+9,edge-4,knee+12]);
   skyScrew(edge-2,knee); skyScrew(lerp(edge,foot,.58),lerp(knee,h-74,.58));
 }
+
+function skyGlassReadouts(p) {
+  const dist = Math.min(115, VW * .29), cy = VH / 2;
+  const unitScale = cssRect.height / VH;
+  const size = Math.max(7, 14 / unitScale), unitSize = Math.max(5, 9 / unitScale);
+  const altitude = Math.round(p.pos.y * 3.28084), airspeed = Math.round(p.speed * 1.94384);
+  const ralt = Math.round(Math.max(0, p.pos.y - Math.max(p.groundH, 0)) * 3.28084);
+  return [[-1, airspeed, 'KT', `G ${p.gLoad.toFixed(1)}`], [1, altitude, 'FT', `RA ${ralt}`]].map(([side, number, unit, aux]) => {
+    const center = VW / 2 + side * dist, value = String(number);
+    const w = Math.max(value.length * 4.8, textWidth(value, size, true)) + 8;
+    return { center, x: center - w / 2, y: cy - 16 - size, w, h: size + 4, value, size, unit, unitSize, aux };
+  });
+}
+
 function skyGlass(p,bank,pitch) {
   const cx=VW*.5, cy=VH*.5, span=Math.min(115,VW*.35), green=SKY_PHOSPHOR, rim='#4b6246';
   ctx.save(); ctx.beginPath(); ctx.rect(cx-span,34,span*2,VH-140); ctx.clip();
@@ -181,15 +207,13 @@ function skyGlass(p,bank,pitch) {
     }
   }
   ctx.restore();
-  circleLine(cx,cy,2.5,green); line(cx-9,cy,cx-3,cy,green); line(cx+3,cy,cx+9,cy,green); line(cx,cy-5,cx,cy-3,green);
-  const dist=Math.min(115,VW*.29);
-  const ralt=Math.round(Math.max(0,p.pos.y-Math.max(p.groundH,0))*3.28084);
-  for(const [side,num,unit] of [[-1,Math.round(p.speed*1.94384),'KT'],[1,Math.round(p.pos.y*3.28084),'FT']]){
-    const x=cx+side*dist, sw=String(num).length*4.8+8;
-    rect(x-sw/2,cy-23,sw,11,'#2e3e34',.28); rectLine(x-sw/2,cy-23,sw,11,green,.88);
-    skyStamp(num,x,cy-15,7,green); skyStamp(unit,x,cy-6,5,green);
+  const { x: sx, y: sy } = playerGunSight();
+  circleLine(sx,sy,2.5,green); line(sx-9,sy,sx-3,sy,green); line(sx+3,sy,sx+9,sy,green); line(sx,sy-5,sx,sy-3,green);
+  for (const { x, y, w, h, center, value, size, unit, unitSize, aux } of skyGlassReadouts(p)) {
+    rect(x,y,w,h,'#2e3e34',.38); rectLine(x,y,w,h,green,.88);
+    skyStamp(value,center,cy-15,size,green); skyStamp(unit,center,cy-11+unitSize,unitSize,green);
+    skyStamp(aux,center,cy+27,6,green);
   }
-  skyStamp('G '+p.gLoad.toFixed(1),cx-dist,cy+27,6,green); skyStamp('RA '+ralt,cx+dist,cy+27,6,green);
 }
 drawCockpit = function (alpha) {
   const p=G.player; if(!p || alpha<=.01) return;

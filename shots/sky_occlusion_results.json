@@ -1,0 +1,51 @@
+{
+  "startedAt": "2026-11-22T13:54:59.129Z",
+  "command": "node tools/verify_sky_occlusion.mjs",
+  "result": "PASS",
+  "screenshots": [
+    "shots/sky_occlusion_top_decal_over_hull.png"
+  ],
+  "runtimeErrors": [],
+  "browser": "Chrome/157.0.8103.80",
+  "measurement": {
+    "view": 0,
+    "vw": 626,
+    "hull": [
+      {
+        "x": 313.1617475590198,
+        "y": 148.50316133262058
+      },
+      {
+        "x": 328.9364034937803,
+        "y": 176.3181371965164
+      },
+      {
+        "x": 312.8935432618818,
+        "y": 184.02623390236303
+      },
+      {
+        "x": 296.96889980007086,
+        "y": 176.0767779603868
+      }
+    ],
+    "decal": {
+      "screen": {
+        "x": 324.14224666829614,
+        "y": 174.27452306429467
+      },
+      "radius": 25.119232162983508
+    },
+    "insidePixels": 1630,
+    "insideDiff": 0,
+    "outsidePixels": 1939,
+    "outsideDiff": 1753,
+    "time": 2.3165999999999967,
+    "site": {
+      "x": 6978.876896047541,
+      "y": 142.58621107381936,
+      "z": 7083.887235155141
+    },
+    "screenshot": "shots/sky_occlusion_top_decal_over_hull.png"
+  },
+  "finishedAt": "2026-11-22T13:55:02.920Z"
+}

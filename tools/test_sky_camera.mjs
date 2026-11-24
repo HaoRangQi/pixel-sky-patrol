@@ -21,7 +21,7 @@ const add = (a, b, k) => ({ x: a.x + b.x * k, y: a.y + b.y * k, z: a.z + b.z * k
 const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
 const near = (a, b, message, epsilon = 1e-7) => assert(Math.abs(a - b) < epsilon, `${message}: ${a} != ${b}`);
 
-function fixture(seed = 1337, aspect = 16 / 9) {
+function fixture(seed = 1337, aspect = 16 / 9, sky = true) {
   const context = vm.createContext({ document: { body: { classList: { add() {}, remove() {} } } } });
   vm.runInContext(`
     let VW = ${340 * aspect}, VH = 340;
@@ -36,7 +36,7 @@ function fixture(seed = 1337, aspect = 16 / 9) {
   for (const script of [constants, math, game]) script.runInContext(context);
   // Combat spawning is outside the camera seam; startup/reset and all camera logic stay real.
   vm.runInContext('beginWave = () => {}; const originalComputePose = computePose;', context);
-  scene.runInContext(context);
+  if (sky) scene.runInContext(context);
   const api = vm.runInContext(`({ G, basisFrom, computePose, originalComputePose,
     setupTitleWorld, startRun, restartRun, cycleView, updateCamera, updateTitle, updateFlight, projectToScreen, INPUT })`, context);
   api.G.seed = seed;
@@ -119,18 +119,22 @@ test('追尾受击反馈不再给机位和瞄向叠加逐帧随机震动', () =>
   assert.equal(f.G.shake, 2, '不能清掉游戏受击状态来掩盖相机震动');
 });
 
-test('正式加力和松键减速不泵动追尾FOV', () => {
+test('正式加力和松键减速时正追尾不通过视野伸缩伪造位移', () => {
   const f = fixture(); f.startRun(); f.updateCamera(1/60);
   const fov = f.G.camera.fov;
-  let maxSpeed = 0, minFuel = 100;
+  let maxSpeed = 0, minFuel = 100, maxFov = fov, lastFov = fov, maxStep = 0;
   for (let frame = 0; frame < 360; frame++) {
     f.INPUT.keys.clear();
     if (frame < 120) f.INPUT.keys.add('ShiftLeft');
     f.G.time += 1/60; f.updateFlight(1/60); f.updateCamera(1/60);
     maxSpeed = Math.max(maxSpeed, f.G.player.speed); minFuel = Math.min(minFuel, f.G.player.fuel);
-    near(f.G.camera.fov, fov, '加力不能拉伸世界视野');
+    maxFov = Math.max(maxFov, f.G.camera.fov);
+    maxStep = Math.max(maxStep, Math.abs(f.G.camera.fov - lastFov));
+    lastFov = f.G.camera.fov;
   }
   assert(maxSpeed >= 203 && minFuel < 70, '必须真正加力耗油，而不是绕过飞行更新');
+  near(maxFov, fov, '加力和松开时视场不伸缩');
+  near(maxStep, 0, '不能以移动镜头冒充飞行位移');
 });
 
 test('默认从南岸向北贯穿湖区，而非瞄准旧盆地中心', () => {
@@ -202,7 +206,7 @@ test('standby autopilot and its camera keep moving rather than freezing a static
 });
 
 for (const scenic of [false, true]) {
-  test(`${scenic ? '巡航' : '截击'}俯视都以近距真实机体取景，不退回地图图标比例`, () => {
+  test(`${scenic ? '巡航' : '截击'}新版俯视缩小真实机身并留出至少100米场景`, () => {
     for (const aspect of [1.38, 1.84, 2.89, .57]) {
       const f = fixture(1337, aspect), { G } = f;
       f.startRun();
@@ -212,10 +216,12 @@ for (const scenic of [false, true]) {
       const before = JSON.stringify(G.player);
       f.updateCamera(1 / 60);
       const c = G.camera, p = G.player;
-      assert(c.pos.y - p.pos.y < 80, `俯视距离仍为${c.pos.y - p.pos.y}米`);
       near(c.pos.x, p.pos.x, '北向俯视不应侧移');
       near(c.pos.z, p.pos.z, '北向俯视不应前后偏移');
       near(c.up.z, -1, '屏幕上方应固定为北');
+      near(c.fov, 1.10, '新版俯视采用稳定的宽视场');
+      const sceneSpan = 2 * (c.pos.y - p.pos.y) * c.tanHalf;
+      assert(sceneSpan >= 100, `自身高度平面仅显示${sceneSpan.toFixed(1)}米场景`);
       const left = {}, right = {}, nose = {}, tail = {};
       assert(f.projectToScreen(add(p.pos, p.renderBasis.right, -4.9), left));
       assert(f.projectToScreen(add(p.pos, p.renderBasis.right, 4.9), right));
@@ -223,13 +229,23 @@ for (const scenic of [false, true]) {
       assert(f.projectToScreen(add(p.pos, p.renderBasis.fwd, -4.3), tail));
       const span = Math.abs(right.x - left.x) / (340 * aspect);
       const length = Math.abs(tail.y - nose.y) / 340;
-      assert(span > .145 && span < .55, `机翼占画宽${span}，无法看清机型或已裁切`);
-      assert(length > .25 && length < .60, `机长占画高${length}，未达到参考的主体比例`);
+      assert(span > 0 && span <= .4, `机翼占画宽${span}，手机也须保留足够地景`);
+      assert(length >= .08 && length <= .18, `机长占画高${length}，应保持8–18%的真实机身比例`);
       assert.equal(JSON.stringify(p), before, '镜头不能修改飞机姿态或位置');
-      assert.deepEqual(f.computePose(0, false), f.originalComputePose(0, false), '巡航与截击应共用实际俯视，而非只修演示模式');
     }
   });
 }
+
+test('原入口俯视独立保留26米近景和原0.95视场', () => {
+  const f = fixture(77, 16 / 9, false); f.startRun(); orient(f, 0, 0);
+  f.G.view = f.G.prevView = 0; f.G.viewBlend = 1; f.updateCamera(1 / 60);
+  near(f.G.camera.pos.y - f.G.player.pos.y, 26, '原入口不采用新版远俯瞰');
+  near(f.G.camera.fov, .95, '原入口保留原视场');
+  const nose = {}, tail = {}, p = f.G.player;
+  f.projectToScreen(add(p.pos, p.renderBasis.fwd, 6.59), nose);
+  f.projectToScreen(add(p.pos, p.renderBasis.fwd, -4.3), tail);
+  assert(Math.abs(tail.y - nose.y) / 340 > .25, '原入口真实机身保持原近景比例');
+});
 
 test('近距俯视里仍可用屏幕边缘指示选择原本可见的游戏目标，不冒充目标在机身下', () => {
   const f = fixture(), { G } = f;
@@ -265,13 +281,12 @@ test('受击时北向俯视不因震动歪斜，也不靠HUD符号补偿机位',
   }
 });
 
-test('top/cockpit poses and all three smooth view transitions remain in the shared engine', () => {
+test('新版top、共享cockpit和三种视角仍通过同一平滑切镜路径', () => {
   const f = fixture();
   f.startRun();
   orient(f, -0.4, 0.15, 0.3);
-  for (const view of [0, 2]) {
-    assert.deepEqual(f.computePose(view, false), f.originalComputePose(view, false));
-  }
+  assert.notDeepEqual(f.computePose(0, false), f.originalComputePose(0, false), '新版远俯瞰通过scene适配');
+  assert.deepEqual(f.computePose(2, false), f.originalComputePose(2, false), '座舱仍复用共享姿态');
   for (const next of [2, 0, 1]) {
     const previous = f.G.view;
     f.cycleView();

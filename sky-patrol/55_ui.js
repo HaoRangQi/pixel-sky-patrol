@@ -2,12 +2,42 @@
 // 本文件在60_main前载入，BOOT只能在稍后执行的绘制函数中读取。
 const SKY_OCCLUSION = [];
 const skyBaseHudBlocked = hudBlocked;
+const SKY_LOCKING_COLOR = '#b9ddff';
+const SKY_TRACKING_COLOR = '#e4e9e5';
 function skyCompactHUD() {
   const unit = typeof cssRect === 'object' && cssRect.height ? cssRect.height / VH : 2;
   return VW < 420 || unit < 1.2;
 }
 function skyScenicView() {
   return !!G.skyScenic && (G.view === 0 || G.view === 1 && G.skyScenic.oblique);
+}
+
+function skyWaveTitle(compact = false) {
+  if (!(G.missionWaveGoal > 0)) return `第 ${pad(G.wave, 2)} 波`;
+  if (G.defenseStage) return `第 ${G.wave}/${G.missionWaveGoal} 关`;
+  const wave = compact ? G.wave : pad(G.wave, 2);
+  const goal = compact ? G.missionWaveGoal : pad(G.missionWaveGoal, 2);
+  return `第 ${wave}/${goal} 波`;
+}
+
+function skyDefenseArmorStatus() {
+  if (!G.defenseStage?.air.includes('transport')) return '';
+  const remaining = G.ground.filter(g => !g.dead).length;
+  if (remaining) return `剩余 ${remaining}`;
+  return G.enemies.some(e => !e.dead && e.cargoRemaining > 0) ? '待空投' : '已清除';
+}
+
+function skyActiveBanner() {
+  return G.mode === 'play' && G.banner && G.banner.t < G.banner.life ? G.banner : null;
+}
+
+function skyBannerLayout(banner) {
+  const wave = skyWaveTitle(skyCompactHUD());
+  const title = G.defenseStage ? `${wave} · ${G.defenseStage.title}`
+    : flightMode === 'intercept' && G.missionWaveGoal > 0 ? wave : banner.title;
+  const size = 10;
+  const box = skyMessageBox(textWidth(title, size) + 4, size + 4, [41, 113, 135, 98, 69, VH / 2 + 30]);
+  return box && { title, size, y: box.y + size + 1, box };
 }
 
 function skyHeadingTape(full = false) {
@@ -35,31 +65,38 @@ function skyFlightLayout() {
   const unit = typeof cssRect === 'object' && cssRect.height ? cssRect.height / VH : 2;
   const s = Math.max(1, 1.5 / unit), narrow = VW < 420;
   const side = narrow ? Math.min(64, (VW - 54) / 2) : 82 * s;
-  const resources = narrow ? { x: 8, y: 49, w: VW - 16, h: 20 } : { x: 8, y: 61, w: 112 * s, h: 48 };
+  const armor = !!G.defenseStage?.air.includes('transport');
+  const cardWidth = narrow ? 69 : 124 * s, missionHeight = armor ? 54 : 41;
+  const resources = narrow ? { x: 8, y: missionHeight + 8, w: VW - 16, h: 20 } : { x: 8, y: 61, w: 112 * s, h: 48 };
   const radar = { x: VW - (narrow ? 33 : 44), y: VH - (narrow ? 76 : 58), r: narrow ? 24 : 34 };
-  return { s, narrow, resources, side, speedY: 124, speedH: 37 * s, radar,
+  return { s, narrow, resources, side, speedY: 124, speedH: 37 * s, radar, cardWidth, missionHeight,
     regions: [
-      { x: 4, y: 2, w: narrow ? 70 : 124 * s, h: 43 },
+      { x: 4, y: 2, w: cardWidth + 1, h: missionHeight + 2 },
       { x: VW - (narrow ? 70 : 124 * s) - 4, y: 2, w: narrow ? 70 : 124 * s, h: 43 },
       resources,
       { x: 6, y: 120, w: side + 4, h: 66 * s },
       { x: VW - side - 10, y: 120, w: side + 4, h: 66 * s },
-      { x: 6, y: VH - 45, w: VW - 12, h: 43 },
+      skyWeaponLayout(true).region,
       { x: radar.x - radar.r - 4, y: radar.y - radar.r - 9, w: radar.r * 2 + 8, h: radar.r * 2 + 16 }
     ] };
 }
 
 function skyCompactFlightPanels(l) {
-  const p = G.player, { s, narrow, resources: r, side: w, speedY: y } = l;
+  const p = G.player, { s, narrow, resources: r, side: w, speedY: y, cardWidth, missionHeight } = l;
   const ink = '#fff0d7', muted = '#dcc092', mint = '#b8e0d5';
   const labelSize = narrow ? 8 : 8 * s, small = narrow ? 7 : 7 * s;
   const write = (value, x, y, size = labelSize, color = ink, align = 'left') => drawText(value, x, y, { size, color, align, shadow: '#28212a', mono: !/[㐀-鿿]/.test(String(value)) });
   const box = (x, y, w, h) => panel(x, y, w, h, { fill: '#24212a', stroke: '#9b8055', alpha: .56 });
-  box(4, 2, narrow ? 69 : 124 * s, 41);
-  box(VW - (narrow ? 73 : 124 * s + 4), 2, narrow ? 69 : 124 * s, 41);
-  write(flightMode === 'intercept' ? '截击任务' : '自由巡航', 8, 13, labelSize, muted);
-  write(flightMode === 'intercept' ? `第 ${pad(G.wave, 2)} 波` : '秋日湖谷', 8, 27, labelSize);
-  if (flightMode === 'intercept') write(`目标 ${G.waveKills}/${G.waveTotal}`, 8, 39, small, muted);
+  const titleY = Math.max(13, labelSize + 4), waveY = Math.max(27, titleY + labelSize + 2);
+  box(4, 2, cardWidth, missionHeight);
+  box(VW - cardWidth - 4, 2, cardWidth, 41);
+  write(flightMode === 'intercept' ? (G.defenseStage?.title || '截击任务') : '自由巡航', 8, titleY, labelSize, muted);
+  write(flightMode === 'intercept' ? skyWaveTitle(true) : '秋日湖谷', 8, waveY, labelSize);
+  if (flightMode === 'intercept') {
+    write(`${G.defenseStage ? '空中' : '目标'} ${G.waveKills}/${G.waveTotal}`, narrow ? 8 : cardWidth, narrow ? 39 : waveY, small, muted, narrow ? 'left' : 'right');
+    const armor = skyDefenseArmorStatus();
+    if (armor) write(`装甲 ${armor}`, 8, narrow ? 51 : waveY + labelSize + 2, small, mint);
+  }
   write('得分', VW - 8, 13, labelSize, muted, 'right');
   write(pad(Math.floor(G.score), 6), VW - 8, 28, narrow ? 11 : 12 * s, ink, 'right');
   write(`T+${fmtTime(G.missionTime)}`, VW - 8, 39, small, muted, 'right');
@@ -89,12 +126,19 @@ function skyCompactFlightPanels(l) {
   write(`G ${p.gLoad.toFixed(1)}`, VW - 8, y + 60 * s, small, mint, 'right');
 }
 
-function skyWeaponStatus(compact = false) {
-  const p = G.player, readings = skySystemReadings(p), cx = VW / 2;
+function skyWeaponLayout(compact = skyCompactHUD()) {
+  const cx = VW / 2;
   const unit = typeof cssRect === 'object' && cssRect.height ? cssRect.height / VH : 2;
   const scale = compact ? Math.max(1, 1.5 / unit) : 1;
   const size = 8 * scale, width = Math.min(VW - 16, 190 * scale);
   const x = cx - width / 2, y = VH - (compact ? (scale > 1 ? 55 : 45) : 57);
+  const top = Math.min(y - 10, y - size - 2);
+  return { cx, scale, size, width, x, y, region: { x: x - 3, y: top, w: width + 6, h: VH - top } };
+}
+
+function skyWeaponStatus(compact = false) {
+  const p = G.player, readings = skySystemReadings(p);
+  const { cx, scale, size, width, x, y } = skyWeaponLayout(compact);
   if (compact) panel(x - 3, y - 10, width + 6, VH - y + 5, { alpha: .50, fill: '#24212a', stroke: '#9b8055', border: false });
   for (const [index, xx] of [[2, x], [4, cx + 7]]) {
     const [tag, value, state] = readings[index], color = state === 'active' ? '#ffd18d' : '#e4d8bd';
@@ -121,23 +165,283 @@ function skyWeaponStatus(compact = false) {
 
 hudBlocked = (x, y) => {
   const external = G.cockpitAlpha < .45 && G.mode !== 'title';
-  if (external && !skyCompactHUD() && skyBaseHudBlocked(x, y)) return true;
+  if (external && !skyCompactHUD()) {
+    const r = skyWeaponLayout(false).region;
+    if (skyBaseHudBlocked(x, y) || x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return true;
+  }
   if (external && skyCompactHUD() && skyFlightLayout().regions.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return true;
   return (Math.abs(x - VW / 2) < Math.min(94, VW * .25) && y < 40)
     || SKY_OCCLUSION.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
 };
 
+const skyProjectTargetMarker = projectTargetMarker, skyDrawEdgeCue = drawEdgeCue;
+
+const skyHudBounds = r => ({ left: r.x, right: r.x + r.w, top: r.y, bottom: r.y + r.h });
+const skyHudOverlap = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+function skyFixedHudRegions() {
+  const heading = Math.min(94, VW * .25);
+  const blocked = [{ left: VW / 2 - heading, right: VW / 2 + heading, top: 0, bottom: 40 }, ...SKY_OCCLUSION.map(skyHudBounds)];
+  if (G.cockpitAlpha >= .45) return blocked;
+  if (skyCompactHUD()) blocked.push(...skyFlightLayout().regions.map(skyHudBounds));
+  else blocked.push(...hudRegions(), skyHudBounds(skyWeaponLayout(false).region));
+  return blocked;
+}
+
+function skyHudWarningRegions() {
+  const blocked = [], p = G.player, cx = VW / 2;
+  const warn = (top, bottom, x = cx, halfWidth = cx) => blocked.push({ left: x - halfWidth, right: x + halfWidth, top, bottom });
+  if (G.threatList?.length) warn(80, 108);
+  if (p.shield < 25) warn(108, 123);
+  if (p.fuel < 18) warn(121, 135);
+  const y = VH - (G.cockpitAlpha > .4 ? 112 : 44);
+  if (p.terrainWarn && G.mode === 'play') warn(y - 16, y + 4, cx, textWidth('拉起！', 14, false, true) / 2 + 3);
+  if (p.agl < 90 && G.mode === 'play') warn(y - 28, y - 13, cx, textWidth('低空', 10) / 2 + 2);
+  if (p.inCloud > .28 || p.skimming) warn(y - 22, y - 7, cx + 70, textWidth('云中', 10) / 2 + 2);
+  return blocked;
+}
+
+function skyMessageBox(w, h, rows, extra = []) {
+  const blocked = [...skyFixedHudRegions(), ...skyHudWarningRegions(), ...extra.map(skyHudBounds)];
+  const x = (VW - w) / 2;
+  if (x < 2) return null;
+  for (const y of rows) {
+    const box = { x, y, w, h };
+    const bounds = skyHudBounds(box);
+    if (!blocked.some(r => skyHudOverlap(bounds, r))) return box;
+  }
+  return null;
+}
+
+function skyLockStatus(target) {
+  if (G.lock.target !== target) return '';
+  if (G.lock.phase === 'locked') return '已锁定';
+  if (G.lock.phase === 'locking') return `锁定中 ${Math.floor(G.lock.progress * 100)}%`;
+  return '';
+}
+
+function skyCockpitTrackTarget() {
+  const p = G.player;
+  const visible = target => target && G.enemies.includes(target) && !target.dead
+    && vdist(p.pos, target.pos) <= 3400 && !targetConcealed(target) && lineOfSightClear(p.pos, target.pos, 10);
+  const locked = G.lock.phase === 'locked' ? G.lock.target : null;
+  const locking = G.lock.phase === 'locking' ? G.lock.target : null;
+  for (const target of [locked, p.trackedAirTarget, locking]) if (visible(target)) return target;
+  let nearest = null, range = Infinity;
+  for (const target of G.enemies) {
+    const distance = vdist(p.pos, target.pos);
+    if (distance < range && visible(target)) { nearest = target; range = distance; }
+  }
+  return nearest;
+}
+
+function skyCleanupTarget() {
+  if (!G.defenseStage || G.mode !== 'play' || G.waveKills < G.waveTotal) return null;
+  let nearest = null, range = Infinity;
+  for (const armor of G.ground) {
+    if (armor.dead) continue;
+    const distance = vdist(G.player.pos, armor.pos);
+    if (distance < range) { nearest = armor; range = distance; }
+  }
+  return nearest;
+}
+
+function skyTrackLabel(target) {
+  const p = G.player, relative = vsub(target.pos, p.pos), range = vdist(target.pos, p.pos);
+  const bearing = wrapAngle(Math.atan2(relative.x, -relative.z) - p.yaw) / DEG;
+  const angle = Math.abs(bearing), side = bearing < 0 ? '左' : '右';
+  let direction = '正前';
+  if (angle > 178) direction = '正后';
+  else if (angle > 112.5) direction = `${side}后`;
+  else if (angle > 67.5) direction = `${side}方`;
+  else if (angle > 10) direction = `${side}前`;
+  if (Math.hypot(relative.x, relative.z) < 1) direction = '';
+  const altitude = Math.abs(relative.y) < 5 ? '同高' : `${relative.y > 0 ? '高' : '低'} ${Math.round(Math.abs(relative.y))} m`;
+  const rangeLabel = range >= 1000 ? `${(range / 1000).toFixed(1)} km` : `${Math.round(range)} m`;
+  if (target.isGround) return ['装甲', direction, rangeLabel].filter(Boolean).join(' · ');
+  const status = skyLockStatus(target) || '跟踪';
+  const type = G.defenseStage ? ` ${defenseContactName(target)}` : '';
+  return [status + type, direction, altitude, rangeLabel].filter(Boolean).join(' · ');
+}
+
+function skyTrackingLayout(target, blocked) {
+  const label = skyTrackLabel(target);
+  const unit = typeof cssRect === 'object' && cssRect.height ? cssRect.height / VH : 2;
+  const size = Math.max(8, 14 / unit);
+  const box = skyMessageBox(textWidth(label, size) + 12, size + 6, [56, VH / 2 + 7, 137, 109, VH / 2 + 26], blocked);
+  return box && { label, size, box };
+}
+
+function drawSkyMessage(message, color) {
+  const { label, size, box: { x, y, w, h } } = message;
+  panel(x, y, w, h, { fill: '#18252e', alpha: .83, stroke: '#536571' });
+  drawText(label, VW / 2, y + size + 2, { size, color, align: 'center', shadow: '#101820' });
+}
+
+function skyDefenseCombatLayout(blocked) {
+  if (!G.defenseStage) return null;
+  const flare = G.enemies.filter(e => !e.dead && e.flareFlash > 0)
+    .sort((a, b) => vdist(a.pos, G.player.pos) - vdist(b.pos, G.player.pos))[0];
+  let label = '', color = '';
+  if (flare) {
+    const success = flare.flareOutcome !== 'failed';
+    const remaining = Number.isFinite(flare.flares) ? ` · 剩${flare.flares}发` : '';
+    label = success ? `${defenseContactName(flare)}诱饵成功${remaining} · 用机炮` : `${defenseContactName(flare)}干扰失败${remaining} · 导弹继续`;
+    color = success ? '#ffd495' : '#b9f0d2';
+  } else if (G.lock.target && !G.lock.target.dead && G.lock.target.tacticPhase === 'warning') {
+    label = `${defenseContactName(G.lock.target)}准备脱离 · 用机炮咬住`;
+    color = '#ffdf9b';
+  }
+  if (!label) return null;
+  const size = Math.max(8, 14 / (cssRect.height / VH));
+  const box = skyMessageBox(textWidth(label, size) + 12, size + 6, [83, 110, 137, VH / 2 + 7], blocked);
+  return box && { label, size, box, color };
+}
+
+function skyDefenseTargetReadouts(messages, cockpitBottom) {
+  const blocked = [...skyFixedHudRegions(), ...skyHudWarningRegions(), ...messages.map(skyHudBounds)];
+  if (cockpitBottom != null) for (const readout of skyGlassReadouts(G.player)) {
+    blocked.push(skyHudBounds({ x: readout.x - 2, y: readout.y - 1, w: readout.w + 4, h: readout.h + readout.unitSize + 3 }));
+    const w = textWidth(readout.aux, 6, true) + 4;
+    blocked.push(skyHudBounds({ x: readout.center - w / 2, y: VH / 2 + 20, w, h: 10 }));
+  }
+  let lockBox = null;
+  return (target, { x, y, r, d, col, isLock, isTracked }) => {
+    const marker = isLock ? (G.player.lockRadius ? 22 : 41) : r + 2;
+    if (isLock) {
+      lockBox = { left: x - marker, right: x + marker, top: y - marker, bottom: y + marker };
+      blocked.push(lockBox);
+    } else if (lockBox && skyHudOverlap(lockBox, { left: x - r, right: x + r, top: y - r, bottom: y + r })) {
+      return;
+    }
+    const range = d >= 1000 ? `${(d / 1000).toFixed(1)} km` : `${Math.round(d)} m`;
+    const decoys = G.defenseRules && !target.isGround && Number.isFinite(target.flares) ? ` · 干扰${target.flares}` : '';
+    const label = isTracked ? '' : `${isLock ? skyLockStatus(target) + ' ' : ''}${defenseContactName(target)}${decoys} · ${range}`;
+    const air = !target.isGround, size = isLock ? 10 : 9;
+    const h = (label ? size + 4 : 0) + (air ? 8 : 0);
+    if (!h) return;
+    const w = Math.max(air ? 46 : 0, textWidth(label, size) + 4);
+    const cx = clamp(x, w / 2 + 2, VW - w / 2 - 2);
+    const above = y - marker - h - 3, below = y + marker + 3;
+    const positions = isLock && label ? [[cx, below], [cx, above], [x + marker + w / 2 + 4, y - h / 2], [x - marker - w / 2 - 4, y - h / 2]]
+      : [[cx, above], [cx, below]];
+    for (const [center, top] of positions) {
+      const box = { left: center - w / 2, right: center + w / 2, top, bottom: top + h };
+      if (top < 2 || box.bottom > (cockpitBottom ?? VH) || box.left < 2 || box.right > VW - 2
+          || blocked.some(region => skyHudOverlap(box, region))) continue;
+      if (air) drawTargetHealth(target, center - 21, top + 1);
+      if (label) drawText(label, center, box.bottom - 3, { size, color: col, align: 'center', shadow: '#0b0912' });
+      blocked.push(box);
+      return;
+    }
+  };
+}
+
+let skyTopCueCache = null;
+function skyTopCueLayout() {
+  const unit = typeof cssRect === 'object' && cssRect.height ? cssRect.height / VH : 2;
+  const occlusion = SKY_OCCLUSION.map(r => `${r.x},${r.y},${r.w},${r.h}`).join(';');
+  const banner = skyActiveBanner();
+  const stamp = [G.time, G.camera, VW, VH, unit, G.lock.target, G.lock.phase, occlusion, banner];
+  if (skyTopCueCache && stamp.every((v, i) => v === skyTopCueCache.stamp[i])) return skyTopCueCache.layout;
+  const layout = new Map(), occupied = [], cx = VW / 2, cy = VH / 2, size = Math.max(8, 14 / unit);
+  const intersects = (a, b) => a.x < b.x + b.w + 2 && a.x + a.w + 2 > b.x && a.y < b.y + b.h + 2 && a.y + a.h + 2 > b.y;
+  const blocked = skyFixedHudRegions(), messages = [];
+  const entry = banner && skyBannerLayout(banner);
+  if (entry) messages.push(entry.box);
+  const cleanup = skyCleanupTarget(), navigation = cleanup && skyTrackingLayout(cleanup, messages);
+  if (navigation) messages.push(navigation.box);
+  const flare = skyDefenseCombatLayout(messages);
+  if (flare) messages.push(flare.box);
+  blocked.push(...messages.map(skyHudBounds));
+  const free = b => !occupied.some(other => intersects(b, other))
+    && !blocked.some(r => b.x - 2 < r.right && b.x + b.w + 2 > r.left && b.y - 2 < r.bottom && b.y + b.h + 2 > r.top);
+  occupied.push({ x: cx - 20, y: cy - 24, w: 40, h: 48 });
+  const targets = collectTargets().filter(t => vdist(G.player.pos, t.pos) <= 3400 && !targetConcealed(t));
+  targets.sort((a, b) => vdist(G.player.pos, a.pos) - vdist(G.player.pos, b.pos));
+  for (const target of targets) {
+    const s = {};
+    if (!skyProjectTargetMarker({ x: target.pos.x, y: target.pos.y + (target.isGround ? 2 : 1.2), z: target.pos.z }, s, target) || !s.edge) continue;
+    const d = vdist(G.player.pos, target.pos), angle = Math.atan2(s.y - cy, s.x - cx);
+    const selected = target === G.lock.target && G.lock.phase !== 'search';
+    const type = defenseContactName(target);
+    const lockText = G.defenseStage ? ` ${type}` : '';
+    const name = selected ? `${G.lock.phase === 'locked' ? '已锁定' : '锁定中'}${lockText}` : type;
+    const distance = d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+    const label = `${name} ${distance}`;
+    // 给锁定文案预留宽度，获取锁定不能令提示搬家、离开当前瞄准点。
+    const w = Math.max(textWidth(label, size), textWidth(`锁定中${lockText} ${distance}`, size)) + 20, h = size + 8;
+    let placed = null;
+    // 沿真实方位优先向内避让，同向多个目标分开占位；箭头本身始终指真实方位。
+    for (let turn = 0; turn < 38 && !placed; turn++) {
+      const offset = turn ? Math.ceil(turn / 2) * .16 * (turn % 2 ? 1 : -1) : 0;
+      const dx = Math.cos(angle + offset), dy = Math.sin(angle + offset);
+      const edge = Math.min((cx - w / 2 - 5) / Math.max(.001, Math.abs(dx)), (cy - h / 2 - 5) / Math.max(.001, Math.abs(dy)));
+      for (let inward = 0; inward < edge; inward += 4) {
+        const box = { x: cx + dx * (edge - inward) - w / 2, y: cy + dy * (edge - inward) - h / 2, w, h };
+        if (free(box)) { placed = { ...box, angle, size, label, selected }; break; }
+      }
+    }
+    if (placed) { layout.set(target, placed); occupied.push(placed); }
+  }
+  skyTopCueCache = { stamp, layout };
+  return layout;
+}
+
+projectTargetMarker = function (pos, s, target) {
+  delete s.skyCue;
+  const projected = skyProjectTargetMarker(pos, s, target);
+  if (projected && s.edge && target && G.view === 0 && G.viewBlend >= 1) {
+    const cue = skyTopCueLayout().get(target);
+    if (cue) { s.x = cue.x + cue.w / 2; s.y = cue.y + cue.h / 2; s.skyCue = cue; }
+  }
+  return projected;
+};
+
+drawEdgeCue = function (s, d, target, lockingColor = SKY_LOCKING_COLOR) {
+  const cue = s.skyCue;
+  if (!cue || G.view !== 0) return skyDrawEdgeCue(s, d, target, lockingColor);
+  const color = cue.selected ? (G.lock.phase === 'locked' ? PAL.goldHot : SKY_LOCKING_COLOR) : '#ffb2a3';
+  ctx.save();
+  ctx.globalAlpha = .96;
+  ctx.translate(cue.x + 7, cue.y + cue.h / 2); ctx.rotate(cue.angle);
+  ctx.fillStyle = color; ctx.strokeStyle = '#201820'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-4, 4); ctx.closePath(); ctx.stroke(); ctx.fill();
+  ctx.restore();
+  drawText(cue.label, cue.x + 17, cue.y + cue.size + 3, { size: cue.size, color, alpha: 1, shadow: '#16131b' });
+};
+
+function skyGunLeadMarker() {
+  const target = G.lock.target;
+  if (!G.player.gunEffectiveRange || G.lock.phase !== 'locked' || !target) return;
+  const point = playerGunLead(target), lead = {}, contact = {};
+  if (!point || !projectToScreen(point, lead) || !lead.visible || !projectToScreen(target.pos, contact)) return;
+  if (Math.hypot(lead.x-contact.x,lead.y-contact.y) < 3 || hudBlocked(lead.x,lead.y)) return;
+  line(contact.x,contact.y,lead.x,lead.y,'#b9ddff',1,.6);
+  circleLine(lead.x,lead.y,4,'#b9ddff',.95);
+  line(lead.x-7,lead.y,lead.x-4,lead.y,'#b9ddff'); line(lead.x+4,lead.y,lead.x+7,lead.y,'#b9ddff');
+}
+
 drawHUD = function () {
   if (!G.player || !G.camera) return;
   const scenic = skyScenicView(), top = G.view === 0 && G.viewBlend > .55;
   const cockpit = G.cockpitAlpha > .5, external = G.cockpitAlpha < .45;
-  if (!top) drawPitchLadder(G.cockpitAlpha);
+  const intercept = flightMode === 'intercept', bottom = cockpit ? skyCockpitPanelTop() - 7 : undefined;
+  const banner = skyActiveBanner(), entry = banner && skyBannerLayout(banner);
+  const messages = entry ? [entry.box] : [];
+  const tracked = intercept && (skyCleanupTarget() || (cockpit ? skyCockpitTrackTarget() : null));
+  const tracking = tracked && skyTrackingLayout(tracked, messages);
+  if (tracking) messages.push(tracking.box);
+  const flare = intercept && skyDefenseCombatLayout(messages);
+  if (flare) messages.push(flare.box);
+  const drawReadout = intercept && G.defenseStage ? skyDefenseTargetReadouts(messages, bottom) : undefined;
+  if (!top && !cockpit) drawPitchLadder(G.cockpitAlpha);
   if (top) {
     const x = VW / 2;
     drawText('N', x, 15, { size: 7, mono: true, align: 'center', color: '#fff0d7', shadow: '#35323a' });
     line(x - 3, 23, x, 19, '#f5c38a'); line(x + 3, 23, x, 19, '#f5c38a');
   } else skyHeadingTape(external);
-  if (flightMode === 'intercept' && !cockpit) drawTargetMarkers();
+  if (intercept && !cockpit) drawTargetMarkers(SKY_LOCKING_COLOR, undefined, drawReadout);
+  if (!cockpit) drawWingmanMarker({ bottom });
   if (external) {
     const compact = skyCompactHUD();
     if (compact) {
@@ -145,7 +449,7 @@ drawHUD = function () {
       skyCompactFlightPanels(layout);
       const r = layout.radar; drawRadarScope(r.x, r.y, r.r, false);
     } else {
-      if (flightMode === 'intercept') drawObjectivesPanel();
+      if (flightMode === 'intercept') drawObjectivesPanel(skyWaveTitle(), skyDefenseArmorStatus());
       else {
         panel(6, 2, 116, 54, { alpha: .38, fill: '#24212a', border: false });
         drawText('自由巡航', 10, 19, { size: 10, color: '#ead3ab', shadow: '#28212a' });
@@ -160,18 +464,25 @@ drawHUD = function () {
     line(x, y, x + (x === 4 ? 4 : -4), y, '#ffe7c6', 1, .45);
     line(x, y, x, y + (y === 4 ? 4 : -4), '#ffe7c6', 1, .45);
   }
-  if (flightMode === 'intercept') {
-    ctx.save();
-    if (cockpit) { ctx.beginPath(); ctx.rect(0, 0, VW, VH - 99); ctx.clip(); drawTargetMarkers(); }
-    if (!cockpit) drawAimReticle();
+  if (intercept) {
+    let color = SKY_TRACKING_COLOR;
+    if (cockpit) {
+      if (tracked && skyLockStatus(tracked)) color = G.lock.phase === 'locked' ? PAL.goldHot : SKY_LOCKING_COLOR;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, VW, bottom); ctx.clip();
+      drawTargetMarkers(SKY_LOCKING_COLOR, { bottom, target: tracking && tracked, color }, drawReadout);
+      drawWingmanMarker({ bottom });
+      ctx.restore();
+    } else drawAimReticle(SKY_LOCKING_COLOR);
+    skyGunLeadMarker();
+    if (tracking) drawSkyMessage(tracking, color);
+    if (flare) drawSkyMessage(flare, flare.color);
     drawThreats();
-    ctx.restore();
   }
   drawWarnings();
-  if (G.banner && G.banner.t < G.banner.life && G.mode === 'play') {
-    const alpha = Math.min(clamp01(G.banner.t / 0.4), clamp01((G.banner.life - G.banner.t) / 0.6));
-    const y = hudBlocked(VW / 2, 49) ? 124 : 49;
-    drawText(G.banner.title, VW / 2, y, { size: 10, align: 'center', color: '#ffe2bb', shadow: '#24232c', alpha });
+  if (entry) {
+    const alpha = Math.min(clamp01(banner.t / 0.4), clamp01((banner.life - banner.t) / 0.6));
+    const { title, size, y } = entry;
+    drawText(title, VW / 2, y, { size, align: 'center', color: '#ffe2bb', shadow: '#24232c', alpha });
   }
   if ((G.mode === 'play' || G.mode === 'waveclear') && (!INPUT.touchMode || TOUCH.active)
       && (!(scenic || top) || TOUCH.active || INPUT.mouseSteerAge < MOUSE_STEER_TIMEOUT)
@@ -197,10 +508,11 @@ drawLoading = function () {
 };
 
 drawWaveClear = function () {
-  const w = Math.min(230, VW - 28), x = (VW - w) / 2;
-  panel(x, 39, w, 36, { fill: '#202328', stroke: '#b8a18c', alpha: 0.88 });
-  drawText(`第 ${pad(G.wave, 2)} 波完成`, VW / 2, 53, { size: 11, align: 'center', color: '#f6e5cb' });
-  drawText(`补给中 · ${Math.max(0, Math.ceil(G.respite))} 秒后继续`, VW / 2, 67, {
+  const box = skyMessageBox(Math.min(230, VW - 28), 36, [41, 111, 137, VH / 2 + 17]);
+  if (!box) return;
+  panel(box.x, box.y, box.w, box.h, { fill: '#202328', stroke: '#b8a18c', alpha: 0.88 });
+  drawText(`${skyWaveTitle(skyCompactHUD())}完成`, VW / 2, box.y + 14, { size: 11, align: 'center', color: '#f6e5cb' });
+  drawText(`补给中 · ${Math.max(0, Math.ceil(G.respite))} 秒后继续`, VW / 2, box.y + 28, {
     size: 9, align: 'center', color: '#c5d5cb'
   });
 };

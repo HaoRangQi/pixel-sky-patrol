@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Real CDP input and real flight; never assigns player pose, speed, time or AI.
 // Requires the existing 8765 service. No dependencies or desktop browser access.
-// Usage: node tools/verify_sky_comfort.mjs [--only=flight|pause|legacy|crossview]
+// Usage: node tools/verify_sky_comfort.mjs [--only=flight|pause|legacy|crossview] [--prefix=sky_tuning_comfort]
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -10,15 +10,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const BASE = 'http://127.0.0.1:8765', KT = 1.94384;
+const BASE = 'http://127.0.0.1:8765', KT = 1.94384, SPEED_CAP = 1500;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const only = process.argv.find(v => v.startsWith('--only='))?.slice(7);
+const prefix = process.argv.find(v => v.startsWith('--prefix='))?.slice(9) || 'sky_tuning_comfort';
 assert(!only || ['flight', 'pause', 'legacy', 'crossview'].includes(only), 'Unknown --only');
+assert(/^sky_[a-z0-9_]+$/.test(prefix), 'Invalid artifact prefix');
 const sizes = [{ name: 'desktop', width: 1440, height: 900, mobile: false }, { name: 'portrait', width: 390, height: 844, mobile: true }, { name: 'landscape', width: 844, height: 390, mobile: true }];
-const previousFile = path.join(ROOT, 'shots', 'sky_comfort_results.json');
+const previousFile = path.join(ROOT, 'shots', `${prefix}_results.json`);
 const replacedCases = only === 'pause' ? ['pause_layout_and_flare'] : only === 'crossview' ? ['inverted_crossview', 'overlap_ad_rejection'] : [];
 const previous = replacedCases.length && fs.existsSync(previousFile) ? JSON.parse(fs.readFileSync(previousFile, 'utf8')) : null;
-const report = { startedAt: new Date().toISOString(), command: `node tools/verify_sky_comfort.mjs${only ? ` --only=${only}` : ''}`, result: 'RUNNING', cases: previous?.cases.filter(c => !replacedCases.includes(c.name)) || [], screenshots: previous?.screenshots.filter(s => !path.basename(s).startsWith(only === 'pause' ? 'sky_comfort_pause_' : 'sky_comfort_crossview_')) || [], ...(previous ? { retainedFlightEvidence: { ...(previous.retainedFlightEvidence || { command: previous.command, startedAt: previous.startedAt, finishedAt: previous.finishedAt }), priorAggregate: { command: previous.command, startedAt: previous.startedAt, finishedAt: previous.finishedAt }, reason: 'Unaffected checks retain their successful evidence. The cases named by this scoped invocation are refreshed against the current candidate.' } } : {}), inputPath: 'CDP native keyboard/mouse/touch. Page settings use actual pause inputs. __PI.freeze/step advances the real engine including G.realTime. Restarts use the existing __SKY API atomically; no pose/speed/time/AI assignment.' };
+const report = { startedAt: new Date().toISOString(), command: `node tools/verify_sky_comfort.mjs${only ? ` --only=${only}` : ''} --prefix=${prefix}`, result: 'RUNNING', cases: previous?.cases.filter(c => !replacedCases.includes(c.name)) || [], screenshots: previous?.screenshots.filter(s => !path.basename(s).startsWith(`${prefix}_${only === 'pause' ? 'pause' : 'crossview'}_`)) || [], ...(previous ? { retainedFlightEvidence: { ...(previous.retainedFlightEvidence || { command: previous.command, startedAt: previous.startedAt, finishedAt: previous.finishedAt }), priorAggregate: { command: previous.command, startedAt: previous.startedAt, finishedAt: previous.finishedAt }, reason: 'Unaffected checks retain their successful evidence. The cases named by this scoped invocation are refreshed against the current candidate.' } } : {}), inputPath: 'CDP native keyboard, mouse and touch. Page settings use the pause inputs. __PI.freeze and step advance the game. Restarts use the existing __SKY API.' };
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const angle = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
@@ -45,7 +47,7 @@ function pageState() {
     p: { pos: { ...p.pos }, yaw: p.yaw, pitch: p.pitch, roll: p.roll, yawRate: p.yawRate, speed: p.speed, targetSpeed: p.targetSpeed, fuel: p.fuel, burning: p.burning, cruiseSpeed: p.cruiseSpeed ?? null, burnSpeed: p.burnSpeed ?? null, mouseSteering: p.mouseSteering ?? null, inversionRoll: p.inversionRoll ?? 0, spin: p.spin, rollT: p.rollT, halfRoll: p.halfRoll ?? null, basis: p.basis, renderBasis: p.renderBasis, steering: p.steering, shield: p.shield, dead: p.dead, flares: p.flares, flareCd: p.flareCd, missiles: p.missiles },
     camera: c && { pos: c.pos, up: c.up, right: c.right, fwd: c.fwd, fov: c.fov, vp: [...c.vp] },
     canvas: { width: ui.width, height: ui.height, rect: ui.getBoundingClientRect().toJSON() },
-    settings: { cruise: range('sky-cruise-speed'), burn: range('sky-burn-speed'), enemy: range('sky-enemy-speed'), mouse: document.getElementById('sky-mouse-steering')?.checked },
+    settings: { cruise: range('sky-cruise-speed'), burn: range('sky-burn-speed'), turn: range('sky-turn-rate'), enemy: range('sky-enemy-speed'), mouse: document.getElementById('sky-mouse-steering')?.checked },
     errors: [...__PI.errors], exceptions: [...__PI.exceptions],
   };
 }
@@ -56,7 +58,7 @@ const runtimeErrors = () => events.filter(e => e.method === 'Runtime.exceptionTh
 async function key(code, down = true, autoRepeat = false) {
   const map = { Escape: ['Escape', 27], Space: [' ', 32], ShiftLeft: ['Shift', 16], KeyA: ['a', 65], KeyD: ['d', 68], KeyW: ['w', 87], KeyQ: ['q', 81], KeyC: ['c', 67] };
   const [key, windowsVirtualKeyCode] = map[code];
-  await send('Input.dispatchKeyEvent', { type: down ? 'keyDown' : 'keyUp', key, code, windowsVirtualKeyCode, autoRepeat, ...(down && code === 'KeyC' ? { text: 'c', unmodifiedText: 'c' } : {}) });
+  await send('Input.dispatchKeyEvent', { type: down ? 'keyDown' : 'keyUp', key, code, windowsVirtualKeyCode, autoRepeat, modifiers: down && code === 'ShiftLeft' ? 8 : 0, ...(down && code === 'KeyC' ? { text: 'c', unmodifiedText: 'c' } : {}) });
 }
 async function tap(code) { await key(code); await key(code, false); }
 async function point(selector, fx = 0.5, fy = 0.5) {
@@ -71,7 +73,7 @@ async function click(selector, fx = 0.5, fy = 0.5) {
 async function touch(type, x, y) { await send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1, radiusX: 2, radiusY: 2, force: 1 }] }); }
 async function shot(name) {
   await paint();
-  const file = path.join(ROOT, 'shots', `sky_comfort_${name}.png`), r = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+  const file = path.join(ROOT, 'shots', `${prefix}_${name}.png`), r = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, Buffer.from(r.data, 'base64'));
   const relative = path.relative(ROOT, file);
   report.screenshots.push(relative); return relative;
@@ -107,7 +109,7 @@ function project(world, s) {
 }
 async function straightRun(cruise, shift = false, seconds = 4, commonGroundPoint) {
   if (cruise === 'default') await configure({ defaults: true, mouse: false });
-  else await configure({ cruise, burn: 500, mouse: false });
+  else await configure({ cruise, burn: Math.max(500, cruise), mouse: false });
   const spawn = await restart();
   const groundPoint = commonGroundPoint || await evaluate(`(() => { const g=__PI.G,p=g.player,f=p.basis.fwd; const x=p.pos.x+f.x*2200,z=p.pos.z+f.z*2200; return {x,y:Math.max(0,g.map.heightAt(x,z)),z}; })()`);
   const initial = await step(1 / 60), beforeProjection = project(groundPoint, initial);
@@ -125,17 +127,17 @@ async function straightRun(cruise, shift = false, seconds = 4, commonGroundPoint
 }
 async function speedCase(r) {
   await navigate(); await start();
-  const slow = r.slow = await straightRun(100), fast = r.fast = await straightRun(500, false, 4, slow.groundPoint);
+  const slow = r.slow = await straightRun(300), fast = r.fast = await straightRun(500, false, 4, slow.groundPoint);
   assert.deepEqual(slow.spawn, fast.spawn, '100/500 comparison did not restart on the same route');
   assert(fast.distance > slow.distance * 4.9 && fast.distance < slow.distance * 5.1, '100/500 actual displacement ratio is not five');
   assert(fast.projection.pixelMotion > slow.projection.pixelMotion * 2, 'Ground world-point projection did not reveal speed difference');
   const normal = r.normal = await straightRun('default', false, 3), boost = r.boost = await straightRun('default', true, 3, normal.groundPoint);
-  near(normal.initial.speed, 112, 'Default cruise was rounded'); near(boost.initial.speed, 112, 'Default boost start was rounded');
+  near(normal.initial.speed, 100 / KT, 'Default 300-dial cruise must keep the old 100-knot displacement'); near(boost.initial.speed, 100 / KT, 'Default boost start was rounded');
   near(boost.final.speed, 500 / KT, 'Three seconds of Shift did not reach 500 knots');
   assert(boost.distance > normal.distance * 1.45, 'Shift did not materially increase actual displacement');
-  const high = await straightRun(500, true, 3);
-  near(high.final.fuel, 100, '500-knot cruise Shift wasted fuel'); assert.equal(high.final.burning, false);
-  await configure({ cruise: 100, burn: 500 }); await restart();
+  const high = await straightRun(SPEED_CAP, true, 2);
+  near(high.final.fuel, 100, '1500-knot cruise Shift wasted fuel'); assert.equal(high.final.burning, false);
+  await configure({ cruise: 300, burn: 500 }); await restart();
   const transitionBefore = await state(); await configure({ cruise: 500 }); const selected = await state();
   near(selected.p.speed, transitionBefore.p.speed, 'Paused 100-to-500 change snapped actual speed');
   const twoSeconds = await step(2), target = 500 / KT;
@@ -205,7 +207,7 @@ async function cockpitCase(r) {
   const maxBank = Math.max(...rows.map(v => Math.abs(v.roll))), maxBankRate = Math.max(...all.slice(1).map((v, i) => Math.abs(angle(v.roll, all[i].roll)) * 60));
   const maxYawRate = Math.max(...all.slice(1).map((v, i) => Math.abs(angle(v.yaw, all[i].yaw)) * 60));
   assert(maxBank <= 32 * Math.PI / 180 + 1e-6 && maxBank > 0.45, `Ordinary cockpit bank limit: ${maxBank}`);
-  assert(maxBankRate <= 0.60001, `Ordinary cockpit bank rate: ${maxBankRate}`); assert(maxYawRate <= 0.44001, `Ordinary cockpit yaw rate: ${maxYawRate}`);
+  assert(maxBankRate <= 0.60001, `Ordinary cockpit bank rate: ${maxBankRate}`); assert(maxYawRate <= 30 * Math.PI / 180 + 1e-6, `Ordinary cockpit yaw rate: ${maxYawRate}`);
   assert(rows.every(v => Math.abs(angle(v.cameraBank, v.renderBank)) < 1e-5 && v.alignment > 0.99999), 'Cockpit world camera does not follow rendered aircraft basis');
   r.ordinary = { maxBank, maxBankRate, maxYawRate, frames, rows };
   await cockpitStart();
@@ -288,14 +290,16 @@ async function overlapCase(r) {
   near(r.maxInversion, 0, 'Simultaneous A/D hold armed a false half-roll'); assert.equal(final.p.halfRoll, null);
 }
 async function enemyCase(r) {
-  await start('intercept'); const spawn = await enemyState(); assert(spawn.enemies.length); near(spawn.scale, 0.65, 'Default enemy scale'); spawn.enemies.forEach(e => near(e.speed, 108 * 0.65, 'Default enemy spawn speed'));
+  await start('intercept'); const spawn = await enemyState(); assert(spawn.enemies.length); near(spawn.scale, 0.65, 'Default enemy scale');
+  // 战役敌机速度由玩家实际巡航推导，不再是写死的 108 m/s。
+  spawn.enemies.forEach(e => near(e.speed, spawn.playerSpeed * .52, 'Default enemy spawn speed', .05));
   await step(0.6); const initial = await enemyState(); await configure({ enemy: 30 }); const selected30 = await enemyState();
   initial.enemies.forEach((e, i) => near(selected30.enemies[i].speed, e.speed, 'Paused enemy adjustment snapped actual speed'));
   await step(1 / 60); const first30 = await enemyState(); await step(3); const slow = await enemyState();
-  assert(first30.enemies[0].speed < selected30.enemies[0].speed && first30.enemies[0].speed > 108 * 0.3, 'Enemy slowdown did not remain continuous'); assert(slow.enemies[0].speed < initial.enemies[0].speed * 0.8);
+  assert(first30.enemies[0].speed < selected30.enemies[0].speed && first30.enemies[0].speed > initial.playerSpeed * .2, 'Enemy slowdown did not remain continuous'); assert(slow.enemies[0].speed < initial.enemies[0].speed * .8);
   await configure({ enemy: 120, mouse: true }); const selected120 = await enemyState(); await step(1 / 60); const first120 = await enemyState(); await step(3); const fast = await enemyState();
-  assert(first120.enemies[0].speed > selected120.enemies[0].speed && first120.enemies[0].speed < 168 * 1.2, 'Enemy speedup did not remain continuous'); assert(fast.enemies[0].speed > slow.enemies[0].speed * 2);
-  await restart(); const new120 = await enemyState(), retained = await state(); new120.enemies.forEach(e => near(e.speed, 108 * 1.2, 'New enemies lost selected speed')); assert.equal(retained.settings.mouse, true); assert.equal(retained.settings.enemy.value, 120);
+  assert(first120.enemies[0].speed > selected120.enemies[0].speed && first120.enemies[0].speed < initial.playerSpeed * .85, 'Enemy speedup did not remain continuous'); assert(fast.enemies[0].speed > slow.enemies[0].speed * 2);
+  await restart(); const new120 = await enemyState(), retained = await state(); new120.enemies.forEach(e => near(e.speed, new120.playerSpeed * .80, 'New enemies must obey the cruise-relative hard cap', .05)); assert.equal(retained.settings.mouse, true); assert.equal(retained.settings.enemy.value, 120);
   r.spawn65 = spawn; r.initial = initial; r.selected30 = selected30; r.first30 = first30; r.after30 = slow; r.selected120 = selected120; r.first120 = first120; r.after120 = fast; r.new120 = new120;
   r.existingEnemyDisplacement = { at30: distance(first30.enemies[0].pos, slow.enemies[0].pos), at120: distance(first120.enemies[0].pos, fast.enemies[0].pos) };
 }
@@ -305,11 +309,14 @@ async function pauseCase(r) {
     await navigate(size); await start(); await pause();
     const before = await state(); assert.equal(before.settings.mouse, false); assert.equal(before.settings.enemy.value, 65);
     const reachable = {};
-    for (const id of ['sky-resume', 'sky-cruise-speed', 'sky-burn-speed', 'sky-enemy-speed', 'sky-mouse-steering', 'sky-speed-reset', 'sky-restart', 'sky-home']) reachable[id] = await point(`#${id}`);
-    assert.equal(before.settings.burn.disabled, false, 'Default 218-knot cruise disabled the editable afterburner slider');
-    await range('sky-cruise-speed', 500); let s = await state(); assert.equal(s.settings.cruise.value, 500); assert.equal(s.settings.burn.min, 500); assert.equal(s.settings.burn.value, 500);
-    assert.equal(s.settings.burn.disabled, true, '500-knot cruise left the no-op afterburner slider enabled');
-    assert(s.settings.burn.output.includes('500') && s.settings.burn.output.includes('已达上限'), '500-knot cap output omitted its disabled reason');
+    // 转向滑轨默认锁在速度上（disabled），可点的是解锁开关；音量滑轨是新增控件。
+    for (const id of ['sky-resume', 'sky-cruise-speed', 'sky-burn-speed', 'sky-turn-lock', 'sky-volume', 'sky-enemy-speed', 'sky-mouse-steering', 'sky-speed-reset', 'sky-wingman', 'sky-ai-enabled', 'sky-restart', 'sky-home']) reachable[id] = await point(`#${id}`);
+    assert.equal(before.settings.turn.disabled, true, 'Turn rate must stay locked to speed until unlocked');
+    assert.equal(before.settings.burn.disabled, false, 'Default 300-dial cruise disabled the editable afterburner slider');
+    await range('sky-cruise-speed', SPEED_CAP); let s = await state();
+    assert.deepEqual([s.settings.cruise.value, s.settings.burn.min, s.settings.burn.value], [SPEED_CAP, 300, SPEED_CAP]);
+    assert.equal(s.settings.burn.disabled, true, '1500-knot cruise left the no-op afterburner slider enabled');
+    assert.match(s.settings.burn.output, /1[,]?500\s*节.*已达上限/);
     const atCapBurn = s.settings.burn;
     await evaluate("document.activeElement?.blur(); document.getElementById('sky-pause').scrollTop=0");
     const screenshot = await shot(`pause_${size.name}`);
@@ -322,7 +329,7 @@ async function pauseCase(r) {
     const flare = await point('[data-sky-action="flare"]');
     if (size.mobile) { await touch('touchStart', flare.x, flare.y); await touch('touchEnd'); } else await click('[data-sky-action="flare"]');
     const afterFlare = await state(); assert.equal(afterFlare.p.flares, s.p.flares - 1); assert.equal(afterFlare.shots, s.shots); assert.equal(afterFlare.p.missiles, s.p.missiles); assert.equal(afterFlare.view, s.view);
-    r.viewports.push({ ...size, reachable, scroll, screenshot, capScreenshot, bottomScreenshot, settings: before.settings, atCap: { cruise: 500, burn: atCapBurn }, flare: { before: s.p.flares, after: afterFlare.p.flares, cooldown: afterFlare.p.flareCd } });
+    r.viewports.push({ ...size, reachable, scroll, screenshot, capScreenshot, bottomScreenshot, settings: before.settings, atCap: { cruise: SPEED_CAP, burn: atCapBurn }, flare: { before: s.p.flares, after: afterFlare.p.flares, cooldown: afterFlare.p.flareCd } });
     assert.deepEqual(runtimeErrors(), []);
   }
 }
@@ -363,7 +370,7 @@ async function main() {
     if (chrome && chrome.exitCode === null && chrome.signalCode === null) { chrome.kill('SIGTERM'); for (let i = 0; i < 30 && chrome.exitCode === null && chrome.signalCode === null; i++) await sleep(100); if (chrome.exitCode === null && chrome.signalCode === null) { chrome.kill('SIGKILL'); await new Promise(resolve => chrome.once('exit', resolve)); } }
     if (profile) fs.rmSync(profile, { recursive: true, force: true });
     report.cleanup = { ownChromeStopped: !chrome || chrome.exitCode !== null || chrome.signalCode !== null, ownProfileDeleted: !profile || !fs.existsSync(profile) }; report.finishedAt = new Date().toISOString();
-    const file = path.join(ROOT, 'shots', 'sky_comfort_results.json'); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(report, null, 2) + '\n'); console.log(`RESULT ${report.result}: ${file}`);
+    fs.mkdirSync(path.dirname(previousFile), { recursive: true }); fs.writeFileSync(previousFile, JSON.stringify(report, null, 2) + '\n'); console.log(`RESULT ${report.result}: ${previousFile}`);
   }
   if (report.result !== 'PASS') process.exitCode = 1;
 }

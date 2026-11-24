@@ -1,4 +1,4 @@
-// 两个正式入口共用：俯视必须画出近距真实机体，而不是黄色地图符号。
+// 两个正式入口共用：新版俯视留出场景，原入口保持近景，均绘制真实机体。
 const deadline = performance.now() + 60000;
 while (!window.__PI?.ready()) {
   if (window.__PI?.boot?.error || performance.now() > deadline) throw Error(window.__PI?.boot?.error || '游戏未就绪');
@@ -61,7 +61,13 @@ try {
     cameraButton(); await paint();
     check(g.mode === 'play' && g.view === 0, `${label}没有进入实际俯视玩法`);
     const p = g.player, c = g.camera, distance = c.pos.y-p.pos.y, center = project(p.pos);
-    check(distance > 15 && distance < 100, `${label}仍是远距战术地图：高度差${distance.toFixed(2)}米`);
+    if (sky) {
+      check(Math.abs(distance-85) < .01, `${label}新版俯视距离应为85米：实测${distance.toFixed(2)}米`);
+      check(Math.abs(c.fov-1.10) < .001, `${label}新版俯视视场应为1.10rad`);
+      check(2*distance*c.tanHalf >= 100, `${label}自身高度平面没有留出100米可见场景`);
+    } else {
+      check(distance > 15 && distance < 100, `${label}仍是远距战术地图：高度差${distance.toFixed(2)}米`);
+    }
     check(c.fwd.y < -.9999 && c.up.z < -.9999 && Math.abs(c.right.y) < .001, `${label}俯视没有保持北向或随机身翻斜`);
     check(Math.abs(center.x-.5) < .04 && Math.abs(center.y-.5) < .08, `${label}真实机身不在画面中部`);
     check(!!playerMatrix && g.meshes.player.count >= 300, `${label}没有将真实玩家网格提交给渲染器`);
@@ -71,9 +77,14 @@ try {
       const nose = project(localPoint(playerMatrix, 0, 0, -6.5)), tail = project(localPoint(playerMatrix, 0, 0, 4.5));
       span = Math.hypot(right.x-left.x, (right.y-left.y)/c.aspect);
       length = Math.hypot((nose.x-tail.x)*c.aspect, nose.y-tail.y);
-      const minSpan = c.aspect > 2.3 ? .14 : .17;
-      check(span > minSpan && span < (c.aspect < 1 ? .80 : .34), `${label}真实机翼仍过小或被裁切：画宽占比${span.toFixed(4)}`);
-      check(length > .33 && length < .65, `${label}真实机身长度不够清楚：画高占比${length.toFixed(4)}`);
+      if (sky) {
+        check(span > 0 && span <= .40, `${label}真实机翼应保留地景空间：画宽占比${span.toFixed(4)}`);
+        check(length >= .08 && length <= .18, `${label}真实机身应占画高8–18%：实测${length.toFixed(4)}`);
+      } else {
+        const minSpan = c.aspect > 2.3 ? .14 : .17;
+        check(span > minSpan && span < (c.aspect < 1 ? .80 : .34), `${label}真实机翼仍过小或被裁切：画宽占比${span.toFixed(4)}`);
+        check(length > .33 && length < .65, `${label}真实机身长度不够清楚：画高占比${length.toFixed(4)}`);
+      }
     }
     const scale = hud.height/340, radius = Math.max(3, Math.round(4*scale));
     const rgba = ctx.getImageData(Math.round(center.x*hud.width)-radius, Math.round(center.y*hud.height)-radius, 2*radius, 2*radius).data;
@@ -94,7 +105,7 @@ try {
     }
     await checkWingAttachment('平飞');
     const heading = screenHeading(), yaw = p.yaw;
-    key('KeyD', true); __PI.step(.32); key('KeyD', false); __PI.step(.18);
+    key('KeyD', true); __PI.step(sky ? .65 : .32); key('KeyD', false); __PI.step(.18);
     const turned = Math.atan2(Math.sin(screenHeading()-heading), Math.cos(screenHeading()-heading));
     check(Math.abs(p.yaw-yaw) > .04 && Math.abs(turned) > .04 && g.camera.up.z < -.9999, `${label}真实转向没有带动机鼻投影，或北向背景跟着旋转`);
     await checkWingAttachment('转向');

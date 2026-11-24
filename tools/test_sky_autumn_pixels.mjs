@@ -193,6 +193,7 @@ test('WebGL2 compiles/links all transformed shaders and renders the intended pal
     const samples = {
       sun: sample(0, sun), sunEdge: sample(0, offset(0.065)), outsideSun: sample(0, offset(0.09)),
       horizon: sample(0, [sun[0], 0.02, sun[2]]), zenith: sample(0, [0, 1, 0]),
+      horizonAway: sample(0, direction(Math.PI - 0.05, 0.02)), midSky: sample(0, direction(Math.PI - 0.05, 0.38)),
       haze: sample(1, [-sun[0], 0.02, -sun[2]]), shallow: sample(2, [0, -1, 0], 0.1), deep: sample(2, [0, -1, 0], 25),
       meadow: sample(3, [0, -1, 0]),
     };
@@ -323,8 +324,9 @@ test('WebGL2 compiles/links all transformed shaders and renders the intended pal
     const masks = new Int8Array(sw * sh);
     for (let i = 0; i < masks.length; i++) {
       const a = i * 4, d = c => sky[a+c]-clear[a+c];
-      if (d(0) < -16 && d(1) < -13 && d(2)-d(1) > 4) { masks[i] = -1; cool++; }
-      else if (d(1) > 14 && sky[a] > sky[a+2] + 11) { masks[i] = 1; warm++; }
+      const change = d(0) * 0.299 + d(1) * 0.587 + d(2) * 0.114;
+      if (change < -13 && sky[a] <= sky[a+1] && sky[a+1] <= sky[a+2]) { masks[i] = -1; cool++; }
+      else if (change > 14 && sky[a] > sky[a+1] && sky[a+1] > sky[a+2] + 7) { masks[i] = 1; warm++; }
       if (Math.abs(d(0))+Math.abs(d(1))+Math.abs(d(2)) < 5) gaps++;
       if (Math.abs(moved[a+1]-sky[a+1]) > 12) windy++;
     }
@@ -425,8 +427,10 @@ test('WebGL2 compiles/links all transformed shaders and renders the intended pal
   assert.ok(s.sunEdge[3] > 245 && s.outsideSun[3] === 0 && s.discFar === 0, `Enlarged but bounded sun disc: ${JSON.stringify(s)}`);
   assert.ok(s.sun[1] > s.sunEdge[1] && s.sunEdge[1] > s.outsideSun[1], `Soft angular sun edge: ${JSON.stringify(s)}`);
   assert.ok(s.horizon[0] > s.horizon[1] && s.horizon[1] > s.horizon[2], `Warm peach horizon: ${s.horizon}`);
-  assert.ok(s.zenith[2] > s.zenith[0] && s.zenith[0] > s.zenith[1], `Mauve zenith: ${s.zenith}`);
-  assert.ok(s.haze[2] > s.haze[1] && s.haze[0] > s.haze[1], `Purple-grey distant haze: ${s.haze}`);
+  for (const name of ['horizonAway', 'midSky', 'zenith', 'haze']) {
+    const [r, g, b] = s[name];
+    assert.ok(g >= r + 8 && b >= g + 5, `Blue-grey ${name}: ${s[name]}`);
+  }
   for (const name of ['shallow', 'deep']) assert.ok(s[name][2] > s[name][0] && s[name][1] > s[name][0], `Blue-cyan ${name}: ${s[name]}`);
   assert.ok(s.shallow[1] > s.deep[1] + 35, `Readable pale shallows: ${s.shallow}, ${s.deep}`);
   assert.ok(s.meadow[0] > s.meadow[2] * 1.3 && s.meadow[1] > s.meadow[2] * 1.3, `Ochre-green ground: ${s.meadow}`);
@@ -453,7 +457,7 @@ test('WebGL2 compiles/links all transformed shaders and renders the intended pal
   assert.deepEqual(s.worldCellRepeat[0], s.worldCellRepeat[1], 'Material flecks repeat at world period and stay world-anchored');
   const bank = s.farCloud;
   assert(bank.cool > 95 && bank.warm > 65 && bank.stacked > 35 && bank.longEdge >= 9 && bank.gaps > 2600 && bank.windy > 190,
-    `横向云堤应在多列有桃亮顶缘/紫灰底、留够晴空并响应风；128×52 GPU 采样 ${JSON.stringify(bank)}`);
+    `横向云堤应在多列有淡金顶缘和蓝灰底，留够晴空并响应风。128×52 GPU 采样 ${JSON.stringify(bank)}`);
   assert(s.ridgeContrast[0] > 8 && s.ridgeContrast[1] < s.ridgeContrast[0] * 0.55, `山肩短距岩纹需要分明，远层应安静，不是整坡平紫或满屏噪点：${s.ridgeContrast}`);
   assert.ok(s.reflectionHotCount >= 2 && s.reflectionHotCount < 700 && s.reflectionPeak > luminance(s.waterBase) + 40, `Sun produces sparse broken golden water glints: base ${s.waterBase}, hotspots ${s.reflectionHotCount}, peak ${s.reflectionPeak}`);
   assert(s.distantGold >= 4 && s.distantGold < 95, `远处水面应有成段的暖反光，不能全消失或铺满：${s.distantGold} / 128`);

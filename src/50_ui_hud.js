@@ -110,7 +110,106 @@ function shadowVisible(ground) {
   return G.map.cloudDensity(mid.x, mid.y, mid.z) < 0.22;
 }
 
-function drawGroundShadow(pos, basis, size, alpha = 0.35) {
+// 世界特效和焦痕画在 2D 覆盖层上，没有深度缓冲。先剔除被机体或山体挡住的部分，
+// 否则导弹落点的焦痕会盖在机身上，看起来像武器从机背穿出来。
+// 挖空轮廓取机鼻、双翼尖和机尾的实际投影，跟着本帧滚转与俯视偏航走；固定椭圆
+// 在机翼外侧或长机身前留空，仍会漏出压在机身上的像素。翼尖按真实后掠取到翼面
+// 最后缘（模型 z≈1.78 → 机身前向 -1.9），否则翼尖后缘一窄条会漏画。
+const PLAYER_HULL = [[6.59, 0], [-1.9, 4.9], [-4.3, 0], [-1.9, -4.9]];
+let playerOccluderCache = { time: null, view: -1, value: null };
+function playerOccluder() {
+  const p = G.player;
+  if (!p || p.dead || G.view === 2 || (G.cockpitAlpha ?? 0) > 0.6) return null;
+  if (playerOccluderCache.time === G.time && playerOccluderCache.view === G.view) return playerOccluderCache.value;
+  const b = p.renderBasis || p.basis, ps = {}, pts = [];
+  if (!projectToScreen(p.pos, ps) || !ps.visible) { playerOccluderCache = { time: G.time, view: G.view, value: null }; return null; }
+  for (const [fwd, right] of PLAYER_HULL) {
+    const pos = vadd(vadd(p.pos, vmul(b.fwd, fwd)), vmul(b.right, right)), s = {};
+    if (!projectToScreen(pos, s)) { pts.length = 0; break; }
+    pts.push({ x: s.x, y: s.y });
+  }
+  const value = pts.length === 4
+    ? { poly: pts, dist: ps.dist }
+    : { x: ps.x, y: ps.y, dist: ps.dist, rx: Math.max(12, 5.6 * pxPerM(ps.dist)), ry: Math.max(8, 2.1 * pxPerM(ps.dist)) };
+  playerOccluderCache = { time: G.time, view: G.view, value };
+  return value;
+}
+
+function playerScreenCovers(s, dist) {
+  const hole = playerOccluder();
+  // 地面焦痕与机身的深度差可达数百米；只有深度接近的物件（导弹、翼尖曳光）才按
+  // “离相机更远”判断。地面物件始终按屏幕轮廓覆盖判定。
+  if (!hole || (dist <= hole.dist + 2 && dist < hole.dist * 1.5)) return false;
+  if (!hole.poly) {
+    const dx = (s.x - hole.x) / hole.rx, dy = (s.y - hole.y) / hole.ry;
+    return dx * dx + dy * dy <= 1;
+  }
+  // 凸四边形内外判定：四个端点同向绕行，符号最稳。
+  let side = 0;
+  for (let i = 0; i < 4; i++) {
+    const a = hole.poly[i], b = hole.poly[(i + 1) % 4];
+    const cross = (b.x - a.x) * (s.y - a.y) - (b.y - a.y) * (s.x - a.x);
+    if (cross === 0) continue;
+    const sign = cross > 0 ? 1 : -1;
+    if (side === 0) side = sign;
+    else if (sign !== side) return false;
+  }
+  return true;
+}
+
+// 位于机体之后的焦痕或特效，绘制时把机体的屏幕轮廓挖空；仅按中心点整团丢弃会留下
+// 边缘压在机翼上的像素。没有 Path2D 的环境（VM 回归）退回整团绘制。
+function drawBehindPlayer(occluder, dist, draw) {
+  if (!occluder || dist <= occluder.dist + 2) { draw(); return; }
+  if (typeof Path2D !== 'function') { draw(); return; }
+  const path = new Path2D();
+  path.rect(0, 0, VW, VH);
+  if (occluder.poly) {
+    // 裁剪边本身也抗锯齿：按质心向外放 1.5 像素，免得轮廓内沿留一圈半透明焦痕像素。
+    const p = occluder.poly;
+    let cx = 0, cy = 0;
+    for (const v of p) { cx += v.x; cy += v.y; }
+    cx /= 4; cy /= 4;
+    const grow = v => {
+      const dx = v.x - cx, dy = v.y - cy, len = Math.hypot(dx, dy) || 1;
+      return { x: v.x + dx / len * 1.5, y: v.y + dy / len * 1.5 };
+    };
+    const q = p.map(grow);
+    path.moveTo(q[0].x, q[0].y);
+    for (let i = 1; i < 4; i++) path.lineTo(q[i].x, q[i].y);
+    path.closePath();
+  } else {
+    path.ellipse(occluder.x, occluder.y, occluder.rx, occluder.ry, 0, 0, TAU);
+  }
+  ctx.save();
+  ctx.clip(path, 'evenodd');
+  draw();
+  ctx.restore();
+}
+
+function terrainBlocks(cam, pos) {
+  if (!G.map || !cam) return false;
+  for (let i = 1; i <= 9; i++) {
+    const t = i / 10;
+    const x = lerp(cam.x, pos.x, t), y = lerp(cam.y, pos.y, t), z = lerp(cam.z, pos.z, t);
+    if (y < G.map.heightAt(x, z) + 0.9) return true;
+  }
+  return false;
+}
+
+function terrainOccluded(pos) {
+  return terrainBlocks(G.camera?.pos, pos);
+}
+
+// 导弹与曳光这类贴着机身飞行的物件按中心点剔除；地面焦痕、爆点和阴影不能用中心点
+// 整团丢弃：中心落在机体轮廓内时，其余露在轮廓外的像素本应可见。
+function overlayOccluded(pos, s, dist = s.dist) {
+  if (!s.visible) return true;
+  if (playerScreenCovers(s, dist)) return true;
+  return terrainOccluded(pos);
+}
+
+function drawGroundShadow(pos, basis, size, alpha = 0.35, occluder = null) {
   if (!G.map) return;
   const gh = G.map.heightAt(pos.x, pos.z);
   if (gh > pos.y - 8) return;
@@ -126,35 +225,41 @@ function drawGroundShadow(pos, basis, size, alpha = 0.35) {
   const w = Math.max(2, 11 * size * ppm);
   const h = Math.max(1, 4.6 * size * ppm);
   const altFade = clamp01(1 - (pos.y - ground.y) / 1800);
-  ctx.save();
-  ctx.globalAlpha = alpha * altFade;
-  ctx.translate(Math.round(s.x), Math.round(s.y));
-  ctx.rotate(ang);
-  ctx.fillStyle = 'rgba(10,7,16,0.9)';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, w * 0.5, h * 0.5, 0, 0, TAU);
-  ctx.fill();
-  ctx.globalAlpha *= 0.7;
-  ctx.fillRect(-w * 0.24, -h * 0.08, w * 0.55, Math.max(1, h * 0.16));
-  ctx.restore();
+  drawBehindPlayer(occluder, s.dist, () => {
+    ctx.save();
+    ctx.globalAlpha = alpha * altFade;
+    ctx.translate(Math.round(s.x), Math.round(s.y));
+    ctx.rotate(ang);
+    ctx.fillStyle = 'rgba(10,7,16,0.9)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * 0.5, h * 0.5, 0, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha *= 0.7;
+    ctx.fillRect(-w * 0.24, -h * 0.08, w * 0.55, Math.max(1, h * 0.16));
+    ctx.restore();
+  });
 }
 
 function drawScorchDecals() {
+  const occluder = playerOccluder();
   for (const d of G.decals) {
     const s = {};
     const pos = { x: d.pos.x, y: d.pos.y + 0.5, z: d.pos.z };
-    if (!projectToScreen(pos, s) || !s.visible) continue;
+    // 焦痕落在开阔地面上：中心点被机体盖住不算整体被挡，挖空轮廓后仍要画外围像素。
+    if (!projectToScreen(pos, s) || terrainOccluded(pos)) continue;
     const ppm = pxPerM(s.dist);
     const r = Math.max(1.5, d.size * ppm);
     const a = clamp01(d.life / d.maxLife);
-    ctx.save();
-    ctx.globalAlpha = 0.5 * a;
-    ctx.fillStyle = '#1b1218';
-    ctx.beginPath(); ctx.ellipse(Math.round(s.x), Math.round(s.y), r, r * 0.45, 0, 0, TAU); ctx.fill();
-    ctx.globalAlpha = 0.35 * a;
-    ctx.fillStyle = '#0c080d';
-    ctx.beginPath(); ctx.ellipse(Math.round(s.x), Math.round(s.y), r * 0.6, r * 0.28, 0, 0, TAU); ctx.fill();
-    ctx.restore();
+    drawBehindPlayer(occluder, s.dist, () => {
+      ctx.save();
+      ctx.globalAlpha = 0.5 * a;
+      ctx.fillStyle = '#1b1218';
+      ctx.beginPath(); ctx.ellipse(Math.round(s.x), Math.round(s.y), r, r * 0.45, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.35 * a;
+      ctx.fillStyle = '#0c080d';
+      ctx.beginPath(); ctx.ellipse(Math.round(s.x), Math.round(s.y), r * 0.6, r * 0.28, 0, 0, TAU); ctx.fill();
+      ctx.restore();
+    });
   }
 }
 
@@ -208,6 +313,8 @@ function drawTracers() {
     const a = {}, b = {};
     if (!projectToScreen(t.a, a) || !projectToScreen(t.b, b)) continue;
     if (a.w < 0 || b.w < 0) continue;
+    const mid = { x: (t.a.x + t.b.x) * 0.5, y: (t.a.y + t.b.y) * 0.5, z: (t.a.z + t.b.z) * 0.5 }, ms = {};
+    if (!projectToScreen(mid, ms) || overlayOccluded(mid, ms)) continue;
     const alpha = clamp01(t.life / t.maxLife);
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -223,6 +330,47 @@ function drawTracers() {
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(lerp(a.x, b.x, 0.7), lerp(a.y, b.y, 0.7)); ctx.stroke();
     }
     ctx.restore();
+  }
+  drawGunTracers();
+}
+
+function drawGunTracers() {
+  const occluder = playerOccluder();
+  for (const b of G.bullets) {
+    const head = {};
+    if (b.dead || !projectToScreen(b.pos, head) || overlayOccluded(b.pos, head)) continue;
+    const fade = clamp01(b.life / .16);
+    drawBehindPlayer(occluder, head.dist, () => {
+      ctx.save(); ctx.lineCap = 'butt';
+      // 近段透视也只能留下短曳光，不能从炮口到弹头拉满整块风挡。
+      let remaining = 8;
+      for (let i = b.trail.length - 1; i > 0 && remaining > 0; i--) {
+        const from = b.trail[i - 1], to = b.trail[i], a = {}, s = {};
+        if (!projectToScreen(from, a) || !projectToScreen(to, s) || terrainOccluded(vlerp(from, to, .5))) continue;
+        const length = Math.hypot(a.x - s.x, a.y - s.y), drawn = Math.min(length, remaining);
+        if (length > remaining) {
+          a.x = lerp(s.x, a.x, remaining / length); a.y = lerp(s.y, a.y, remaining / length);
+        }
+        const alpha = fade * (.25 + .65 * (remaining - drawn / 2) / 8);
+        remaining -= drawn;
+        ctx.globalAlpha = alpha * .35;
+        ctx.strokeStyle = '#342515'; ctx.lineWidth = 2.1;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(s.x, s.y); ctx.stroke();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = b.color; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.strokeStyle = '#fff6cf'; ctx.lineWidth = .85; ctx.stroke();
+      }
+      // 视线方向的远段会缩到亚像素，亮弹头保持至少一个逻辑像素，仍受地形和机体遮挡。
+      const size = clamp(pxPerM(head.dist) * .28, 1.25, 2.4);
+      const x = Math.round(head.x), y = Math.round(head.y);
+      ctx.globalAlpha = fade * .35;
+      ctx.fillStyle = '#342515'; ctx.fillRect(x - size / 2 - .6, y - size / 2 - .6, size + 1.2, size + 1.2);
+      ctx.globalAlpha = fade;
+      ctx.fillStyle = b.color; ctx.fillRect(x - size / 2 - .4, y - size / 2 - .4, size + .8, size + .8);
+      ctx.globalAlpha = fade;
+      ctx.fillStyle = '#fff6cf'; ctx.fillRect(x - size / 2, y - size / 2, size, size);
+      ctx.restore();
+    });
   }
 }
 
@@ -262,7 +410,8 @@ function drawMissileTrails() {
       drift.y = pos.y + curl * (2.1 + Math.cos(phase * 0.72));
       drift.z = pos.z + curl * Math.cos(phase) * 1.3;
       const ok = projectToScreen(drift, next) && next.dist > 3;
-      if (projected && ok && (prev.visible || next.visible)) {
+      const hidden = ok && overlayOccluded(drift, next, next.dist);
+      if (projected && ok && !hidden && (prev.visible || next.visible)) {
         const depth = (prev.dist + next.dist) * 0.5;
         const width = clamp(pxPerM(depth) * (0.44 + age * 1.25) * (1 + 0.20 * age * ripple), 0.70, 2.8);
         const alpha = Math.pow(fresh, 1.25) * (0.18 + 0.82 * smoothstep(12, 70, depth)) * (1 + age * 0.15 * ripple);
@@ -271,7 +420,7 @@ function drawMissileTrails() {
         ctx.lineWidth = width * 0.62; ctx.strokeStyle = fresh > 0.72 ? '#ffedc9' : fresh > 0.4 ? '#e0d4c4' : '#c4c0bc';
         ctx.globalAlpha = (0.10 + 0.28 * fresh) * alpha; ctx.stroke();
       }
-      if (!tip && ok && next.visible) {
+      if (!tip && ok && !hidden && next.visible) {
         const size = clamp(pxPerM(next.dist) * (3.2 + 12 * age) * (1 + 0.15 * ripple), 1.1, 44);
         const separation = projected ? Math.hypot(next.x - prev.x, next.y - prev.y) : size;
         ctx.globalAlpha = Math.pow(fresh, 0.85) * (0.28 + 0.55 * smoothstep(9, 58, next.dist))
@@ -287,109 +436,113 @@ function drawMissileTrails() {
 
 function drawEffects() {
   drawMissileTrails();
-  const tmp = {};
+  const tmp = {}, occluder = playerOccluder();
   // smoke belongs behind the fireball and sparks, not on top of them
   const smokeRank = f => (f.type === 'smoke' || f.type === 'mist') ? 0 : 1;
   G.effects.sort((a, b) => smokeRank(a) - smokeRank(b));
   for (const f of G.effects) {
     if (f.delay > 0) continue;
     const b = projectToScreen(f.pos, tmp);
-    if (!b || !tmp.visible) continue;
-    const ppm = pxPerM(tmp.dist);
-    const lifeF = clamp01(f.life / f.maxLife);
-    const x = Math.round(tmp.x), y = Math.round(tmp.y);
-    if (f.type === 'smoke' || f.type === 'mist') {
-      // cap screen-space radius so launch puffs next to the camera can never
-      // smear across the view; fade very near puffs instead of blowing up
-      const cap = f.type === 'mist' ? 60 : (f.dark ? 38 : 46);
-      const r = Math.min(cap, Math.max(0.8, f.size * ppm));
-      const near = clamp01((tmp.dist - 16) / 55);
-      const a = (f.type === 'mist' ? 0.32 : 0.5) * lifeF * (0.22 + 0.78 * near);
-      if (a < 0.01) continue;
-      ctx.globalAlpha = a;
-      ctx.fillStyle = f.type === 'mist' ? '#c9c3cf' : (f.dark ? '#34303e' : '#777080');
-      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
-      ctx.globalAlpha = a * 0.55;
-      ctx.fillStyle = f.dark ? '#17131e' : '#a49aa6';
-      ctx.beginPath(); ctx.arc(x - r * 0.22, y - r * 0.18, r * 0.62, 0, TAU); ctx.fill();
-    } else if (f.type === 'fire') {
-      const r = Math.max(1, f.size * ppm);
-      const a = clamp01(lifeF * 1.3);
-      ctx.globalAlpha = a;
-      ctx.fillStyle = '#ff7a3a';
-      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#ffd166';
-      ctx.beginPath(); ctx.arc(x - r * 0.12, y - r * 0.15, r * 0.68, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#fff6dc';
-      ctx.beginPath(); ctx.arc(x - r * 0.2, y - r * 0.22, r * 0.36, 0, TAU); ctx.fill();
-      // chunky embers at the rim
-      ctx.fillStyle = '#ffb348';
-      for (let i = 0; i < 4; i++) {
-        const ang = i * 1.9 + lifeF;
-        ctx.fillRect(Math.round(x + Math.cos(ang) * r * 1.1), Math.round(y + Math.sin(ang) * r * 1.1), 1, 1);
-      }
-    } else if (f.type === 'spark' || f.type === 'ember') {
-      const a = clamp01(lifeF * 1.6);
-      const sz = Math.max(1, Math.round(f.size * (f.type === 'spark' ? 1 : 1)));
-      ctx.globalAlpha = a;
-      ctx.fillStyle = f.color;
-      ctx.fillRect(x, y, sz, sz);
-      ctx.globalAlpha = a * 0.35;
-      ctx.fillStyle = '#ffb35a';
-      ctx.fillRect(x - 1, y, sz + 2, 1);
-    } else if (f.type === 'spray') {
-      const a = clamp01(lifeF);
-      const sz = Math.max(1, Math.round(f.size * 0.8));
-      ctx.globalAlpha = a * 0.9;
-      ctx.fillStyle = f.color;
-      ctx.fillRect(x, y, sz, sz);
-      ctx.globalAlpha = a * 0.45;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(x, y - 1, 1, 1);
-    } else if (f.type === 'foam') {
-      const r = Math.max(1, f.size * ppm);
-      ctx.globalAlpha = 0.35 * lifeF;
-      ctx.strokeStyle = f.color;
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.35, 0, 0, TAU); ctx.stroke();
-    } else if (f.type === 'ring') {
-      const r = Math.max(1, f.size * ppm);
-      ctx.globalAlpha = clamp01(lifeF * 1.4) * 0.9;
-      ctx.strokeStyle = f.color;
-      ctx.lineWidth = f.flat ? 1 : 2;
-      ctx.beginPath();
-      if (f.flat) ctx.ellipse(x, y, r, r * 0.38, 0, 0, TAU);
-      else ctx.arc(x, y, r, 0, TAU);
-      ctx.stroke();
-      ctx.globalAlpha *= 0.5;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      if (f.flat) ctx.ellipse(x, y, r * 1.06, r * 0.40, 0, 0, TAU);
-      else ctx.arc(x, y, r * 1.05, 0, TAU);
-      ctx.stroke();
-    } else if (f.type === 'debris') {
-      const a = clamp01(lifeF);
-      const sz = Math.max(1, f.size * ppm * 1.8);
-      ctx.globalAlpha = a;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(f.rot || 0);
-      ctx.fillStyle = f.color;
-      ctx.fillRect(-sz * 0.5, -sz * 0.5, sz, Math.max(1, sz * 0.6));
-      ctx.restore();
-      f.rot = (f.rot || 0) + (f.rotV || 0) * 0.016;
-    } else if (f.type === 'flare') {
-      ctx.globalAlpha = 0.95 * lifeF;
-      ctx.fillStyle = '#fff6c9';
-      ctx.fillRect(x - 1, y - 1, 3, 3);
-      ctx.globalAlpha = 0.5 * lifeF;
-      ctx.fillStyle = '#ffb84d';
-      ctx.fillRect(x - 3, y, 7, 1);
-      ctx.fillRect(x, y - 3, 1, 7);
-    }
+    if (!b || overlayOccluded(f.pos, tmp)) continue;
+    drawBehindPlayer(occluder, tmp.dist, () => drawWorldEffect(f, tmp, pxPerM(tmp.dist)));
   }
   ctx.globalAlpha = 1;
+}
+
+function drawWorldEffect(f, tmp, ppm) {
+  const lifeF = clamp01(f.life / f.maxLife);
+  const x = Math.round(tmp.x), y = Math.round(tmp.y);
+  if (f.type === 'smoke' || f.type === 'mist') {
+    // cap screen-space radius so launch puffs next to the camera can never
+    // smear across the view; fade very near puffs instead of blowing up
+    const cap = f.type === 'mist' ? 60 : (f.dark ? 38 : 46);
+    const r = Math.min(cap, Math.max(f.minRadius ?? 0.8, f.size * ppm));
+    const near = clamp01((tmp.dist - 16) / 55);
+    const a = (f.opacity ?? (f.type === 'mist' ? 0.32 : 0.5)) * lifeF * (0.22 + 0.78 * near);
+    if (a > 0.01) {
+      ctx.globalAlpha = a;
+      ctx.fillStyle = f.color ?? (f.type === 'mist' ? '#c9c3cf' : (f.dark ? '#34303e' : '#777080'));
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+      ctx.globalAlpha = a * 0.55;
+      ctx.fillStyle = f.highlight ?? (f.dark ? '#17131e' : '#a49aa6');
+      ctx.beginPath(); ctx.arc(x - r * 0.22, y - r * 0.18, r * 0.62, 0, TAU); ctx.fill();
+    }
+  } else if (f.type === 'fire') {
+    const r = Math.max(f.minRadius ?? 1, f.size * ppm);
+    const a = clamp01(lifeF * 1.3);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#ff7a3a';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath(); ctx.arc(x - r * 0.12, y - r * 0.15, r * 0.68, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#fff6dc';
+    ctx.beginPath(); ctx.arc(x - r * 0.2, y - r * 0.22, r * 0.36, 0, TAU); ctx.fill();
+    // chunky embers at the rim
+    ctx.fillStyle = '#ffb348';
+    for (let i = 0; i < 4; i++) {
+      const ang = i * 1.9 + lifeF;
+      ctx.fillRect(Math.round(x + Math.cos(ang) * r * 1.1), Math.round(y + Math.sin(ang) * r * 1.1), 1, 1);
+    }
+  } else if (f.type === 'spark' || f.type === 'ember') {
+    const a = clamp01(lifeF * 1.6);
+    const sz = Math.max(1, Math.round(f.size * (f.type === 'spark' ? 1 : 1)));
+    ctx.globalAlpha = a;
+    ctx.fillStyle = f.color;
+    ctx.fillRect(x, y, sz, sz);
+    ctx.globalAlpha = a * 0.35;
+    ctx.fillStyle = '#ffb35a';
+    ctx.fillRect(x - 1, y, sz + 2, 1);
+  } else if (f.type === 'spray') {
+    const a = clamp01(lifeF);
+    const sz = Math.max(1, Math.round(f.size * 0.8));
+    ctx.globalAlpha = a * 0.9;
+    ctx.fillStyle = f.color;
+    ctx.fillRect(x, y, sz, sz);
+    ctx.globalAlpha = a * 0.45;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y - 1, 1, 1);
+  } else if (f.type === 'foam') {
+    const r = Math.max(f.minRadius ?? 1, f.size * ppm);
+    ctx.globalAlpha = (f.opacity ?? 0.35) * lifeF;
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.35, 0, 0, TAU); ctx.stroke();
+  } else if (f.type === 'ring') {
+    const r = Math.max(1, f.size * ppm);
+    ctx.globalAlpha = clamp01(lifeF * 1.4) * 0.9;
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = f.flat ? 1 : 2;
+    ctx.beginPath();
+    if (f.flat) ctx.ellipse(x, y, r, r * 0.38, 0, 0, TAU);
+    else ctx.arc(x, y, r, 0, TAU);
+    ctx.stroke();
+    ctx.globalAlpha *= 0.5;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (f.flat) ctx.ellipse(x, y, r * 1.06, r * 0.40, 0, 0, TAU);
+    else ctx.arc(x, y, r * 1.05, 0, TAU);
+    ctx.stroke();
+  } else if (f.type === 'debris') {
+    const a = clamp01(lifeF);
+    const sz = Math.max(1, f.size * ppm * 1.8);
+    ctx.globalAlpha = a;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(f.rot || 0);
+    ctx.fillStyle = f.color;
+    ctx.fillRect(-sz * 0.5, -sz * 0.5, sz, Math.max(1, sz * 0.6));
+    ctx.restore();
+    f.rot = (f.rot || 0) + (f.rotV || 0) * 0.016;
+  } else if (f.type === 'flare') {
+    ctx.globalAlpha = 0.95 * lifeF;
+    ctx.fillStyle = '#fff6c9';
+    ctx.fillRect(x - 1, y - 1, 3, 3);
+    ctx.globalAlpha = 0.5 * lifeF;
+    ctx.fillStyle = '#ffb84d';
+    ctx.fillRect(x - 3, y, 7, 1);
+    ctx.fillRect(x, y - 3, 1, 7);
+  }
 }
 
 // hard-pixel line: no anti-aliasing, every stamp lands on an integer pixel
@@ -414,7 +567,7 @@ function drawMissilesAndGlows() {
   const tmp = {}, t2 = {};
   for (const m of G.missiles) {
     if (m.dead) continue;
-    if (!projectToScreen(m.pos, tmp) || !tmp.visible) continue;
+    if (!projectToScreen(m.pos, tmp) || overlayOccluded(m.pos, tmp)) continue;
     const sp = Math.hypot(m.vel.x, m.vel.y, m.vel.z) || 1;
     const ux = m.vel.x / sp, uy = m.vel.y / sp, uz = m.vel.z / sp;
     // project a point behind the round so the sprite follows screen velocity
@@ -535,20 +688,20 @@ function drawPopups() {
 function drawWorldOverlay() {
   if (!G.map || !G.player) return;
   ctx.save();
+  const occluder = playerOccluder();
   // shadows
   for (const g of G.ground) {
     if (g.dead) continue;
     const d = vdist(g.pos, G.player.pos);
     if (d > 2600) continue;
-    drawGroundShadow(g.pos, { fwd: { x: 0, y: 0, z: -1 } }, g.type === 'sam' ? 0.8 : 0.55, 0.28);
+    drawGroundShadow(g.pos, { fwd: { x: 0, y: 0, z: -1 } }, g.type === 'sam' ? 0.8 : 0.55, 0.28, occluder);
   }
   for (const e of G.enemies) {
     if (e.dead) continue;
     const d = vdist(e.pos, G.player.pos);
     if (d > 2200) continue;
-    drawGroundShadow(e.pos, e.basis, 0.5, 0.22);
+    drawGroundShadow(e.pos, e.basis, 0.5, 0.22, occluder);
   }
-  if (G.cockpitAlpha < 0.65) drawGroundShadow(G.player.pos, G.player.renderBasis, 0.8, 0.3);
   drawScorchDecals();
   drawVaporPoints();
   drawTracers();
@@ -709,20 +862,21 @@ function drawHeadingTape() {
   drawText(compassLabel(deg), VW / 2 + 30, y + 11, { size: 6, color: PAL.gold, align: 'left' });
 }
 
-function drawObjectivesPanel() {
+function drawObjectivesPanel(waveTitle = `第 ${pad(G.wave, 2)} 波`, armorStatus = '') {
   const x = 10, y = 10;
-  const waveTitle = `第 ${pad(G.wave, 2)} 波`;
   panel(6, 2, 116, 62, { alpha: 0.38, fill: '#0c0912', stroke: '#3f342a', border: false });
-  drawText('巡逻 / 截击', x, y + 7, { size: 10, color: '#d8bd94', spacing: 0 });
+  drawText(G.defenseStage?.title || '巡逻 / 截击', x, y + 7, { size: 10, color: '#d8bd94', spacing: 0 });
   panel(x, y + 11, 92, 16, { alpha: 0.72, fill: '#191320', stroke: '#8a6f47', corners: true });
   drawText(waveTitle, x + 6, y + 23, { size: 10, color: PAL.goldHot, spacing: 0, bold: true });
-  const waining = G.waveTotal - G.waveKills;
-  drawText('无人机', x, y + 39, { size: 10, color: '#f0e3c6', shadow: '#0b0912' });
+  drawText(G.defenseStage ? '空中' : '无人机', x, y + 39, { size: 10, color: '#f0e3c6', shadow: '#0b0912' });
   drawText(`${Math.min(G.waveKills, G.waveTotal)}/${G.waveTotal}`, x + 34, y + 39, {
     size: 9, color: '#f0e3c6', mono: true, shadow: '#0b0912'
   });
-  if (G.secondary) {
-    const done = isSecondaryComplete();
+  if (armorStatus) {
+    drawText(`装甲 ${armorStatus}`, x, y + 51, { size: 9, color: '#b8e0d5', shadow: '#0b0912' });
+  } else if (G.secondary) {
+    const settlesWithWave = G.player?.flightComfort && G.secondary.type === 'shield';
+    const done = settlesWithWave ? G.secondaryDone : isSecondaryComplete();
     const txt = (done ? '附加完成  ' : '附加  ') + secondaryProgressText();
     drawText(txt, x, y + 51, {
       size: 9, color: done ? '#bce7a0' : '#cdb57f', shadow: '#0b0912'
@@ -803,46 +957,66 @@ function drawShieldFuel() {
   if (p.burning) drawText('加力', x + w + 2, y + 39, { size: 10, color: '#ffb347', align: 'left' });
 }
 
-function hudBlocked(x, y) {
+function hudRegions() {
   const W = VW, H = VH;
-  if (x < 132 && y < 128) return true;            // objectives + shield block
-  if (x > W - 136 && y < 64) return true;          // score
-  if (x < 100 && y > 116 && y < 172) return true;  // speed / radar alt
-  if (x > W - 100 && y > 116 && y < 172) return true; // altitude / VS
-  if (Math.abs(x - W / 2) < 120 && y < 64) return true; // heading tape + banner
-  if (Math.abs(x - W / 2) < 84 && y > H - 56) return true; // weapon bar
-  if (x > W - 86 && y > H - 98) return true;       // radar scope
-  return false;
+  return [
+    { left: -Infinity, right: 132, top: -Infinity, bottom: 128 },
+    { left: W - 136, right: Infinity, top: -Infinity, bottom: 64 },
+    { left: -Infinity, right: 100, top: 116, bottom: 172 },
+    { left: W - 100, right: Infinity, top: 116, bottom: 172 },
+    { left: W / 2 - 120, right: W / 2 + 120, top: -Infinity, bottom: 64 },
+    { left: W / 2 - 84, right: W / 2 + 84, top: H - 56, bottom: Infinity },
+    { left: W - 86, right: Infinity, top: H - 98, bottom: Infinity },
+  ];
 }
 
-function drawTargetMarkers() {
+function hudBlocked(x, y) {
+  return hudRegions().some(r => x > r.left && x < r.right && y > r.top && y < r.bottom);
+}
+
+function defenseContactName(target) {
+  if (target.isGround) return target.type === 'sam' ? '防空' : '装甲';
+  if (!G.defenseStage) return '敌机';
+  if (target.kind === 'drone') return '无人机';
+  if (target.kind === 'fighter') return '战斗机';
+  if (target.kind === 'transport') return '运输机';
+  return '敌机';
+}
+
+function drawTargetMarkers(lockingColor, windscreen, drawReadout) {
   const p = G.player;
-  const tmp = {};
+  let targets = collectTargets();
+  const lock = G.lock.phase !== 'search' && G.lock.target;
+  if (drawReadout && lock && targets.includes(lock)) targets = [lock, ...targets.filter(t => t !== lock)];
   let count = 0;
-  for (const t of collectTargets()) {
+  for (const t of targets) {
     if (count > 10) break;
     const d = vdist(p.pos, t.pos);
     if (d > 3400) continue;
     if (targetConcealed(t)) continue;
     const s = {};
-    if (!projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.2), z: t.pos.z }, s)) continue;
+    if (!projectTargetMarker({ x: t.pos.x, y: t.pos.y + (t.isGround ? 2 : 1.2), z: t.pos.z }, s, t)) continue;
     if (s.edge) {
-      drawEdgeCue(s, d, t);
+      if (!windscreen) drawEdgeCue(s, d, t, lockingColor);
       continue;
     }
     if (!s.visible) {
       // edge cue for off-screen enemies
-      if (!t.isGround && d < 3200 && s.w > 0) drawEdgeCue(s, d, t);
+      if (!windscreen && !t.isGround && d < 3200 && s.w > 0) drawEdgeCue(s, d, t, lockingColor);
       continue;
     }
     // never scribble target brackets over the fixed instrument panels
+    if (windscreen && (s.x < 8 || s.x > VW - 8 || s.y + 8 > windscreen.bottom)) continue;
     if (hudBlocked(s.x, s.y)) continue;
     count++;
-    const isLock = G.lock.target === t;
+    const isLock = G.lock.target === t && (!lockingColor || G.lock.phase !== 'search');
+    const pendingColor = isLock && G.lock.phase === 'locking' ? lockingColor : undefined;
+    const isTracked = windscreen?.target === t;
     const isDrone = t.kind === 'drone';
-    const col = isLock ? PAL.goldHot : (isDrone ? '#ff9083' : '#ffc25e');
+    const col = isLock ? pendingColor || PAL.goldHot : (isTracked ? windscreen.color : isDrone ? '#ff9083' : '#ffc25e');
     const a = clamp01(0.9 - Math.max(0, d - 2100) / 2200);
-    const r = isLock ? 12 : (isDrone ? 8 : 7);
+    const compactLock = !!p.lockRadius;
+    const r = isLock ? (compactLock ? 8 : 12) : (isDrone ? 8 : 7);
     const x = Math.round(s.x), y = Math.round(s.y);
     ctx.save();
     ctx.globalAlpha = a;
@@ -859,42 +1033,43 @@ function drawTargetMarkers() {
     ctx.restore();
     if (isLock) {
       const locked = G.lock.phase === 'locked';
-      const ringCol = locked ? PAL.goldHot : '#c4f4e9';
+      const ringCol = locked ? PAL.goldHot : pendingColor || '#c4f4e9';
       const pulse = 0.5 + 0.5 * Math.sin(G.realTime * (locked ? 5.5 : 8.5));
-      const rad = r + 17 + pulse * 2;
+      const rad = r + (compactLock ? 7 : 17) + pulse * (compactLock ? 1 : 2);
       const rot = G.realTime * (locked ? 2.2 : 3.4);
       ctx.save();
       ctx.globalAlpha = 0.95;
       // heavy dark base: the ring stays readable over bright snow and clouds
       ctx.strokeStyle = 'rgba(6,8,12,0.85)';
-      ctx.lineWidth = 5;
+      ctx.lineWidth = compactLock ? 3 : 5;
       ctx.beginPath(); ctx.arc(x, y, rad, 0, TAU); ctx.stroke();
       // rotating segmented highlight ring
       ctx.strokeStyle = ringCol;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = compactLock ? 1 : 2;
       for (let i = 0; i < 8; i++) {
         const a0 = rot + i * TAU / 8;
         ctx.beginPath(); ctx.arc(x, y, rad, a0, a0 + TAU / 8 - 0.22); ctx.stroke();
       }
       // four cardinal ticks outside the ring
-      ctx.lineWidth = 2;
+      ctx.lineWidth = compactLock ? 1 : 2;
       for (let i = 0; i < 4; i++) {
         const a = rot * 0.5 + i * TAU / 4;
         const ca = Math.cos(a), sa = Math.sin(a);
         ctx.beginPath();
-        ctx.moveTo(x + ca * (rad + 3), y + sa * (rad + 3));
-        ctx.lineTo(x + ca * (rad + 8), y + sa * (rad + 8));
+        ctx.moveTo(x + ca * (rad + (compactLock ? 2 : 3)), y + sa * (rad + (compactLock ? 2 : 3)));
+        ctx.lineTo(x + ca * (rad + (compactLock ? 5 : 8)), y + sa * (rad + (compactLock ? 5 : 8)));
         ctx.stroke();
       }
       // lock-on progress ring just inside the brackets
       const prog = clamp01(G.lock.progress);
       ctx.strokeStyle = 'rgba(6,8,12,0.9)';
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(x, y, r + 6, 0, TAU); ctx.stroke();
+      ctx.lineWidth = compactLock ? 2 : 4;
+      const progressRadius = r + (compactLock ? 3 : 6);
+      ctx.beginPath(); ctx.arc(x, y, progressRadius, 0, TAU); ctx.stroke();
       ctx.strokeStyle = ringCol;
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(x, y, r + 6, -Math.PI / 2, -Math.PI / 2 + Math.max(0.02, prog) * TAU); ctx.stroke();
-      if (locked) {
+      ctx.lineWidth = compactLock ? 1 : 2;
+      ctx.beginPath(); ctx.arc(x, y, progressRadius, -Math.PI / 2, -Math.PI / 2 + Math.max(0.02, prog) * TAU); ctx.stroke();
+      if (locked && !compactLock) {
         // slow expanding confirmation echo
         ctx.globalAlpha = 0.28 + 0.4 * (1 - pulse);
         ctx.strokeStyle = '#fff3c2';
@@ -903,27 +1078,32 @@ function drawTargetMarkers() {
       }
       ctx.restore();
     }
+    if (drawReadout) {
+      drawReadout(t, { x, y, r, d, col, isLock, isTracked });
+      continue;
+    }
     const distY = isLock ? y + 46 : y + r + 13;
-    drawText(`${d > 1000 ? (d / 1000).toFixed(1) + 'K' : Math.round(d)}`, x, distY, {
+    if (!isTracked) drawText(`${d > 1000 ? (d / 1000).toFixed(1) + 'K' : Math.round(d)}`, x, distY, {
       size: 8, color: col, align: 'center', shadow: '#0b0912', mono: true
     });
     const above = y - (isLock ? 44 : r + 7);
     const labelY = hudBlocked(x, above) || hudBlocked(x, above - 19) ? y + (isLock ? 84 : r + 42) : above;
-    drawText(isDrone ? '敌机' : (t.type === 'sam' ? '防空' : '装甲'), x, labelY, {
+    if (!isTracked) drawText(defenseContactName(t), x, labelY, {
       size: 10, color: col, align: 'center', alpha: 0.9, shadow: '#0b0912'
     });
-    if (isDrone) {
-      const hp = clamp01(t.hp / DRONE_MAX_HP);
+    if (isDrone || G.defenseStage && !t.isGround) {
       const barX = clamp(x - 21, 3, VW - 45);
       const barY = Math.max(4, labelY - 19);
-      rect(barX, barY, 42, 6, '#101922');
-      rect(barX + 1, barY + 1, 40 * hp, 4, hp > 0.5 ? '#69d5a2' : (hp > 0.25 ? '#dfb466' : '#e67468'));
-      rectLine(barX, barY, 42, 6, '#93a7ad');
+      drawTargetHealth(t, barX, barY);
     }
-    if (isLock) {
+    if (isLock && !isTracked) {
       if (G.lock.phase === 'locked') {
         drawText('已锁定', x, y + 59, {
           size: 10, color: PAL.goldHot, align: 'center', shadow: '#0b0912'
+        });
+      } else if (pendingColor) {
+        drawText(`锁定中 ${Math.floor(G.lock.progress * 100)}%`, x, y + 59, {
+          size: 10, color: pendingColor, align: 'center', shadow: '#0b0912'
         });
       } else {
         const pctStr = `${Math.floor(G.lock.progress * 100)}%`;
@@ -935,6 +1115,35 @@ function drawTargetMarkers() {
       }
     }
   }
+}
+
+// 友军标记只读取 G.allies，不进入锁定、目标数组或敌方威胁统计。
+function drawWingmanMarker(opts = {}) {
+  const wingman = G.allies?.[0];
+  if (!wingman || wingman.dead || !G.player) return;
+  const s = {};
+  if (!projectToScreen({ x: wingman.pos.x, y: wingman.pos.y + 1.2, z: wingman.pos.z }, s) || !s.visible) return;
+  if (s.x < 8 || s.x > VW - 8 || s.y < 8) return;
+  if (opts.bottom !== undefined && s.y + 8 > opts.bottom) return;
+  if (hudBlocked(s.x, s.y)) return;
+  const distance = vdist(G.player.pos, wingman.pos);
+  const x = Math.round(s.x), y = Math.round(s.y);
+  ctx.save();
+  ctx.globalAlpha = .92;
+  ctx.strokeStyle = 'rgba(8,6,12,0.9)'; ctx.lineWidth = 3;
+  drawBracket(x, y, 7, 'square', ctx);
+  ctx.strokeStyle = '#9fe6c8'; ctx.lineWidth = 1;
+  drawBracket(x, y, 7, 'square', ctx);
+  ctx.restore();
+  drawText('僚机', x, y - 12, { size: 6, color: '#9fe6c8', align: 'center', shadow: '#0b0912' });
+  drawText(`${(distance / 1000).toFixed(1)}`, x, y + 16, { size: 5, color: '#9fe6c8', align: 'center', alpha: .72, shadow: '#0b0912' });
+}
+
+function drawTargetHealth(t, x, y) {
+  const hp = clamp01(t.hp / (t.maxHp ?? DRONE_MAX_HP));
+  rect(x, y, 42, 6, '#101922');
+  rect(x + 1, y + 1, 40 * hp, 4, hp > .5 ? '#69d5a2' : hp > .25 ? '#dfb466' : '#e67468');
+  rectLine(x, y, 42, 6, '#93a7ad');
 }
 
 function drawBracket(x, y, r, shape, c) {
@@ -959,7 +1168,7 @@ function drawBracket(x, y, r, shape, c) {
   }
 }
 
-function drawEdgeCue(s, d, t) {
+function drawEdgeCue(s, d, t, lockingColor) {
   const cx = VW / 2, cy = VH / 2;
   let dx = s.x - cx, dy = s.y - cy;
   if (!isFinite(dx) || !isFinite(dy)) return;
@@ -970,7 +1179,8 @@ function drawEdgeCue(s, d, t) {
   const x = cx + dx * f, y = cy + dy * f;
   const a = Math.atan2(dy, dx);
   ctx.save();
-  const selected = G.lock.target === t, color = selected ? '#ffe39a' : '#ff9b8c';
+  const selected = G.lock.target === t && (!lockingColor || G.lock.phase !== 'search');
+  const color = selected ? (G.lock.phase === 'locking' && lockingColor || '#ffe39a') : '#ff9b8c';
   ctx.globalAlpha = selected ? .95 : .45;
   ctx.translate(x, y);
   ctx.rotate(a);
@@ -978,12 +1188,13 @@ function drawEdgeCue(s, d, t) {
   ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-3, -3); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
   ctx.restore();
   const status = selected && s.edge ? (G.lock.phase === 'locked' ? '已锁定 ' : '锁定中 ') : '';
-  drawText(`${status}${(d / 1000).toFixed(1)}`, x - Math.cos(a) * 10, y - Math.sin(a) * 10 + 3, {
+  const type = G.defenseStage ? `${defenseContactName(t)} ` : '';
+  drawText(`${status}${type}${(d / 1000).toFixed(1)}`, x - Math.cos(a) * 10, y - Math.sin(a) * 10 + 3, {
     size: 5, color: selected ? color : '#ffb2a3', align: 'center', alpha: selected ? 1 : .6, shadow: '#0b0912'
   });
 }
 
-function drawAimReticle() {
+function drawAimReticle(lockingColor = '#f0d39a') {
   if (G.view === 0) {
     if (!TOUCH.active && !(INPUT.mouseSteerAge < MOUSE_STEER_TIMEOUT)) return;
     // 仅在实际鼠标或触控瞄准时绘制，闲置光标不能盖住近距机身。
@@ -1002,9 +1213,9 @@ function drawAimReticle() {
     ctx.restore();
     return;
   }
-  const cx = Math.round(VW / 2), cy = Math.round(VH / 2);
+  const { x: cx, y: cy } = playerGunSight();
   const p = G.player;
-  const col = G.lock.phase === 'locked' ? '#ffe39a' : (G.lock.phase === 'locking' ? '#f0d39a' : '#b7e5db');
+  const col = G.lock.phase === 'locked' ? '#ffe39a' : (G.lock.phase === 'locking' ? lockingColor : '#b7e5db');
   ctx.save();
   ctx.globalAlpha = 0.82;
   ctx.strokeStyle = 'rgba(8,6,12,0.8)';
@@ -1026,12 +1237,6 @@ function drawAimReticle() {
   ctx.fillStyle = col;
   ctx.fillRect(cx - 1, cy - 1, 3, 3);
   ctx.restore();
-  // the target marker already shows LOCK / LOCKING nn% next to the ring
-  if (!G.lock.target) {
-    drawText('搜索', cx, cy + 33, {
-      size: 10, color: col, align: 'center', alpha: 0.85, shadow: '#0b0912'
-    });
-  }
 }
 
 function drawThreats() {
@@ -1158,6 +1363,20 @@ function updateRadarMap() {
   RADAR.rctx.putImageData(img, 0, 0);
 }
 
+function drawDefenseRadarContact(target, x, y) {
+  if (target.isGround) {
+    rectLine(x - 2, y - 2, 5, 5, '#e1bdff');
+  } else if (target.kind === 'transport') {
+    rect(x - 4, y - 1, 9, 3, '#ffd483');
+    rect(x - 1, y - 2, 3, 5, '#fff0cc');
+  } else if (target.kind === 'fighter') {
+    ctx.fillStyle = '#fff0cc';
+    ctx.beginPath(); ctx.moveTo(x, y - 3); ctx.lineTo(x + 3, y + 2); ctx.lineTo(x - 3, y + 2); ctx.closePath(); ctx.fill();
+  } else {
+    circleFill(x, y, 1.8, '#ff8f84');
+  }
+}
+
 function drawRadarScope(cx, cy, r, detailed = false) {
   updateRadarMap();
   const range = 2800;
@@ -1201,6 +1420,7 @@ function drawRadarScope(cx, cy, r, detailed = false) {
     const dz = (g.pos.z - G.player.pos.z) / range * r;
     if (dx * dx + dz * dz > (r - 2) * (r - 2)) continue;
     const x = cx + dx, y = cy + dz;
+    if (G.defenseStage) { drawDefenseRadarContact(g, x, y); continue; }
     ctx.fillStyle = '#ffd27a';
     if (g.type === 'sam') {
       ctx.beginPath(); ctx.moveTo(x, y - 2); ctx.lineTo(x + 2, y); ctx.lineTo(x, y + 2); ctx.lineTo(x - 2, y); ctx.closePath(); ctx.fill();
@@ -1216,6 +1436,7 @@ function drawRadarScope(cx, cy, r, detailed = false) {
     const dz = (e.pos.z - G.player.pos.z) / range * r;
     if (dx * dx + dz * dz > (r - 2) * (r - 2)) continue;
     const x = cx + dx, y = cy + dz;
+    if (G.defenseStage) { drawDefenseRadarContact(e, x, y); continue; }
     const a = 0.55 + 0.45 * Math.sin(G.realTime * 5 + e.engineSeed);
     ctx.globalAlpha = a;
     ctx.fillStyle = '#ff7a62';
@@ -1223,6 +1444,16 @@ function drawRadarScope(cx, cy, r, detailed = false) {
     ctx.fillStyle = '#fff1d0';
     ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
     ctx.globalAlpha = 1;
+  }
+  // wingman — mint diamond, never a threat ring
+  for (const a of G.allies || []) {
+    if (a.dead) continue;
+    const dx = (a.pos.x - G.player.pos.x) / range * r;
+    const dz = (a.pos.z - G.player.pos.z) / range * r;
+    if (dx * dx + dz * dz > (r - 2) * (r - 2)) continue;
+    const x = cx + dx, y = cy + dz;
+    ctx.fillStyle = '#9fe6c8';
+    ctx.beginPath(); ctx.moveTo(x, y - 2.5); ctx.lineTo(x + 2.5, y); ctx.lineTo(x, y + 2.5); ctx.lineTo(x - 2.5, y); ctx.closePath(); ctx.fill();
   }
   // missiles — bright warning tracks
   for (const m of G.missiles) {

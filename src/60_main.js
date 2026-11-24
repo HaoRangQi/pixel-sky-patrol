@@ -26,6 +26,9 @@ window.addEventListener('unhandledrejection', e => {
 const PARAMS = new URLSearchParams(location.search);
 G.seed = +(PARAMS.get('seed') || 1337);
 G.sound = PARAMS.get('sound') === '1';
+// 55% 对应旧版总增益 0.55，100% 为 1.0；0% 静音但保留音效开关状态。
+G.volume = .55;
+AudioSys.volume = G.volume;
 G.debug = PARAMS.get('debug') === '1';
 G.scenarioName = PARAMS.get('scenario') || '';
 const FIXED_QUALITY = PARAMS.get('quality') ? +PARAMS.get('quality') : 0;
@@ -77,7 +80,7 @@ function resizeAll() {
 }
 
 function setBodyClass() {
-  const interactive = G.mode === 'loading' || G.mode === 'title' || G.mode === 'failed' || G.mode === 'paused';
+  const interactive = G.mode === 'loading' || G.mode === 'title' || G.mode === 'failed' || G.mode === 'paused' || G.mode === 'victory';
   document.body.classList.toggle('playing', !interactive);
   document.body.classList.toggle('title', interactive);
 }
@@ -153,15 +156,23 @@ let lastFrame = performance.now();
 let fpsAcc = 0, fpsFrames = 0, fpsSample = 60, fpsBelow = 0, qualityCooldown = 0;
 let lastUiDraw = 0;
 
+document.addEventListener('visibilitychange', () => {
+  lastFrame = performance.now();
+  fpsAcc = 0; fpsFrames = 0;
+});
+
 function loop(now) {
   requestAnimationFrame(loop);
-  let dt = (now - lastFrame) / 1000;
+  let elapsed = (now - lastFrame) / 1000;
   lastFrame = now;
-  if (!isFinite(dt) || dt <= 0) dt = 0.016;
-  dt = Math.min(0.05, dt);
-  G.lastDt = dt;
-  if (!G.freeze && !BOOT.error) updateGame(dt);
-  if (G.freeze) G.realTime += 0;
+  if (!isFinite(elapsed) || elapsed <= 0) elapsed = 0.016;
+  if (document.hidden) return;
+  // Recover ordinary low-FPS wall time without replaying a long suspension.
+  const dt = Math.min(0.5, elapsed), steps = Math.ceil(dt / 0.05), step = dt / steps;
+  G.lastDt = step;
+  if (!G.freeze && !BOOT.error) {
+    for (let i = 0; i < steps; i++) updateGame(step);
+  }
   if (G.map && G.meshes && G.camera && !BOOT.error) {
     const drawables = collectDrawables();
     Renderer.render(G.camera, G.map, G.time, drawables, {
@@ -174,13 +185,12 @@ function loop(now) {
   }
   drawUIFrame();
   // fps + dynamic internal resolution
-  fpsAcc += dt; fpsFrames++;
+  fpsAcc += elapsed; fpsFrames++;
   if (fpsAcc >= 1.8) {
-    fpsSample = damp(fpsSample, fpsFrames / fpsAcc, 0.6, 1);
+    fpsSample = fpsFrames / fpsAcc;
     G.fps = fpsSample;
-    fpsAcc = 0; fpsFrames = 0;
     if (ADAPT_QUALITY && !FIXED_QUALITY && (G.mode === 'play' || G.mode === 'waveclear')) {
-      qualityCooldown -= 1.8;
+      qualityCooldown -= fpsAcc;
       if (fpsSample < 45 && qualityIndex < QUALITY_STEPS.length - 1 && qualityCooldown <= 0) {
         qualityIndex++;
         WORLD_H = Math.max(240, Math.round(WORLD_H * 0.86));
@@ -189,6 +199,7 @@ function loop(now) {
       }
       fpsBelow = fpsSample < 45 ? fpsBelow + 1 : 0;
     }
+    fpsAcc = 0; fpsFrames = 0;
   }
 }
 
@@ -217,14 +228,21 @@ function collectDrawables() {
       push(G.meshes.missile, wingRailPosition(p, slot), p.renderBasis, 0.9, { maxDist: 800 });
     }
   }
+  for (const a of G.allies || []) {
+    if (a.dead) continue;
+    push(G.meshes.player, a.pos, a.renderBasis || a.basis, 1, { maxDist: 8000, tint: rgb('#9fe6c8') });
+  }
   for (const e of G.enemies) {
     if (e.dead) continue;
-    push(G.meshes.drone, e.pos, e.basis, 2.5, { maxDist: 6500 });
+    const defenseMesh = e.kind === 'transport' ? G.meshes.transport
+      : G.defenseStage && e.kind === 'drone' ? G.meshes.defenseDrone : null;
+    push(defenseMesh || G.meshes.drone, e.pos, e.basis, defenseMesh ? 1 : 2.5, { maxDist: 6500 });
   }
   for (const g of G.ground) {
     if (g.dead) continue;
     const basis = basisFrom(g.yaw || 0, 0, 0);
     push(g.type === 'sam' ? G.meshes.sam : G.meshes.vehicle, g.pos, basis, 1, { maxDist: 6000, outline: true });
+    if (g.airdrop) push(G.meshes.parachute, g.pos, basis, 1, { maxDist: 6000, outline: false });
   }
   if (G.map && G.meshes.pineTree && p && !p.dead) {
     out.push(...Forest.collect(cam, p, G.meshes, { height: WORLD_H, aspect: VIEW_ASPECT, top: G.view === 0 }));
@@ -256,7 +274,7 @@ function drawUIFrame() {
     if (G.cockpitAlpha > 0.01) drawCockpit(G.cockpitAlpha);
     drawScreenFeedback();
   }
-  if (G.mode === 'title') {
+  if (G.mode === 'title' || G.mode === 'paused' && G.pausedFrom === 'title') {
     drawTitle();
     if (G.debug) drawDebug();
     return;
@@ -329,7 +347,7 @@ function setViewName(name) {
 }
 
 function ensurePlay() {
-  const fresh = !G.player || G.mode === 'title' || G.mode === 'loading' || G.mode === 'failed';
+  const fresh = !G.player || G.mode === 'title' || G.mode === 'loading' || G.mode === 'failed' || G.mode === 'victory';
   trace('ensurePlayClear', `enemies=${G.enemies.length} mode=${G.mode} fresh=${fresh}`);
   G.enemies.length = 0;
   G.ground.length = 0;
@@ -611,6 +629,7 @@ function simulate(seconds, opts = {}) {
       // keep the fight fed if wave logic stalls
       updateGame(dt);
       t += dt;
+      if (G.mode === 'victory') break;
       if (G.mode === 'failed') {
         if (!wasFailed) { result.fails++; result.deaths++; wasFailed = true; }
         if (G.failTimer > 1.0) { restartRun(); result.restarts++; G.mode = 'play'; setViewName('top'); wasFailed = false; }

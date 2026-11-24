@@ -11,8 +11,8 @@ for (const name of ['sky-patrol/55_ui.js', 'sky-patrol/65_app.js']) {
 const ui = read('sky-patrol/54_cockpit.js') + '\n' + read('sky-patrol/55_ui.js');
 const app = read('sky-patrol/65_app.js');
 assert.ok(/<button\b[^>]*data-sky-action="flare"[^>]*>[\s\S]*?<kbd>C<\/kbd>[\s\S]*?干扰弹[\s\S]*?<\/button>/.test(read('sky-patrol/00_shell.html')), '新版操作栏必须有标明C的干扰弹按钮');
-const engineFiles = ['10_core', '20_world', '30_shaders', '31_render', '32_meshes', '33_forest', '40_game', '42_combat', '50_ui_hud', '52_ui_screens'];
-new vm.Script(`(() => {\n${engineFiles.map(n => read(`src/${n}.js`)).join('\n')}\n${ui}\n${read('src/60_main.js')}\n${app}\n})();`);
+const engineFiles = ['10_core', '20_world', '30_shaders', '31_render', '32_meshes', '33_forest', '40_game', '42_combat', '43_defense', '44_ai', '50_ui_hud', '52_ui_screens'];
+new vm.Script(`(() => {\n${engineFiles.map(n => read(`src/${n}.js`)).join('\n')}\n${ui}\n${read('src/60_main.js')}\n${app}\n${read('sky-patrol/66_difficulty.js')}\n})();`);
 
 // Minimal DOM/renderer boundary; the VM runs the actual core, game, combat and UI logic.
 class Element {
@@ -64,15 +64,26 @@ const sky = node('sky-app'); const stage = node('stage', sky);
 stage.rect = { left: 40, top: 78, width: 1280, height: 720 };
 const gl = node('gl', stage, 'CANVAS'); const canvas = node('ui', stage, 'CANVAS');
 gl.rect = canvas.rect = stage.rect;
-for (const id of ['sky-header', 'bootfallback', 'sky-brand', 'sky-mode-label', 'sky-telemetry', 'sky-alt', 'sky-speed', 'sky-combat', 'sky-wave', 'sky-score', 'sky-shield', 'sky-fuel', 'sky-start', 'sky-pause', 'sky-result', 'sky-result-score', 'sky-result-kills', 'sky-status', 'sky-controls', 'sky-ammo-count', 'sky-ammo']) node(id, sky);
+for (const id of ['sky-header', 'bootfallback', 'sky-brand', 'sky-mode-label', 'sky-telemetry', 'sky-alt', 'sky-speed', 'sky-combat', 'sky-wave', 'sky-score', 'sky-shield', 'sky-fuel', 'sky-start', 'sky-pause', 'sky-result', 'sky-result-title', 'sky-result-message', 'sky-result-score', 'sky-result-kills', 'sky-status', 'sky-controls', 'sky-ammo-count', 'sky-ammo', 'sky-pause-title', 'sky-pause-description', 'sky-pause-flight-actions']) node(id, sky);
 const byId = id => nodes.find(n => n.id === id);
-for (const id of ['sky-camera', 'sky-chase', 'sky-intercept', 'sky-cruise', 'sky-inland', 'sky-resume', 'sky-cruise-speed', 'sky-burn-speed', 'sky-speed-reset', 'sky-mouse-steering', 'sky-enemy-speed', 'sky-restart', 'sky-home', 'sky-again', 'sky-result-home', 'sky-sound', 'sky-fullscreen']) {
-  const parent = ['sky-resume', 'sky-cruise-speed', 'sky-burn-speed', 'sky-speed-reset', 'sky-mouse-steering', 'sky-enemy-speed', 'sky-restart', 'sky-home'].includes(id) ? byId('sky-pause')
-    : ['sky-again', 'sky-result-home'].includes(id) ? byId('sky-result') : sky;
-  node(id, parent, id.endsWith('-speed') || id === 'sky-mouse-steering' ? 'INPUT' : 'BUTTON');
+for (const id of ['sky-camera', 'sky-chase', 'sky-intercept', 'sky-cruise', 'sky-inland', 'sky-settings', 'sky-resume', 'sky-cruise-speed', 'sky-burn-speed', 'sky-turn-rate', 'sky-turn-lock', 'sky-volume', 'sky-speed-reset', 'sky-mouse-steering', 'sky-enemy-speed', 'sky-wingman', 'sky-ai-enabled', 'sky-restart', 'sky-home', 'sky-again', 'sky-continue-challenge', 'sky-result-home', 'sky-sound', 'sky-fullscreen']) {
+  const parent = ['sky-resume', 'sky-cruise-speed', 'sky-burn-speed', 'sky-turn-rate', 'sky-turn-lock', 'sky-volume', 'sky-speed-reset', 'sky-mouse-steering', 'sky-enemy-speed', 'sky-wingman', 'sky-ai-enabled', 'sky-restart', 'sky-home'].includes(id) ? byId('sky-pause')
+    : ['sky-again', 'sky-continue-challenge', 'sky-result-home'].includes(id) ? byId('sky-result') : sky;
+  node(id, parent, id.endsWith('-speed') || id === 'sky-turn-rate' || id === 'sky-turn-lock' || id === 'sky-volume' || id === 'sky-mouse-steering' || id === 'sky-wingman' || id === 'sky-ai-enabled' ? 'INPUT' : 'BUTTON');
 }
+const aiDetails = node('sky-ai-details', byId('sky-pause')); aiDetails.hidden = true;
+for (const [id, type] of [['sky-ai-endpoint', 'url'], ['sky-ai-model', 'text'], ['sky-ai-key', 'password']]) {
+  const input = node(id, aiDetails, 'INPUT'); input.type = type; input.disabled = true;
+}
+node('sky-ai-test', aiDetails, 'BUTTON');
+node('sky-ai-status', aiDetails, 'OUTPUT');
 for (const kind of ['cruise', 'burn', 'enemy']) node(`sky-${kind}-speed-value`, byId('sky-pause'), 'OUTPUT');
+node('sky-turn-rate-value', byId('sky-pause'), 'OUTPUT');
+node('sky-volume-value', byId('sky-pause'), 'OUTPUT');
 byId('sky-mouse-steering').type = 'checkbox'; byId('sky-mouse-steering').checked = false;
+byId('sky-turn-lock').type = 'checkbox'; byId('sky-turn-lock').checked = true;
+byId('sky-wingman').type = 'checkbox'; byId('sky-wingman').checked = false;
+byId('sky-ai-enabled').type = 'checkbox'; byId('sky-ai-enabled').checked = false;
 node('sound-label', byId('sky-sound'), 'SPAN');
 const actions = {};
 for (const action of ['roll', 'boost', 'gun', 'missile', 'flare', 'view', 'pause']) {
@@ -111,8 +122,8 @@ const CLOUD_BASE = 1300; const CLOUD_TOP = 2200; const $bootfallback = null;
 function generateWorld() { return new Promise(() => {}); }
 function findFlatSpot(map, x, z) { return { x: x + 900, z: z + 900, h: 20 }; }
 `;
-const runtimeFiles = ['10_core', '40_game', '42_combat', '50_ui_hud', '52_ui_screens'];
-vm.runInContext(`(() => { ${boundary}\n${runtimeFiles.map(n => read(`src/${n}.js`)).join('\n')}\n${ui}\n${read('src/60_main.js')}\n${app}\nwindow.__eval = code => eval(code); })();`, sandbox);
+const runtimeFiles = ['10_core', '40_game', '42_combat', '43_defense', '44_ai', '50_ui_hud', '52_ui_screens'];
+vm.runInContext(`(() => { ${boundary}\n${runtimeFiles.map(n => read(`src/${n}.js`)).join('\n')}\n${ui}\n${read('src/60_main.js')}\n${app}\n${read('sky-patrol/66_difficulty.js')}\nwindow.__eval = code => eval(code); })();`, sandbox);
 const run = code => window.__eval(code);
 const G = window.__PI.G;
 assert.ok(window.__SKY, 'formal SKY API is exposed without replacing __PI');
@@ -137,7 +148,9 @@ run("onKeyDown('Enter')");
 assert.equal(window.__SKY.flightMode, 'intercept');
 assert.equal(G.enemies.length, 3, 'formal start preserves original initial wave, no __PI extras');
 assert.equal(G.player.pos.y, 620, 'formal start does not apply screenshot altitude');
-assert.ok(G.waveTotal > 0 && G.ground.length > 0);
+assert.equal(G.defenseStage.title, '无人机入侵');
+assert.equal(G.waveTotal, 6, '默认标准难度的第一关分批增援为6架');
+assert.equal(G.ground.length, 0);
 
 // 实际按钮复用真实干扰弹规则，不穿透为机炮、导弹或切镜头。
 const flareBefore = { ammo: G.player.missiles, shots: G.stats.shots, view: G.view };
@@ -185,7 +198,7 @@ run("damagePlayer(10, 'missile', true)"); assert.equal(G.player.shield, shield);
 run("damagePlayer(5, 'terrain', true)"); assert.equal(G.player.shield, shield - 5, 'cruise retains terrain consequences');
 window.__SKY.sync();
 assert.equal(sky.dataset.flight, 'free'); assert.equal(byId('sky-combat').hidden, true);
-assert.equal(byId('sky-alt').textContent, '2,034'); assert.equal(byId('sky-speed').textContent, '218');
+assert.equal(byId('sky-alt').textContent, '2,034'); assert.equal(byId('sky-speed').textContent, '100');
 assert.match(byId('sky-status').textContent, /撞地|地形/);
 const writes = byId('sky-alt').writes; window.__SKY.sync(); assert.equal(byId('sky-alt').writes, writes, 'unchanged telemetry does not rewrite text');
 assert.equal(byId('sky-shield').textContent, '95', 'shell supplies shield/fuel percent units');
@@ -232,6 +245,31 @@ let audioInit = 0; let audioToggle = 0;
 window.__audioInit = () => audioInit++; window.__audioToggle = () => audioToggle++;
 run('AudioSys.init = () => window.__audioInit(); AudioSys.setEnabled = on => { AudioSys.enabled = on; window.__audioToggle(); };');
 dispatch(byId('sky-sound'), 'click'); assert.equal(G.sound, true); assert.ok(audioInit && audioToggle);
+// 音量滑块必须改到实际 Web Audio 总增益，而不只是百分比文字。
+// 夹具没有真实振荡器，调度只记录目标增益；音效开关本身就是被测状态。
+const volumes = [];
+window.__audioGain = v => volumes.push(v);
+run(`AudioSys.ctx = { currentTime: 0 };
+  AudioSys.master = { gain: { value: 0, cancelScheduledValues() {}, linearRampToValueAtTime(v) { window.__audioGain(v); } } };
+  AudioSys.enabled = true;`);
+const modeBeforeVolume = G.mode;
+G.mode = 'paused'; window.__SKY.sync();
+const volume = byId('sky-volume');
+assert.equal(volume.value, '55', '暂停菜单的音量滑块应从实际默认 55% 同步');
+assert.equal(byId('sky-volume-value').textContent, '55%');
+assert.equal(volume.disabled, false);
+volume.value = '100'; dispatch(volume, 'input');
+assert.equal(G.volume, 1); assert(volumes.includes(1), '音量 100% 应把总增益拉到 1.0');
+volume.value = '0'; dispatch(volume, 'input');
+assert.equal(G.volume, 0); assert(volumes.includes(0.0001), '0% 只静音，不报错');
+assert.equal(G.sound, true, '音量与音效开关是两件事');
+volume.value = '55'; dispatch(volume, 'input');
+assert.equal(G.volume, .55); assert.equal(byId('sky-volume-value').textContent, '55%');
+assert.equal(run('AudioSys.volume'), .55, '适配层同步的是同一个 AudioSys 实例');
+// 还原音频边界，后续起飞仍使用本文件既有的静音桩；滑块选择保留。
+run('AudioSys.ctx = null; AudioSys.master = null;');
+G.mode = modeBeforeVolume; window.__SKY.sync();
+
 assert.equal(byId('sky-sound').getAttribute('aria-pressed'), 'true');
 assert.equal(byId('sound-label').textContent, '音效开启', 'sound text preserves its sibling SVG icon');
 assert.equal(byId('sky-sound').getAttribute('aria-label'), '音效开启');

@@ -13,6 +13,7 @@ function cockpit(width,cssHeight=680) {
     G:{player,enemies:[],mode:'play',lock:{phase:'search'}}, INPUT:{keys,left:false,touchGun:false},
     RADAR:{canvas:{}}, ctx:new Proxy({globalAlpha:1}, {get:(o,k)=>k in o?o[k]:()=>{}}),
     drawText:(s,x,y,options)=>text.push({text:String(s),x,y,size:options.size}),
+    textWidth:(value,size)=>String(value).length*size*.6,
     rect(){},line(){},circleFill(){},circleLine(){},rectLine(){},updateRadarMap(){},targetConcealed:()=>false,
     clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),clamp01:v=>Math.max(0,Math.min(1,v)),lerp:(a,b,t)=>a+(b-a)*t,
     compassDeg:yaw=>(yaw*180/Math.PI+360)%360,pad:(value,count)=>String(value).padStart(count,'0') });
@@ -47,8 +48,17 @@ test('系统显示随现有燃油、盾量、连射、装填与干扰状态变�
   assert(!labels.some(value=>/备弹|过热|无限|999/.test(value)),'不得虚构机炮弹量或热量机制');
 });
 
+test('实际有限机炮库存与补给倒计时在座舱可读',()=>{
+  const c=cockpit(604);
+  Object.assign(c.player,{gunCapacity:180,gunAmmo:37,gunReload:0});
+  assert(c.draw().includes('37/180'));
+  Object.assign(c.player,{gunAmmo:0,gunReload:9.2});
+  assert(c.draw().includes('补给10s'));
+});
+
 function externalMonitor() {
   const app=readFileSync(new URL('../sky-patrol/65_app.js',import.meta.url),'utf8');
+  const hud=readFileSync(new URL('../sky-patrol/55_ui.js',import.meta.url),'utf8');
   const elements=new Map(),player={pos:{y:620},speed:112,fuel:68.34,shield:72.61,missiles:3,reloads:[9.2],gunCd:0,flares:2,flareCd:6,burning:false};
   const element=id=>{
     if(!elements.has(id))elements.set(id,{hidden:id==='sky-systems',textContent:'',attributes:new Map(),inert:false,
@@ -56,14 +66,15 @@ function externalMonitor() {
       querySelector:()=>null,focus(){},getBoundingClientRect:()=>({left:0,top:0,width:0,height:0})});
     return elements.get(id);
   };
-  const context=vm.createContext({BOOT:{ready:true,error:null},G:{mode:'play',view:1,player,wave:1,waveKills:0,waveTotal:3,score:0,stats:{kills:0},highScore:0,sound:false},
+  const context=vm.createContext({BOOT:{ready:true,error:null},G:{mode:'play',view:1,player,wave:1,waveKills:0,waveTotal:3,score:0,stats:{kills:0,veh:0},highScore:0,sound:false},
     INPUT:{keys:new Set(),left:false,touchGun:false},skyGet:element,skyApp:element('sky-app'),skyButtons:[],skyActions:[],skyAmmo:[],
     skyActive:()=>context.G.mode==='play'||context.G.mode==='waveclear',skyScenicView:()=>false,skyLastMode:'',
-    skyNotice:'',skyNoticeUntil:0,inlandFlight:false,flightMode:'intercept',skyControlSettings:{mouse:false,enemySpeed:.65},skyBurnMinimum:()=>268,skyFlightSpeeds:{cruise:112,burn:500/1.94384},SKY_OCCLUSION:[],VH:340,VW:604,
+    skyNotice:'',skyNoticeUntil:0,inlandFlight:false,flightMode:'intercept',SKY_OCCLUSION:[],VH:340,VW:604,SPEED_CRUISE:112,
     uiCanvas:element('ui'),document:{activeElement:null,fullscreenEnabled:false},performance:{now:()=>0},setBodyClass(){},
     clamp01:v=>Math.max(0,Math.min(1,v)),pad:(v,n)=>String(v).padStart(n,'0')});
   new vm.Script(source).runInContext(context);
-  new vm.Script(app.slice(app.indexOf('function skySyncFlightSpeeds() {'),app.indexOf('function skySetControlSetting'))+'\n'+app.slice(app.indexOf('function skyText'),app.indexOf('function skyActive'))+'\n'+app.slice(app.indexOf('function skySync() {'),app.indexOf('function skyFlightTarget'))).runInContext(context);
+  new vm.Script(hud.slice(hud.indexOf('function skyWaveTitle('),hud.indexOf('function skyActiveBanner('))).runInContext(context);
+  new vm.Script(app.slice(app.indexOf('const SKY_SPEED_MIN_KT'),app.indexOf('function skySetControlSetting'))+'\n'+app.slice(app.indexOf('function skyText'),app.indexOf('function skyActive'))+'\n'+app.slice(app.indexOf('function skySync() {'),app.indexOf('function skyFlightTarget'))).runInContext(context);
   return {context,player,element,sync:()=>vm.runInContext('skySync()',context)};
 }
 

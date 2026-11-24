@@ -18,10 +18,11 @@ for (const name of engine) {
   parts.push({ name, directory: path.join(root, 'src') });
   if (name === '20_world.js') parts.push({ name: '25_lake_world.js', directory: here });
   if (name === '30_shaders.js') parts.push({ name: '35_autumn_pixels.js', directory: here });
-  if (name === '32_meshes.js') parts.push({ name: '37_player_airframe.js', directory: here });
+  if (name === '32_meshes.js') parts.push({ name: '37_player_airframe.js', directory: here }, { name: '38_defense_airframes.js', directory: here });
   if (name === '33_forest.js') parts.push({ name: '36_autumn_forest.js', directory: here });
 }
-parts.push({ name: '64_scene.js', directory: here }, { name: '65_app.js', directory: here }, { name: '99_tail.html', directory: path.join(root, 'src') });
+parts.push({ name: '64_scene.js', directory: here }, { name: '65_app.js', directory: here },
+  { name: '66_difficulty.js', directory: here }, { name: '99_tail.html', directory: path.join(root, 'src') });
 let html = '';
 for (const { name, directory } of parts) {
   let content = fs.readFileSync(path.join(directory, name), 'utf8');
@@ -46,7 +47,6 @@ for (const { name, directory } of parts) {
       ['const targetAlt = Math.max(gh + 320, 520);', 'const targetAlt = Math.max(gh + 250, 320);'],
     ];
     for (const [before, after] of titleAltitude) content = replaceSource(content, before, after);
-    content = replaceSource(content, 'const vap = (G.view === 0 || ', 'const vap = (G.skyScenic || G.view === 0 || ');
     content = replaceSource(content,
       'vmul(b.up, 0.235)), vmul(b.fwd, -2.675))',
       'vmul(b.up, 0)), vmul(b.fwd, -SKY_WING_TRAIL_REAR))');

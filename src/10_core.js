@@ -328,6 +328,8 @@ window.addEventListener('resize', () => { if (typeof resizeAll === 'function') r
 // --------------------------------------------------------------- audio ----
 const AudioSys = {
   ctx: null, master: null, noiseBuf: null, enabled: false,
+  // 55% 保留旧版默认听感（总增益 0.55），100% 到 1.0，0% 静音。
+  volume: .55,
   engineNodes: null, engineGain: null,
   warnedLow: 0, inited: false,
   init() {
@@ -358,12 +360,20 @@ const AudioSys = {
       if (this.ctx) {
         if (this.ctx.state === 'suspended') this.ctx.resume();
         this.master.gain.cancelScheduledValues(this.ctx.currentTime);
-        this.master.gain.linearRampToValueAtTime(0.55, this.ctx.currentTime + 0.3);
+        this.master.gain.linearRampToValueAtTime(this.volume, this.ctx.currentTime + 0.3);
       }
     } else if (this.ctx) {
       this.master.gain.cancelScheduledValues(this.ctx.currentTime);
       this.master.gain.linearRampToValueAtTime(0.0001, this.ctx.currentTime + 0.12);
     }
+  },
+  setVolume(value) {
+    this.volume = clamp(Number(value) || 0, 0, 1);
+    if (this.ctx && this.enabled) {
+      this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.master.gain.linearRampToValueAtTime(Math.max(0.0001, this.volume), this.ctx.currentTime + 0.08);
+    }
+    return this.volume;
   },
   now() { return this.ctx ? this.ctx.currentTime : 0; },
   noise(dur, gain, filterType, freq, q = 1, delay = 0) {

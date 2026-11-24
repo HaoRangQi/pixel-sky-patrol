@@ -14,9 +14,11 @@ const GUN_DAMAGE = 12;
 const GUN_BULLET_SPEED = 720;
 const GUN_BULLET_GRAVITY = 38;
 const GUN_BULLET_LIFE = 2.2;
-const MISSILE_GRAVITY = 70;
-const MISSILE_PLAYER_SPEED = 430;
-const MISSILE_PLAYER_MAX_SPEED = 520;
+// 导弹靠持续推力飞行，重力只留下轻微下坠；离架速度高于机炮，再加速到上限，
+// 同一帧同发时导弹在距离和高度上都领先，不会比机炮更早落在近处。
+const MISSILE_GRAVITY = 16;
+const MISSILE_PLAYER_SPEED = 820;
+const MISSILE_PLAYER_MAX_SPEED = 1000;
 const MISSILE_ENEMY_SPEED = 280;
 const MISSILE_ENEMY_MAX_SPEED = 430;
 const MISSILE_TRAIL_SPACING = 15;
@@ -24,9 +26,10 @@ const MISSILE_TRAIL_LIFE = 1.8;
 const MOUSE_STEER_TIMEOUT = 0.42;
 
 const G = {
-  mode: 'loading',        // loading | title | play | waveclear | dying | failed | paused
+  mode: 'loading',        // loading | title | play | waveclear | victory | dying | failed | paused
   pausedFrom: null,
   time: 0, realTime: 0, missionTime: 0,
+  missionWaveGoal: 0, defenseStage: null,
   map: null, meshes: null, seed: 1337,
   player: null, camera: null,
   enemies: [], ground: [], missiles: [], missileTrails: [], bullets: [], effects: [], tracers: [], popups: [], decals: [], vapor: [],
@@ -53,6 +56,7 @@ const G = {
   spawn: null,
   introCamera: 0,
   threatList: [],
+  allies: [], wingmanWanted: false, allyKills: 0,
   warnLamp: 0,
   debugLog: [],
 };
@@ -98,11 +102,12 @@ function makePlayer(map, forTitle = false) {
 function setupTitleWorld() {
   G.player = makePlayer(G.map, true);
   G.player.pos.y = Math.max(G.map.heightAt(G.player.pos.x, G.player.pos.z) + 320, 520);
-  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
+  G.enemies.length = 0; G.ground.length = 0; G.allies.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
   G.effects.length = 0; G.tracers.length = 0; G.popups.length = 0; G.decals.length = 0; G.vapor.length = 0;
   G.view = 1; G.prevView = 1; G.viewBlend = 1; G.cockpitAlpha = 0;
   G.chaseInit = false;
   G.titleTime = 0;
+  if (typeof wingmanOnStop === 'function') wingmanOnStop('title');
   const top = -30 + Math.random() * 0; // keep deterministic
   G.playerTitleYaw = G.player.yaw;
 }
@@ -116,10 +121,11 @@ function startRun() {
   G.wave = 1;
   G.stats = { kills: 0, sam: 0, veh: 0, shots: 0, hits: 0, dmg: 0 };
   G.combo = 1; G.lastKillTime = -99;
+  G.allyKills = 0;
   G.missionTime = 0;
   G.time = 0;
   G.player = makePlayer(G.map, false);
-  G.enemies.length = 0; G.ground.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
+  G.enemies.length = 0; G.ground.length = 0; G.allies.length = 0; G.missiles.length = 0; G.missileTrails.length = 0; G.bullets.length = 0;
   G.effects.length = 0; G.tracers.length = 0; G.popups.length = 0; G.decals.length = 0; G.vapor.length = 0;
   G.lock = { target: null, progress: 0, phase: 'search', tick: 0, lockTone: 0 };
   G.score = 0;
@@ -134,6 +140,7 @@ function startRun() {
   beginWave(1);
   AudioSys.waveStart();
   if (AudioSys.enabled) AudioSys.setEnabled(true);
+  if (typeof wingmanOnRunStart === 'function') wingmanOnRunStart();
 }
 
 function restartRun() {
@@ -149,6 +156,7 @@ function failMission() {
   saveHighScore();
   AudioSys.missionFail();
   AudioSys.updateEngine(false, 0, true);
+  if (typeof wingmanOnStop === 'function') wingmanOnStop('failed');
   document.body.classList.add('title');
   document.body.classList.remove('playing');
 }
@@ -213,7 +221,7 @@ function computePose(view, allowSmooth = true) {
       pos,
       target: vadd(pos, vmul(cockpit.fwd, 160)),
       up: vcopy(cockpit.up),
-      fov: p.cockpitComfort ? 1.18 : 1.18 + clamp((p.speed - SPEED_CRUISE) / 500, 0, 0.06)
+      fov: p.flightComfort ? 1.18 : 1.18 + clamp((p.speed - SPEED_CRUISE) / 500, 0, 0.06)
     };
   }
   // chase
@@ -314,8 +322,8 @@ function updateCamera(dt) {
     const a = computePose(G.prevView, false);
     const b = computePose(G.view, false);
     const t = smoothstep(0, 1, clamp01(G.viewBlend));
-    if (p.cockpitComfort && (!G.cameraBlendArc || G.viewBlend === 0)) G.cameraBlendArc = {};
-    pose = p.cockpitComfort ? blendCameraPose(a, b, t, G.cameraBlendArc) : {
+    if (p.flightComfort && (!G.cameraBlendArc || G.viewBlend === 0)) G.cameraBlendArc = {};
+    pose = p.flightComfort ? blendCameraPose(a, b, t, G.cameraBlendArc) : {
       pos: vlerp(a.pos, b.pos, t),
       target: vlerp(a.target, b.target, t),
       up: vnorm(vlerp(a.up, b.up, t)),
@@ -407,8 +415,18 @@ function readSteering() {
   }
   const holdBurn = INPUT.keys.has('ShiftLeft') || INPUT.keys.has('ShiftRight') || INPUT.touchBurn;
   burn = burn || holdBurn;
+  if (p.recovery) sx = sy = alt = turn = 0;
   return { sx, sy, burn, alt, turn, topView, mouseBlend };
 }
+
+function topHeadingError(p, mouseBlend) {
+  if (G.testInput && G.testInput.heading !== undefined) return wrapAngle(G.testInput.heading - p.yaw);
+  const dx = (INPUT.mx - VW * 0.5) * mouseBlend, dy = (INPUT.my - VH * 0.5) * mouseBlend;
+  return Math.hypot(dx, dy) > 12 ? wrapAngle(Math.atan2(dx, -dy) - p.yaw) : 0;
+}
+
+// 玩家和战役敌机共用同一个转向限幅，均以本帧真实空速计算。
+function flightTurnLimit(p) { return p?.turnRateAtSpeed?.(p.speed) ?? p?.turnRateLimit ?? 22 * DEG; }
 
 function updateFlight(dt) {
   const p = G.player;
@@ -428,12 +446,16 @@ function updateFlight(dt) {
   p.burning = wantBurn;
   const targetSpeed = p.targetSpeed = wantBurn ? (p.burnSpeed ?? SPEED_BURN) : (p.cruiseSpeed ?? SPEED_CRUISE);
   p.speed = wantBurn && p.speed <= targetSpeed
-    ? Math.min(targetSpeed, p.speed + 62 * dt)
+    ? Math.min(targetSpeed, p.speed + (p.burnAcceleration ?? 62) * dt)
     : damp(p.speed, targetSpeed, p.speedResponse ?? (p.speed > targetSpeed ? 0.75 : 0.55), dt);
   p.fuel = wantBurn ? Math.max(0, p.fuel - 15.5 * dt) : Math.min(100, p.fuel + 10.5 * dt);
   const speedFactor = clamp(125 / Math.max(80, p.speed), 0.56, 1.15);
+  const comfortable = !!p.flightComfort;
 
-  if (st.topView) {
+  if (p.recovery) {
+    p.yawRate = p.pitchRate = 0;
+    p.gLoad = 1;
+  } else if (st.topView && !comfortable) {
     // top-down: A/D turns, W/S trims altitude; the cursor still steers
     const maxTurn = 1.85 * speedFactor;
     let turn = 0;
@@ -442,11 +464,7 @@ function updateFlight(dt) {
       const targetRoll = -st.turn * BANK_MAX * 0.8;
       p.roll = angleLerp(p.roll, targetRoll, 1 - Math.exp(-5 * dt));
     } else {
-      const dx = (INPUT.mx - VW * 0.5) * st.mouseBlend, dy = (INPUT.my - VH * 0.5) * st.mouseBlend;
-      let desired = p.yaw;
-      if (G.testInput && G.testInput.heading !== undefined) desired = G.testInput.heading;
-      else if (Math.hypot(dx, dy) > 12) desired = Math.atan2(dx, -dy);
-      const dy2 = wrapAngle(desired - p.yaw);
+      const dy2 = topHeadingError(p, st.mouseBlend);
       turn = clamp(dy2 * 3.0, -maxTurn, maxTurn);
       const targetRoll = clamp(dy2 * 1.4, -BANK_MAX, BANK_MAX);
       p.roll = angleLerp(p.roll, targetRoll, 1 - Math.exp(-5 * dt));
@@ -460,19 +478,23 @@ function updateFlight(dt) {
     p.pitchRate = 0;
     p.gLoad = clamp(1 + Math.abs(turn) * p.speed / 9.81 * 0.10, 1, 6);
   } else {
-    const comfortable = !!p.cockpitComfort && G.view === 2;
-    const targetRoll = -st.sx * (comfortable ? 0.56 : BANK_MAX);
+    const bankInput = st.topView ? st.turn || clamp(topHeadingError(p, st.mouseBlend) * 2.2, -1, 1) : st.sx;
+    const pitchInput = st.topView ? st.alt : st.sy;
+    const bankLimit = comfortable ? 0.56 : BANK_MAX;
+    const targetRoll = -bankInput * bankLimit;
     const bankStep = wrapAngle(targetRoll - p.roll) * (1 - Math.exp(-(comfortable ? 2.2 : 6.5) * dt));
     p.roll += comfortable ? clamp(bankStep, -0.6 * dt, 0.6 * dt) : bankStep;
     const oldPitch = p.pitch;
-    const pitchRate = st.sy * (comfortable ? 0.52 : 1.08);
-    if (Math.abs(st.sy) > 0.03) p.pitch += pitchRate * dt;
-    else p.pitch = damp(p.pitch, 0, 2.2, dt);
+    const pitchRate = pitchInput * (comfortable ? 0.52 : 1.08);
+    if (Math.abs(pitchInput) > 0.03) p.pitch += pitchRate * dt;
+    else if (!comfortable) p.pitch = damp(p.pitch, 0, 2.2, dt);
     p.pitch = clamp(p.pitch, -1.02, 1.02);
     p.pitchRate = (p.pitch - oldPitch) / Math.max(dt, 1e-6);
-    if (!comfortable && Math.abs(st.sx) < 0.03 && Math.abs(p.roll) < 0.25) p.roll *= 1 - 1.6 * dt;
-    const turnRate = 1.28 * speedFactor * (p.burning ? 0.70 : 1) * (1 - Math.abs(p.pitch) * 0.25);
-    const yawDelta = comfortable ? clamp(-Math.sin(p.roll) * turnRate * 0.52, -0.38, 0.38) : -Math.sin(p.roll) * turnRate;
+    if (!comfortable && Math.abs(bankInput) < 0.03 && Math.abs(p.roll) < 0.25) p.roll *= 1 - 1.6 * dt;
+    const turnLimit = flightTurnLimit(p);
+    const yawDelta = comfortable
+      ? -Math.sin(p.roll) / Math.sin(bankLimit) * turnLimit
+      : -Math.sin(p.roll) * (1.28 * speedFactor * (p.burning ? 0.70 : 1) * (1 - Math.abs(p.pitch) * 0.25));
     p.yaw = wrapAngle(p.yaw + yawDelta * dt);
     p.yawRate = yawDelta;
     p.gLoad = clamp(1 + Math.abs(yawDelta) * p.speed / 9.81 * 0.42 + Math.abs(pitchRate) * 0.6, 1, 9);
@@ -556,9 +578,9 @@ function updateFlight(dt) {
     p.shield = Math.min(PLAYER_MAX_SHIELD, p.shield + 4.2 * dt);
   }
 
-  // vapour trails at high G / high speed
+  // 新版持续保留真实翼尖航迹；原入口仍按机动状态生成。
   p.vaporTimer -= dt;
-  const vap = (G.view === 0 || p.gLoad > 3.6 || p.speed > 178 || p.rollT > 0) && G.view !== 2;
+  const vap = p.continuousTrails || ((G.view === 0 || p.gLoad > 3.6 || p.speed > 178 || p.rollT > 0) && G.view !== 2);
   if (vap && p.vaporTimer <= 0) {
     p.vaporTimer += 0.05;
     const b = basisFrom(p.yaw, p.pitch, p.roll + (p.inversionRoll || 0) + p.spin);
@@ -623,8 +645,8 @@ function beginWave(n) {
   trace('beginWave', n);
   prepareWave(n);
   G.banner = {
-    title: `第 ${pad(n, 2)} 波`,
-    sub: G.secondary ? G.secondary.text : '拦截敌机',
+    title: G.defenseStage?.title ?? `第 ${pad(n, 2)} 波`,
+    sub: G.defenseStage?.brief ?? (G.secondary ? G.secondary.text : '拦截敌机'),
     t: 0, life: 3.4
   };
   G.mode = 'play';
@@ -633,11 +655,22 @@ function beginWave(n) {
   AudioSys.waveStart();
 }
 
+function beginNextWave() {
+  const p = G.player;
+  p.shield = PLAYER_MAX_SHIELD;
+  p.fuel = 100;
+  p.missiles = 4;
+  p.reloads.length = 0;
+  p.flares = 3;
+  beginWave(G.wave + 1);
+}
+
 function completeWave() {
   if (G.mode !== 'play') return;
   trace('completeWave', G.wave);
-  G.mode = 'waveclear';
-  G.respite = 8.0;
+  const victory = G.missionWaveGoal > 0 && G.wave >= G.missionWaveGoal;
+  G.mode = victory ? 'victory' : 'waveclear';
+  G.respite = victory ? 0 : 8;
   if (G.player) {
     G.player.missiles = 4;
     G.player.reloads.length = 0;
@@ -645,7 +678,6 @@ function completeWave() {
   }
   G.lock = { target: null, progress: 0, phase: 'search', tick: 0, lockTone: 0 };
   // secondary bonus
-  const sec = G.secondary;
   G.secondaryDone = isSecondaryComplete();
   if (G.secondaryDone) G.score += 350 + G.wave * 25;
   G.score += 200 + G.wave * 20;
@@ -659,6 +691,11 @@ function completeWave() {
     }
   }
   for (const e of G.enemies) e.leaving = true;
+  if (victory) {
+    G.missiles.length = G.bullets.length = G.threatList.length = 0;
+    G.flash = G.damageFlash = G.shake = G.hitStop = 0;
+    AudioSys.updateEngine(false, 0, false);
+  }
   saveHighScore();
 }
 
@@ -687,7 +724,7 @@ function secondaryProgressText() {
 function updateGame(dtRaw) {
   const raw = Math.min(dtRaw, 0.05);
   G.realTime += raw;
-  if (G.mode === 'paused' || G.mode === 'loading') {
+  if (G.mode === 'paused' || G.mode === 'loading' || G.mode === 'victory') {
     if (G.mode === 'paused') G.fade = damp(G.fade, 0.15, 8, raw);
     return;
   }
@@ -708,28 +745,31 @@ function updateGame(dtRaw) {
     updateTitle(dt);
   } else if (G.mode === 'play') {
     updateFlight(dt);
-    updatePlayerGuns(dt);
+    updateCamera(dt);
     updateLockOn(dt);
+    if (G.allies.length && typeof updateWingman === 'function') updateWingman(dt);
     updateMissiles(dt);
     updateEnemies(dt);
     updateGround(dt);
     updateGunBullets(dt);
+    updatePlayerGuns(dt);
     updateEffects(dt);
     updateVapor(dt);
     updateWaveLogic(dt);
     computeThreats();
     G.missionTime += 0;
     G.waveElapsed += dt;
-    updateCamera(dt);
   } else if (G.mode === 'waveclear') {
     updateFlight(dt);
+    updateCamera(dt);
     updateEffects(dt);
     updateVapor(dt);
     updateEnemies(dt);
+    if (G.allies.length && typeof updateWingman === 'function') updateWingman(dt);
     updateMissiles(dt);
     updateGunBullets(dt);
+    updatePlayerGuns(dt);
     updateGround(dt);
-    updateCamera(dt);
     G.respite -= dt;
     const p = G.player;
     if (p) {
@@ -738,14 +778,7 @@ function updateGame(dtRaw) {
       p.invuln = Math.max(p.invuln, 0.2);
     }
     G.cloudWhite = damp(G.cloudWhite, 0, 4, dt);
-    if (G.respite <= 0) {
-      G.player.shield = PLAYER_MAX_SHIELD;
-      G.player.fuel = 100;
-      G.player.missiles = 4;
-      G.player.reloads.length = 0;
-      G.player.flares = 3;
-      beginWave(G.wave + 1);
-    }
+    if (G.respite <= 0) beginNextWave();
   } else if (G.mode === 'dying') {
     G.dyingTimer -= raw;
     updateEffects(dt);
@@ -807,7 +840,7 @@ function updateWaveLogic(dt) {
   const s = G.secondary;
   if (s && s.type === 'shield') s.current = G.player.shield;
   if (G.waveKills >= G.waveTotal && G.mode === 'play') {
-    completeWave();
+    if (!G.defenseStage || !G.ground.some(g => !g.dead)) completeWave();
     return;
   }
   // stream in replacements while the wave is incomplete
@@ -826,6 +859,7 @@ function computeThreats() {
   if (!p || p.dead || !G.camera) return;
   for (const m of G.missiles) {
     if (m.dead || m.owner !== 'enemy') continue;
+    if (m.target?.team === 'ally') continue;
     const d = vdist(m.pos, p.pos);
     if (d > 2400) continue;
     const sp = {};
@@ -907,6 +941,16 @@ function styleTags(agl, inCloud, burning) {
 function awardKill(kind, pos, opts = {}) {
   const p = G.player;
   const base = kind === 'drone' ? 100 + G.wave * 15 : kind === 'sam' ? 180 : 90;
+  if (opts.credit === 'ally') {
+    const points = Math.round(base * .5);
+    G.score += points;
+    if (kind === 'drone') G.waveKills++;
+    G.allyKills++;
+    G.popups.push({ pos: vcopy(pos), text: `+${points}`, tag: '僚机', color: '#9fe6c8', life: 1.6, t: 0 });
+    if (G.popups.length > 14) G.popups.shift();
+    G.flash = Math.max(G.flash, .1);
+    return;
+  }
   const now = G.time;
   if (now - G.lastKillTime < 1.6) G.combo = Math.min(4, G.combo + 1);
   else G.combo = 1;

@@ -8,25 +8,125 @@ const read = file => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'
 function fixture() {
   const calls = [], text = [];
   const ctx = new Proxy({ globalAlpha: 1 }, { get: (o, k) => k in o ? o[k] : () => {} });
-  const context = vm.createContext({ ctx, VW: 558, VH: 340, cssRect: { height: 1020 }, TAU: Math.PI * 2, SKY_PHOSPHOR: '#b8ded2',
-    G: { mode: 'play', view: 1, viewBlend: 1, cockpitAlpha: 0, wave: 1, waveKills: 0, waveTotal: 4, score: 0, missionTime: 3,
+  const context = vm.createContext({ ctx, VW: 558, VH: 340, cssRect: { height: 1020 }, TAU: Math.PI * 2, SKY_PHOSPHOR: '#b8ded2', PAL: { goldHot: '#ffe39a' },
+    G: { mode: 'play', view: 1, viewBlend: 1, cockpitAlpha: 0, wave: 1, waveKills: 0, waveTotal: 4, score: 0, missionTime: 3, enemies: [], ground: [],
       player: { yaw: 0, roll: 0, speed: 112, pos: { y: 640 }, agl: 620, basis: { fwd: { y: 0 } }, gLoad: 1,
         fuel: 100, shield: 100, missiles: 4, reloads: [], flares: 3, flareCd: 0, gunCd: 0 }, camera: {}, lock: { phase: 'search' } },
     INPUT: { mx: 279, my: 170, mouseSteerAge: 1, touchMode: false, keys: new Set() }, TOUCH: { active: false },
     MOUSE_STEER_TIMEOUT: .42, MISSILE_RELOAD: 4.5, DEG: Math.PI / 180, flightMode: 'intercept', compassDeg: () => 0,
     fmtTime: () => '00:03', wrapAngle: a => Math.atan2(Math.sin(a), Math.cos(a)),
+    projectTargetMarker: () => false, // 此夹具只检查面板；真实目标投影另有完整飞行回归。
+    textWidth: (value, size) => [...value].reduce((w, c) => w + size * (/[㐀-鿿]/.test(c) ? 1 : .6), 0),
     pad: (v, n) => String(v).padStart(n, '0'), clamp01: v => Math.max(0, Math.min(1, v)),
   });
   vm.runInContext(read('src/50_ui_hud.js'), context);
-  const cockpit = read('sky-patrol/54_cockpit.js');
-  vm.runInContext(cockpit.slice(cockpit.indexOf('function skySystemReadings'), cockpit.indexOf('function skySystemRow')), context);
+  const paintObjectives = context.drawObjectivesPanel;
+  vm.runInContext(read('sky-patrol/54_cockpit.js'), context);
   vm.runInContext(read('sky-patrol/55_ui.js'), context);
   for (const name of ['drawPitchLadder', 'drawObjectivesPanel', 'drawScorePanel', 'drawSpeedAlt', 'drawShieldFuel',
     'drawWeaponPips', 'drawMiniRadar', 'drawTargetMarkers', 'drawAimReticle', 'drawThreats', 'drawWarnings',
     'drawMousePip', 'drawRadarScope', 'drawMissilePip', 'segBar', 'line', 'rect', 'panel']) context[name] = (...args) => calls.push({ name, args });
   context.drawText = (value, x, y, options = {}) => text.push({ value: String(value), x, y, ...options });
-  return { context, calls, text, draw: () => vm.runInContext('drawHUD()', context) };
+  return { context, calls, text, paintObjectives, draw: () => vm.runInContext('drawHUD()', context) };
 }
+
+for (const [width, height, compact] of [[625, 738, false], [187, 662, true], [986, 277, true]]) {
+  test(`截击 ${width}×${height} 的任务仪表显示当前波和三波终点`, () => {
+    const f = fixture();
+    Object.assign(f.context, { VW: width, cssRect: { height } });
+    f.context.drawObjectivesPanel = f.paintObjectives;
+    Object.assign(f.context.G, { missionWaveGoal: 3, wave: 2, waveKills: 1, waveTotal: 5 });
+    f.draw();
+    const wave = f.text.find(t => t.value === (compact ? '第 2/3 波' : '第 02/03 波'));
+    const kill = f.text.find(t => compact ? t.value === '目标 1/5' : t.value === '1/5');
+    assert(wave && kill, '总波数和本波战果均应可见');
+    const onSeparateRows = wave.y + wave.size * .25 < kill.y - kill.size;
+    const sideBySide = wave.x + wave.value.length * wave.size < kill.x - kill.value.length * kill.size;
+    assert(onSeparateRows || sideBySide, '波次和战果须各有占位');
+    if (width < 420) {
+      assert.equal(wave.size, 8, '保留窄屏仪表字号');
+      assert(wave.x + wave.value.length * wave.size < 74, '波次须留在左上仪表');
+    }
+    f.context.G.wave = 3;
+    f.context.G.banner = { t: 1, life: 3.4, title: '第 03 波' };
+    f.text.length = 0;
+    f.draw();
+    assert(f.text.filter(t => t.value === (compact ? '第 3/3 波' : '第 03/03 波')).length >= 2, '第三波的仪表和入场横幅都报最后一波');
+    f.context.G.missionWaveGoal = 0;
+    f.text.length = 0;
+    f.draw();
+    assert(f.text.some(t => t.value === '第 03 波') && !f.text.some(t => /第 .+\/.+ 波/.test(t.value)), '无尽模式只显示当前波');
+    f.context.flightMode = 'free';
+    f.context.G.banner.title = '自由巡航';
+    f.text.length = 0;
+    f.draw();
+    assert(f.text.some(t => t.value === '自由巡航') && !f.text.some(t => /^第 .* 波/.test(t.value)), '巡航保留航线提示');
+  });
+}
+
+test('守卫湖谷任务仪表显示关名、空中进度与待落地装甲，继续挑战恢复无尽波次', () => {
+  const f = fixture(), g = f.context.G;
+  f.context.drawObjectivesPanel = f.paintObjectives;
+  Object.assign(g, { missionWaveGoal: 3, wave: 3, waveKills: 1, waveTotal: 6, defenseStage: { title: '空投突袭', air: ['transport'] } });
+  const carrier = { cargoRemaining: 2, dead: false };
+  g.enemies.push(carrier);
+  function checkArmor(expected) {
+    for (const [width, height] of [[625, 738], [187, 662], [986, 277]]) {
+      f.context.VW = width;
+      f.context.cssRect.height = height;
+      f.text.length = 0;
+      f.draw();
+      for (const label of ['空投突袭', '第 3/3 关', `装甲 ${expected}`])
+        assert(f.text.some(t => t.value === label), `${width}×${height} 未显示 ${label}`);
+      assert(f.text.some(t => ['1/6', '空中 1/6'].includes(t.value)));
+    }
+  }
+  checkArmor('待空投');
+  g.ground.push({ airdrop: {}, dead: false });
+  checkArmor('剩余 1');
+  carrier.cargoRemaining = 0;
+  g.ground[0].dead = true;
+  checkArmor('已清除');
+
+  Object.assign(g, { wave: 4, missionWaveGoal: 0, defenseStage: { title: '迎击增援', air: ['fighter'] }, banner: { t: 1, life: 3.4 } });
+  f.text.length = 0;
+  f.draw();
+  assert(f.text.some(t => t.value === '第 04 波') && f.text.some(t => t.value === '第 04 波 · 迎击增援'));
+  assert(!f.text.some(t => /^装甲 |\/0 关/.test(t.value)));
+});
+
+test('新版保盾附加目标等待本波结算，已经达成的击杀目标仍显示完成', () => {
+  const f = fixture(), g = f.context.G;
+  const game = read('src/40_game.js');
+  vm.runInContext(game.slice(game.indexOf('function isSecondaryComplete()'), game.indexOf('// --------------------------------------------------------------- frame')), f.context);
+  f.context.drawObjectivesPanel = f.paintObjectives;
+  Object.assign(g, { view: 0, wave: 3, missionWaveGoal: 3, secondary: { type: 'shield', need: 63 }, secondaryDone: false });
+  g.player.flightComfort = true;
+  const secondary = () => {
+    f.text.length = 0;
+    f.draw();
+    const line = f.text.find(t => t.value.startsWith('附加'));
+    return [line.value, line.color];
+  };
+
+  assert.deepEqual(secondary(), ['附加  保持 63% 护盾', '#cdb57f'], '开战时护盾达标仍属于待结算目标');
+  g.mode = 'waveclear';
+  assert.deepEqual(secondary(), ['附加  保持 63% 护盾', '#cdb57f'], '补给后回升的护盾不能改变结算');
+  g.secondaryDone = true;
+  assert.deepEqual(secondary(), ['附加完成  保持 63% 护盾', '#bce7a0']);
+
+  g.mode = 'play';
+  g.secondaryDone = false;
+  g.secondary = { type: 'sam', killed: 2, need: 2 };
+  assert.deepEqual(secondary(), ['附加完成  2/2 防空阵地', '#bce7a0']);
+  g.secondary = { type: 'low', done: true };
+  assert.deepEqual(secondary(), ['附加完成  低空击杀：完成', '#bce7a0']);
+
+  delete g.player.flightComfort;
+  g.missionWaveGoal = 0;
+  g.secondary = { type: 'shield', need: 63 };
+  assert.deepEqual(secondary(), ['附加完成  保持 63% 护盾', '#bce7a0'], '根入口保留实时护盾附加反馈');
+});
 
 test('新版默认截击追尾恢复初始版完整飞行HUD，而非左上角微型监控', () => {
   const f = fixture(); f.draw();

@@ -87,8 +87,8 @@ vec2 autumnSunAz() {
 vec3 alpineHaze(vec3 rd) {
   vec2 az = normalize(rd.xz + vec2(1e-4, 0.0));
   float face = pow(dot(az, autumnSunAz()) * 0.5 + 0.5, 2.0);
-  vec3 c = mix(vec3(0.49, 0.42, 0.53), vec3(0.82, 0.62, 0.59), face * 0.76);
-  return mix(c, vec3(0.73, 0.58, 0.66), smoothstep(0.0, 0.28, rd.y) * 0.22);
+  vec3 c = mix(vec3(0.51, 0.59, 0.66), vec3(0.74, 0.68, 0.59), face * face * 0.78);
+  return mix(c, vec3(0.61, 0.69, 0.75), smoothstep(0.0, 0.28, rd.y) * 0.22);
 }`, 'SCENE_FS');
   __skyScene = __skyReplaceExactlyOnce(__skyScene,
     `vec3 skyColor(vec3 rd, out float disc) {
@@ -106,9 +106,9 @@ vec3 autumnCloudBank(vec3 sky, vec2 az, float elevation, float level, float reac
   float depth = 0.006 + thickness * body * (0.61 + 0.70 * billow);
   float h = (elevation - base) / depth;
   float cover = smoothstep(-0.05, 0.08, h) * (1.0 - smoothstep(0.88, 1.03, h)) * smoothstep(0.07, 0.40, body);
-  vec3 underside = mix(vec3(0.48, 0.41, 0.54), vec3(0.61, 0.46, 0.59), face);
-  vec3 middle = mix(underside, vec3(0.90, 0.69, 0.70), 0.65);
-  vec3 crest = mix(vec3(0.91, 0.76, 0.73), vec3(1.0, 0.85, 0.72), face);
+  vec3 underside = mix(vec3(0.46, 0.52, 0.59), vec3(0.58, 0.60, 0.63), face);
+  vec3 middle = mix(underside, vec3(0.86, 0.84, 0.79), 0.65);
+  vec3 crest = mix(vec3(0.93, 0.90, 0.84), vec3(1.0, 0.91, 0.74), face);
   vec3 cloud = mix(underside, middle, smoothstep(0.14, 0.53, h + (billow - 0.5) * 0.20));
   cloud = mix(cloud, crest, smoothstep(0.50, 0.77, h + (billow - 0.5) * 0.35));
   return mix(sky, cloud, cover * 0.92);
@@ -147,15 +147,16 @@ vec3 skyColor(vec3 rd, out float disc) {
 
   disc = 0.0;
   return c;`,
-    `  // 桃色地平线和薰衣草高空；颜色取自同一套柔和夕照色板。
-  vec3 horizon = mix(vec3(0.79, 0.59, 0.65), vec3(0.95, 0.72, 0.61), face);
-  vec3 midcol = mix(vec3(0.64, 0.50, 0.64), vec3(0.82, 0.62, 0.67), face);
-  vec3 zenith = vec3(0.53, 0.45, 0.63);
+    `  // 暖色集中在日落方向的低空，抬头逐渐进入柔和的蓝灰色。
+  float warmth = face * face;
+  vec3 horizon = mix(vec3(0.72, 0.79, 0.82), vec3(0.97, 0.80, 0.61), warmth);
+  vec3 midcol = mix(vec3(0.48, 0.62, 0.75), vec3(0.56, 0.67, 0.77), face);
+  vec3 zenith = vec3(0.34, 0.50, 0.66);
   float up = max(el, 0.0);
-  vec3 c = mix(horizon, midcol, smoothstep(0.0, 0.34, up));
+  vec3 c = mix(horizon, midcol, smoothstep(0.0, 0.23, up));
   c = mix(c, zenith, smoothstep(0.24, 0.90, up));
-  float haze = pow(1.0 - clamp(up, 0.0, 1.0), 9.0) * face;
-  c = mix(c, vec3(0.98, 0.75, 0.65), haze * 0.28);
+  float haze = pow(1.0 - clamp(up, 0.0, 1.0), 9.0) * warmth;
+  c = mix(c, vec3(1.0, 0.84, 0.65), haze * 0.28);
   c += vec3(0.055, 0.030, 0.008) * pow(sunDot, 12.0);
   if (el > -0.09 && el < 0.44) {
     c = autumnCloudBank(c, az, el, 0.151, 0.49, 0.073, face);
@@ -355,21 +356,21 @@ vec3 skyColor(vec3 rd, out float disc) {
       vec3 cMid = vec3(0.47, 0.53, 0.61);
       vec3 cHi  = vec3(0.73, 0.78, 0.84);
       vec3 cHot = vec3(0.88, 0.90, 0.93);`,
-    `      vec3 cLow = vec3(0.49, 0.41, 0.56);
-      vec3 cMid = vec3(0.73, 0.56, 0.63);
-      vec3 cHi  = vec3(0.93, 0.73, 0.66);
-      vec3 cHot = vec3(1.00, 0.87, 0.71);`, 'CLOUD_FS');
+    `      vec3 cLow = vec3(0.41, 0.47, 0.53);
+      vec3 cMid = vec3(0.63, 0.68, 0.73);
+      vec3 cHi  = vec3(0.87, 0.84, 0.78);
+      vec3 cHot = vec3(1.00, 0.93, 0.80);`, 'CLOUD_FS');
   __skyCloud = __skyReplaceExactlyOnce(__skyCloud,
     `      float lit = clamp(0.18 + hf * 0.86 - dSun * 0.95 + d * 0.14, 0.0, 1.0);`,
     `      float lit = clamp(0.18 + hf * 0.86 - dSun * 0.95 + d * 0.14, 0.0, 1.0);
       lit = floor(lit * 3.0 + 0.5) / 3.0;`, 'CLOUD_FS');
   __skyCloud = __skyReplaceExactlyOnce(__skyCloud,
     `  col = mix(col, vec3(0.55, 0.62, 0.70), fog * 0.6);`,
-    `  col = mix(col, vec3(0.80, 0.66, 0.72), fog * 0.48);`, 'CLOUD_FS');
+    `  col = mix(col, vec3(0.64, 0.72, 0.79), fog * 0.48);`, 'CLOUD_FS');
 
   __skyPost = __skyReplaceExactlyOnce(__skyPost,
     `  c = mix(c, vec3(0.70, 0.75, 0.81), uCloudWhite * 0.42);`,
-    `  c = mix(c, vec3(0.96, 0.80, 0.76), uCloudWhite * 0.32);`, 'POST_FS');
+    `  c = mix(c, vec3(0.92, 0.92, 0.89), uCloudWhite * 0.32);`, 'POST_FS');
   __skyPost = __skyReplaceExactlyOnce(__skyPost,
     `  // alpine grade: cool shadows, neutral highlights, restrained contrast
   c = max(c, vec3(0.0));

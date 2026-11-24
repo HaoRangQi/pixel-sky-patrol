@@ -1,0 +1,900 @@
+{
+  "title": "守卫湖谷完整出航",
+  "input": "正式入口和 Chrome 键鼠输入，操纵使用只读遥测。时钟模式按航次记录。",
+  "sorties": [
+    {
+      "view": "chase",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "mobile": false
+      },
+      "clock": "controlled simulation",
+      "turnDegPerSecond": 22,
+      "startedAt": "2026-11-21T17:49:29.027Z",
+      "finishedAt": "2026-11-21T17:49:35.437Z",
+      "missionSeconds": 141.11,
+      "waveStart": [
+        {
+          "wave": 1,
+          "title": "无人机入侵",
+          "start": 0.02,
+          "airTotal": 4,
+          "initial": [
+            "drone",
+            "drone",
+            "drone"
+          ]
+        },
+        {
+          "wave": 2,
+          "title": "战斗机入侵",
+          "start": 19.56,
+          "airTotal": 5,
+          "initial": [
+            "fighter",
+            "fighter",
+            "fighter"
+          ]
+        },
+        {
+          "wave": 3,
+          "title": "空投突袭",
+          "start": 59.35,
+          "airTotal": 6,
+          "initial": [
+            "transport",
+            "fighter",
+            "drone",
+            "fighter"
+          ]
+        }
+      ],
+      "score": 4365,
+      "air": 15,
+      "armor": 1,
+      "shieldAtVictory": 100,
+      "resultUI": {
+        "title": "守卫湖谷成功",
+        "visible": true,
+        "count": 16
+      },
+      "runtimeErrors": [],
+      "observedEvents": [
+        {
+          "t": 59.35,
+          "kind": "transportEntered",
+          "hp": 390,
+          "flares": 2
+        },
+        {
+          "t": 61.84,
+          "kind": "enemyFlares",
+          "before": 2,
+          "after": 1,
+          "hp": 390,
+          "d": 691.63,
+          "missiles": [
+            {
+              "target": 15,
+              "source": null,
+              "age": 0.9333333333333346,
+              "owner": "player",
+              "decoy": true,
+              "lost": false
+            }
+          ]
+        },
+        {
+          "t": 62.3,
+          "kind": "deployed",
+          "id": 16,
+          "airdrop": true,
+          "x": 5309.69,
+          "y": 972.54,
+          "z": 9038.15,
+          "d": 617.94
+        },
+        {
+          "t": 63.09,
+          "kind": "transportHit",
+          "before": 390,
+          "after": 260
+        },
+        {
+          "t": 64,
+          "kind": "transportHit",
+          "before": 260,
+          "after": 130
+        },
+        {
+          "t": 82.5,
+          "kind": "landed",
+          "id": 16,
+          "x": 5262.55,
+          "y": 86.77,
+          "z": 9005.43
+        }
+      ],
+      "continuedWithScore": true
+    },
+    {
+      "view": "cockpit",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "mobile": false
+      },
+      "clock": "controlled simulation",
+      "turnDegPerSecond": 22,
+      "startedAt": "2026-11-21T17:49:35.437Z",
+      "finishedAt": "2026-11-21T17:49:40.995Z",
+      "missionSeconds": 97.64,
+      "waveStart": [
+        {
+          "wave": 1,
+          "title": "无人机入侵",
+          "start": 1.15,
+          "airTotal": 4,
+          "initial": [
+            "drone",
+            "drone",
+            "drone"
+          ]
+        },
+        {
+          "wave": 2,
+          "title": "战斗机入侵",
+          "start": 19.88,
+          "airTotal": 5,
+          "initial": [
+            "fighter",
+            "fighter",
+            "fighter"
+          ]
+        },
+        {
+          "wave": 3,
+          "title": "空投突袭",
+          "start": 57.22,
+          "airTotal": 6,
+          "initial": [
+            "transport",
+            "fighter",
+            "drone",
+            "fighter"
+          ]
+        }
+      ],
+      "score": 3990,
+      "air": 15,
+      "armor": 1,
+      "shieldAtVictory": 100,
+      "resultUI": {
+        "title": "守卫湖谷成功",
+        "visible": true,
+        "count": 16
+      },
+      "runtimeErrors": [],
+      "observedEvents": [
+        {
+          "t": 57.22,
+          "kind": "transportEntered",
+          "hp": 390,
+          "flares": 2
+        },
+        {
+          "t": 59.94,
+          "kind": "enemyFlares",
+          "before": 2,
+          "after": 1,
+          "hp": 390,
+          "d": 1102.7,
+          "missiles": [
+            {
+              "target": 15,
+              "source": null,
+              "age": 1.866666666666665,
+              "owner": "player",
+              "decoy": true,
+              "lost": false
+            }
+          ]
+        },
+        {
+          "t": 61.69,
+          "kind": "deployed",
+          "id": 16,
+          "airdrop": true,
+          "x": 4658.5,
+          "y": 719.73,
+          "z": 5300.64,
+          "d": 825.41
+        },
+        {
+          "t": 61.92,
+          "kind": "transportHit",
+          "before": 390,
+          "after": 260
+        },
+        {
+          "t": 63.06,
+          "kind": "enemyFlares",
+          "before": 1,
+          "after": 0,
+          "hp": 260,
+          "d": 596.29,
+          "missiles": [
+            {
+              "target": 17,
+              "source": null,
+              "age": 1.1406666666666676,
+              "owner": "player",
+              "decoy": true,
+              "lost": false
+            }
+          ]
+        },
+        {
+          "t": 64.2,
+          "kind": "transportHit",
+          "before": 260,
+          "after": 130
+        },
+        {
+          "t": 64.55,
+          "kind": "transportHit",
+          "before": 130,
+          "after": 118
+        },
+        {
+          "t": 64.67,
+          "kind": "transportHit",
+          "before": 118,
+          "after": 106
+        },
+        {
+          "t": 64.78,
+          "kind": "transportHit",
+          "before": 106,
+          "after": 82
+        },
+        {
+          "t": 64.9,
+          "kind": "transportHit",
+          "before": 82,
+          "after": 70
+        }
+      ]
+    },
+    {
+      "view": "top",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "mobile": false
+      },
+      "clock": "controlled simulation",
+      "turnDegPerSecond": 22,
+      "startedAt": "2026-11-21T17:49:40.995Z",
+      "finishedAt": "2026-11-21T17:49:54.464Z",
+      "missionSeconds": 92.76,
+      "waveStart": [
+        {
+          "wave": 1,
+          "title": "无人机入侵",
+          "start": 2.3,
+          "airTotal": 4,
+          "initial": [
+            "drone",
+            "drone",
+            "drone"
+          ]
+        },
+        {
+          "wave": 2,
+          "title": "战斗机入侵",
+          "start": 17.96,
+          "airTotal": 5,
+          "initial": [
+            "fighter",
+            "fighter",
+            "fighter"
+          ]
+        },
+        {
+          "wave": 3,
+          "title": "空投突袭",
+          "start": 43.38,
+          "airTotal": 6,
+          "initial": [
+            "transport",
+            "fighter",
+            "drone",
+            "fighter"
+          ]
+        }
+      ],
+      "score": 4250,
+      "air": 15,
+      "armor": 1,
+      "shieldAtVictory": 100,
+      "resultUI": {
+        "title": "守卫湖谷成功",
+        "visible": true,
+        "count": 16
+      },
+      "runtimeErrors": [],
+      "observedEvents": [
+        {
+          "t": 43.38,
+          "kind": "transportEntered",
+          "hp": 390,
+          "flares": 2
+        },
+        {
+          "t": 45.88,
+          "kind": "enemyFlares",
+          "before": 2,
+          "after": 1,
+          "hp": 390,
+          "d": 724.26,
+          "missiles": [
+            {
+              "target": 15,
+              "source": null,
+              "age": 1.0000000000000013,
+              "owner": "player",
+              "decoy": true,
+              "lost": false
+            }
+          ]
+        },
+        {
+          "t": 46.54,
+          "kind": "deployed",
+          "id": 16,
+          "airdrop": true,
+          "x": 6893.11,
+          "y": 737.93,
+          "z": 8460.77,
+          "d": 621.89
+        },
+        {
+          "t": 47.18,
+          "kind": "transportHit",
+          "before": 390,
+          "after": 260
+        },
+        {
+          "t": 48.16,
+          "kind": "transportHit",
+          "before": 260,
+          "after": 130
+        },
+        {
+          "t": 61.67,
+          "kind": "landed",
+          "id": 16,
+          "x": 6855.89,
+          "y": 75.62,
+          "z": 8417.56
+        },
+        {
+          "t": 67.73,
+          "kind": "groundLaunch",
+          "id": 16
+        }
+      ]
+    },
+    {
+      "view": "chase",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "mobile": false
+      },
+      "clock": "controlled simulation",
+      "turnDegPerSecond": 37,
+      "startedAt": "2026-11-21T17:49:54.464Z",
+      "finishedAt": "2026-11-21T17:49:59.886Z",
+      "missionSeconds": 78.13,
+      "waveStart": [
+        {
+          "wave": 1,
+          "title": "无人机入侵",
+          "start": 0.02,
+          "airTotal": 4,
+          "initial": [
+            "drone",
+            "drone",
+            "drone"
+          ]
+        },
+        {
+          "wave": 2,
+          "title": "战斗机入侵",
+          "start": 17.11,
+          "airTotal": 5,
+          "initial": [
+            "fighter",
+            "fighter",
+            "fighter"
+          ]
+        },
+        {
+          "wave": 3,
+          "title": "空投突袭",
+          "start": 28.79,
+          "airTotal": 6,
+          "initial": [
+            "transport",
+            "fighter",
+            "drone",
+            "fighter"
+          ]
+        }
+      ],
+      "score": 3810,
+      "air": 15,
+      "armor": 2,
+      "shieldAtVictory": 100,
+      "resultUI": {
+        "title": "守卫湖谷成功",
+        "visible": true,
+        "count": 17
+      },
+      "runtimeErrors": [],
+      "observedEvents": [
+        {
+          "t": 28.79,
+          "kind": "transportEntered",
+          "hp": 390,
+          "flares": 2
+        },
+        {
+          "t": 37.12,
+          "kind": "deployed",
+          "id": 17,
+          "airdrop": true,
+          "x": 1278.97,
+          "y": 745.38,
+          "z": 6805.26,
+          "d": 585.64
+        },
+        {
+          "t": 43.36,
+          "kind": "deployed",
+          "id": 18,
+          "airdrop": true,
+          "x": 1483.74,
+          "y": 802.18,
+          "z": 7102.91,
+          "d": 828.88
+        },
+        {
+          "t": 51.54,
+          "kind": "landed",
+          "id": 17,
+          "x": 1426.04,
+          "y": 113.83,
+          "z": 6839.9
+        },
+        {
+          "t": 59.36,
+          "kind": "landed",
+          "id": 18,
+          "x": 1504.49,
+          "y": 100.45,
+          "z": 7250.26
+        },
+        {
+          "t": 63.09,
+          "kind": "enemyFlares",
+          "before": 2,
+          "after": 1,
+          "hp": 390,
+          "d": 440.71,
+          "missiles": [
+            {
+              "target": 19,
+              "source": null,
+              "age": 0.11666666666666665,
+              "owner": "player",
+              "decoy": true,
+              "lost": false
+            }
+          ]
+        },
+        {
+          "t": 64.47,
+          "kind": "transportHit",
+          "before": 390,
+          "after": 260
+        },
+        {
+          "t": 65.37,
+          "kind": "transportHit",
+          "before": 260,
+          "after": 130
+        }
+      ]
+    },
+    {
+      "view": "cockpit",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "mobile": false
+      },
+      "clock": "controlled simulation",
+      "turnDegPerSecond": 37,
+      "startedAt": "2026-11-21T17:49:59.886Z",
+      "finishedAt": "2026-11-21T17:50:06.456Z",
+      "missionSeconds": 98.26,
+      "waveStart": [
+        {
+          "wave": 1,
+          "title": "无人机入侵",
+          "start": 1.15,
+          "airTotal": 4,
+          "initial": [
+            "drone",
+            "drone",
+            "drone"
+          ]
+        },
+        {
+          "wave": 2,
+          "title": "战斗机入侵",
+          "start": 18.24,
+          "airTotal": 5,
+          "initial": [
+            "fighter",
+            "fighter",
+            "fighter"
+          ]
+        },
+        {
+          "wave": 3,
+          "title": "空投突袭",
+          "start": 38.32,
+          "airTotal": 6,
+          "initial": [
+            "transport",
+            "fighter",
+            "drone",
+            "fighter"
+          ]
+        }
+      ],
+      "score": 3590,
+      "air": 15,
+      "armor": 1,
+      "shieldAtVictory": 100,
+      "resultUI": {
+        "title": "守卫湖谷成功",
+        "visible": true,
+        "count": 16
+      },
+      "runtimeErrors": [],
+      "observedEvents": [
+        {
+          "t": 38.32,
+          "kind": "transportEntered",
+          "hp": 390,
+          "flares": 2
+        },
+        {
+          "t": 40.45,
+          "kind": "enemyFlares",
+          "before": 2,
+          "after": 1,
+          "hp": 390,
+          "d": 867.12,
+          "missiles": [
+            {
+              "target": 15,
+              "source": null,
+              "age": 1.2833333333333337,
+              "owner": "player",
+              "decoy": true,
+              "lost": false
+            }
+          ]
+        },
+        {
+          "t": 41.39,
+          "kind": "deployed",
+          "id": 16,
+          "airdrop": true,
+          "x": 1458.5,
+          "y": 608.36,
+          "z": 7772.54,
+          "d": 718.44
+        },
+        {
+          "t": 42.06,
+          "kind": "transportHit",
+          "before": 390,
+          "after": 260
+        },
+        {
+          "t": 43.2,
+          "kind": "transportHit",
+          "before": 260,
+          "after": 130
+        },
+        {
+          "t": 43.55,
+          "kind": "enemyFlares",
+          "before": 1,
+          "after": 0,
+          "hp": 130,
+          "d": 346.88,
+          "missiles": [
+            {
+              "target": 17,
+              "source": null,
+              "age": 0.35,
+              "owner": "player",
+              "decoy": true,
+              "lost": false
+            }
+          ]
+        },
+        {
+          "t": 52.9,
+          "kind": "landed",
+          "id": 16,
+          "x": 1510.7,
+          "y": 106.56,
+          "z": 7748.22
+        },
+        {
+          "t": 60.96,
+          "kind": "groundLaunch",
+          "id": 16
+        }
+      ],
+      "restartedWaveOne": true
+    },
+    {
+      "view": "top",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "mobile": false
+      },
+      "clock": "controlled simulation",
+      "turnDegPerSecond": 37,
+      "startedAt": "2026-11-21T17:50:06.456Z",
+      "finishedAt": "2026-11-21T17:50:20.397Z",
+      "missionSeconds": 93.76,
+      "waveStart": [
+        {
+          "wave": 1,
+          "title": "无人机入侵",
+          "start": 2.32,
+          "airTotal": 4,
+          "initial": [
+            "drone",
+            "drone",
+            "drone"
+          ]
+        },
+        {
+          "wave": 2,
+          "title": "战斗机入侵",
+          "start": 17.83,
+          "airTotal": 5,
+          "initial": [
+            "fighter",
+            "fighter",
+            "fighter"
+          ]
+        },
+        {
+          "wave": 3,
+          "title": "空投突袭",
+          "start": 39.77,
+          "airTotal": 6,
+          "initial": [
+            "transport",
+            "fighter",
+            "drone",
+            "fighter"
+          ]
+        }
+      ],
+      "score": 3990,
+      "air": 15,
+      "armor": 1,
+      "shieldAtVictory": 100,
+      "resultUI": {
+        "title": "守卫湖谷成功",
+        "visible": true,
+        "count": 16
+      },
+      "runtimeErrors": [],
+      "observedEvents": [
+        {
+          "t": 39.77,
+          "kind": "transportEntered",
+          "hp": 390,
+          "flares": 2
+        },
+        {
+          "t": 44.22,
+          "kind": "deployed",
+          "id": 16,
+          "airdrop": true,
+          "x": 2469.8,
+          "y": 716.48,
+          "z": 5046.01,
+          "d": 598.91
+        },
+        {
+          "t": 44.55,
+          "kind": "enemyFlares",
+          "before": 2,
+          "after": 1,
+          "hp": 390,
+          "d": 541.76,
+          "missiles": [
+            {
+              "target": 17,
+              "source": null,
+              "age": 0.49999999999999994,
+              "owner": "player",
+              "decoy": true,
+              "lost": false
+            }
+          ]
+        },
+        {
+          "t": 45.54,
+          "kind": "transportHit",
+          "before": 390,
+          "after": 260
+        },
+        {
+          "t": 46.33,
+          "kind": "transportHit",
+          "before": 260,
+          "after": 130
+        },
+        {
+          "t": 59.51,
+          "kind": "landed",
+          "id": 16,
+          "x": 2576.73,
+          "y": 46.63,
+          "z": 5153.96
+        }
+      ]
+    },
+    {
+      "view": "cockpit",
+      "viewport": {
+        "name": "portrait",
+        "width": 390,
+        "height": 844,
+        "mobile": true
+      },
+      "clock": "browser RAF",
+      "turnDegPerSecond": 37,
+      "startedAt": "2026-11-21T17:52:20.478Z",
+      "finishedAt": "2026-11-21T17:53:44.013Z",
+      "missionSeconds": 64.01,
+      "waveStart": [
+        {
+          "wave": 1,
+          "title": "无人机入侵",
+          "start": 1.1,
+          "airTotal": 4,
+          "initial": [
+            "drone",
+            "drone",
+            "drone"
+          ]
+        },
+        {
+          "wave": 2,
+          "title": "战斗机入侵",
+          "start": 17.43,
+          "airTotal": 5,
+          "initial": [
+            "fighter",
+            "fighter",
+            "fighter"
+          ]
+        },
+        {
+          "wave": 3,
+          "title": "空投突袭",
+          "start": 34.59,
+          "airTotal": 6,
+          "initial": [
+            "transport",
+            "fighter",
+            "drone",
+            "fighter"
+          ]
+        }
+      ],
+      "score": 3775,
+      "air": 15,
+      "armor": 0,
+      "shieldAtVictory": 100,
+      "resultUI": {
+        "title": "守卫湖谷成功",
+        "visible": true,
+        "count": 15
+      },
+      "runtimeErrors": [],
+      "observedEvents": [
+        {
+          "t": 34.59,
+          "kind": "transportEntered",
+          "hp": 390,
+          "flares": 2
+        },
+        {
+          "t": 37.59,
+          "kind": "enemyFlares",
+          "before": 2,
+          "after": 1,
+          "hp": 390,
+          "d": 867.35,
+          "missiles": [
+            {
+              "target": 15,
+              "source": null,
+              "age": 1.366699999999997,
+              "owner": "player",
+              "decoy": true,
+              "lost": false
+            }
+          ]
+        },
+        {
+          "t": 39.33,
+          "kind": "transportHit",
+          "before": 390,
+          "after": 260
+        },
+        {
+          "t": 40.68,
+          "kind": "enemyFlares",
+          "before": 1,
+          "after": 0,
+          "hp": 260,
+          "d": 494.29,
+          "missiles": []
+        },
+        {
+          "t": 41.79,
+          "kind": "transportHit",
+          "before": 260,
+          "after": 130
+        }
+      ],
+      "restartedWaveOne": true
+    }
+  ],
+  "screenshots": [
+    "sky_defense_transport.png",
+    "sky_defense_stage3_top.png",
+    "sky_defense_flares.png",
+    "sky_defense_stage3_portrait.png",
+    "sky_defense_result_portrait.png"
+  ],
+  "browser": "Chrome/157.0.8103.80"
+}

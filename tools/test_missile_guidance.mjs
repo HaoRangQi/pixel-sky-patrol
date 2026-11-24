@@ -145,16 +145,44 @@ test('无锁发射先沿机头向前，之后沿长弧下坠并撞地', t => {
   assert(origin.z - early.z > 80 && Math.abs(early.y - origin.y) < 8, '离架时应在前方而不是屏幕上方');
   advance(f, 2.75);
   const later = snapshot(m);
-  assert(!m.dead && origin.z - m.pos.z > 1100 && m.pos.y < origin.y - 120 && m.vel.y < 0);
+  assert(!m.dead && origin.z - m.pos.z > 1400 && m.pos.y < origin.y - 45 && m.vel.y < 0);
   advance(f, 8);
   report(t, { origin, early, later, impact: snapshot(m) });
   assert(m.dead && f.effects.length > 0 && m.pos.y < 2 && m.age < 14);
 });
 
+test('同时按下机炮与导弹：导弹离架即比子弹快，且一秒内始终更远更少下坠', t => {
+  // 同一帧、同一机头各发一发；两件武器离架点不同（机鼻下方 / 翼下挂架），
+  // 所以比较各自相对离架点的前进距离和下坠，而不是绝对坐标。
+  const f = fixture();
+  f.firePlayerGuns(); f.spawnPlayerMissile();
+  const bullet = f.G.bullets.at(-1), missile = f.G.missiles.at(-1);
+  const b0 = copy(bullet.pos), m0 = copy(missile.pos);
+  const speedOf = () => ({ bullet: len(bullet.vel), missile: len(missile.vel) });
+  const progress = () => ({
+    bulletForward: -(bullet.pos.z - b0.z), missileForward: -(missile.pos.z - m0.z),
+    bulletDrop: b0.y - bullet.pos.y, missileDrop: m0.y - missile.pos.y,
+  });
+  const atFire = speedOf();
+  assert(atFire.missile > atFire.bullet, `离架瞬间导弹 ${atFire.missile} 必须快于子弹 ${atFire.bullet}`);
+  const rows = [{ t: 0, ...atFire, ...progress() }];
+  for (let i = 1; i <= 60 && !bullet.dead && !missile.dead; i++) {
+    f.updateGunBullets(1 / 60); f.updateMissiles(1 / 60);
+    rows.push({ t: i / 60, ...speedOf(), ...progress() });
+  }
+  report(t, rows.filter((_, i) => i % 12 === 0));
+  // t=0 两发都还没走，前进距离与下坠为 0；弹速从离架当帧即可比较。
+  const moved = rows.filter(r => r.t > 0);
+  assert(moved.length > 55, '两种弹体都须真实飞行一整秒');
+  assert(rows.every(r => r.missile > r.bullet), '导弹弹速一秒内始终高于机炮');
+  assert(moved.every(r => r.missileForward > r.bulletForward), '导弹飞出的距离必须始终大于机炮');
+  assert(moved.every(r => r.missileDrop < r.bulletDrop), '同时发射时下坠更快的必须是机炮，而不是导弹');
+});
+
 test('一枚无锁弹落岸只留下一个落点，火光结束后树冠般的烟柱仍在上升', () => {
   const f = fixture(true); f.G.map.heightAt = () => 12;
   f.spawnPlayerMissile();
-  for (let i = 0; f.G.missiles.length && i < 360; i++) advance(f, 1 / 60);
+  for (let i = 0; f.G.missiles.length && i < 780; i++) advance(f, 1 / 60);
   assert.equal(f.G.decals.length, 1, '一次接触不能叠两套爆点、焦痕和音效');
   const site = f.G.decals[0].pos;
   advance(f, 1);
@@ -235,7 +263,7 @@ test('destroying a locked target releases guidance but preserves ballistic motio
   f.G.player.basis = f.basisFrom(1.2, 0.35, 0);
   advance(f, 0.1);
   assert(!m.dead && m.pos.x > before.pos.x && m.vel.y < before.vel.y);
-  assert(Math.abs(m.vel.x - before.vel.x) < 0.01, '失去目标后保留横向惯性');
+  assert(Math.abs(m.vel.x / m.speed - before.vel.x / len(before.vel)) < 1e-3, '失去目标后保留横向惯性');
 });
 
 test('player gunfire creates a fast gravity-affected tracer projectile and hits after flight time', () => {

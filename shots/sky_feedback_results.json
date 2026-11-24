@@ -1,0 +1,111 @@
+{
+  "startedAt": "2026-11-22T23:19:05.287Z",
+  "command": "node tools/verify_sky_feedback.mjs",
+  "result": "PASS",
+  "screenshots": [
+    "shots/sky_feedback_volume_panel.png",
+    "shots/sky_feedback_linkage_panel.png",
+    "shots/sky_feedback_weapons_launch.png"
+  ],
+  "runtimeErrors": [],
+  "browser": "Chrome/157.0.8103.80",
+  "volume": {
+    "loud": {
+      "value": 1,
+      "time": 0.08533333333333333,
+      "wall": 1722.8999999761581
+    },
+    "quiet": {
+      "value": 0.0001,
+      "time": 0.08533333333333333,
+      "wall": 1725.2999999523163
+    },
+    "soundStillOn": true,
+    "screenshot": "shots/sky_feedback_volume_panel.png"
+  },
+  "linkage": {
+    "cruise": 498,
+    "burn": 698,
+    "turn": 50,
+    "turnText": "50°/秒 · 随速度",
+    "screenshot": "shots/sky_feedback_linkage_panel.png"
+  },
+  "weapons": {
+    "launches": {
+      "bullet": {
+        "fwd": 16.042590611023844,
+        "right": -1.1753098494438063e-13,
+        "up": -0.63055555555556
+      },
+      "missile": {
+        "fwd": 13.648146166452099,
+        "right": -2.2000000000006703,
+        "up": -0.5222237985857419
+      },
+      "nextRail": 1,
+      "missiles": 3
+    },
+    "screenshot": "shots/sky_feedback_weapons_launch.png"
+  },
+  "rails": [
+    {
+      "fwd": 13.648146166451749,
+      "right": 2.199999999999384,
+      "up": -0.5222237985857419
+    },
+    {
+      "fwd": 14.998146166452592,
+      "right": -3.250000000000558,
+      "up": -0.5222237985857419
+    },
+    {
+      "fwd": 14.998146166452619,
+      "right": 3.2500000000003446,
+      "up": -0.5222237985857419
+    },
+    {
+      "fwd": 13.648146166452099,
+      "right": -2.2000000000006703,
+      "up": -0.5222237985857419
+    }
+  ],
+  "ballistics": {
+    "first": {
+      "t": 0,
+      "bulletSpeed": 720.0002785493288,
+      "missileSpeed": 824.6667098734815,
+      "bulletForward": 0,
+      "missileForward": 0,
+      "bulletDrop": 0,
+      "missileDrop": 0
+    },
+    "quarter": {
+      "t": 0.25,
+      "bulletSpeed": 720.0713051111288,
+      "missileSpeed": 894.6774294690262,
+      "bulletForward": 180.00000000000088,
+      "missileForward": 214.91664669815438,
+      "bulletDrop": 1.424999999999983,
+      "missileDrop": 0.5827521649950427
+    },
+    "half": {
+      "t": 0.5,
+      "bulletSpeed": 720.2676362143295,
+      "missileSpeed": 964.7060270385889,
+      "bulletForward": 360.00000000000176,
+      "missileForward": 447.3330567083389,
+      "bulletDrop": 5.2249999999999375,
+      "missileDrop": 2.2507169198847805
+    },
+    "last": {
+      "t": 1,
+      "bulletSpeed": 721.0357372866093,
+      "missileSpeed": 1000.0022983725548,
+      "bulletForward": 720.0000000000035,
+      "missileForward": 945.0641514971852,
+      "bulletDrop": 19.94999999999976,
+      "missileDrop": 8.879861088700096
+    }
+  },
+  "finishedAt": "2026-11-22T23:19:08.157Z"
+}

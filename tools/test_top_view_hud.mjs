@@ -16,9 +16,11 @@ function fixture(newVersion) {
   });
   const context = vm.createContext({
     ctx, VW: 626, VH: 340, TAU: Math.PI * 2, MOUSE_STEER_TIMEOUT: .42,
-    G: { mode: 'play', player: {}, camera: {}, view: 0, viewBlend: 1, cockpitAlpha: 0, lock: { phase: 'search' } },
+    G: { mode: 'play', player: {}, camera: {}, view: 0, viewBlend: 1, cockpitAlpha: 0, wave: 1, lock: { phase: 'search' } },
     INPUT: { mx: 313, my: 170, mouseSteerAge: 1, touchMode: false },
     TOUCH: { active: false }, flightMode: 'intercept', clamp01: value => Math.max(0, Math.min(1, value)),
+    projectTargetMarker: () => false, pad: (n, width) => String(n).padStart(width, '0'),
+    textWidth: (value, size) => [...value].reduce((w, c) => w + size * (/[㐀-鿿]/.test(c) ? 1 : .6), 0),
   });
   hud.runInContext(context);
   if (newVersion) sky.runInContext(context);
@@ -48,12 +50,17 @@ test('窄屏开局横幅避开透景仪表，不删掉真实波次提示', () =>
   const f = fixture(true), text = [];
   f.context.VW = 195;
   f.context.G.banner = { title: '第 01 波', t: 1, life: 3.2 };
-  f.context.drawText = (value, x, y) => text.push({ value, x, y });
+  f.context.drawText = (value, x, y, opts) => text.push({ value, x, y, ...opts });
   vm.runInContext('SKY_OCCLUSION.push({x:43,y:32,w:133,h:50})', f.context);
   f.draw();
   const banner = text.find(item => item.value === '第 01 波');
   assert(banner, '不能为了监控截图而移除波次提示');
-  assert(banner.y >= 122 && banner.y < 140, `波次横幅仍压在油量刻度上：${banner.y}`);
+  const half = f.context.textWidth(banner.value, banner.size) / 2;
+  const y = banner.y - banner.size;
+  for (let x = banner.x - half; x <= banner.x + half; x += 2) {
+    for (let dy = 0; dy <= banner.size + 2; dy += 2)
+      assert(!vm.runInContext(`hudBlocked(${x},${y + dy})`, f.context), `横幅在 ${x.toFixed(1)},${y + dy} 遮住仪表`);
+  }
 });
 
 test('目标名称和血条避让透景仪表，仍保留真实锁定框和锁定状态', () => {

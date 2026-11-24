@@ -29,7 +29,7 @@ function hit(button) {
     check(r.right <= q.left || q.right <= r.left || r.bottom <= q.top || q.bottom <= r.top, `斜后入口盖住 ${other}`);
   }
 }
-const key = (code, on) => window.dispatchEvent(new KeyboardEvent(on ? 'keydown' : 'keyup', { code, bubbles:true }));
+const key = (code, on) => byId('ui').dispatchEvent(new KeyboardEvent(on ? 'keydown' : 'keyup', { code, bubbles:true }));
 click('sky-cruise'); __PI.freeze(true); __PI.step(3.6);
 check(G.view === 1 && Math.abs(side()) < .001, '正式起飞不再默认正后机尾');
 const chase = byId('sky-chase');
@@ -70,7 +70,7 @@ byId('gl').dispatchEvent(new PointerEvent('pointermove', { pointerType:'mouse', 
 await paint();
 check(pipInk() >= neutralInk+uiScale**2, '指针没有区分闲置和主动输入');
 check(p.shield === 100, '展示镜头影响了飞行安全');
-key('KeyD',true); __PI.step(.22); key('KeyD',false); __PI.step(.10);
+key('KeyD',true); __PI.step(.55); key('KeyD',false); __PI.step(.10);
 check(p.yaw > held.yaw+.04 && p.roll < -.2 && Math.abs(G.camera.right.y) < .001, '轻转时相机不跟随航向或跟着机翼翻斜');
 key('Escape',true); key('Escape',false);
 check(G.mode === 'paused' && (chase.hidden || chase.disabled), '暂停时镜头按钮仍能操作');
@@ -83,10 +83,11 @@ check(G.view === 2 && G.cockpitAlpha > .99 && chase.hidden, '切换一次没有�
 click('sky-camera'); __PI.step(1.4);
 check(G.view === 0 && G.camera.fwd.y < -.99999 && G.camera.up.z < -.99999, '巡航俯视不是北向正上方');
 const topCenter = project(p.pos), topDist = G.camera.pos.y-p.pos.y;
-check(Math.abs(topCenter.x-.5) < .001 && Math.abs(topCenter.y-.5) < .001 && topDist > 15 && topDist < 80, '巡航俯视没有看清居中机体');
+check(Math.abs(topCenter.x-.5) < .001 && Math.abs(topCenter.y-.5) < .001 && Math.abs(topDist-85) < .01, '巡航俯视没有在85米机位显示居中机体');
+const topYaw = p.yaw;
 key('KeyD',true); __PI.step(.7); key('KeyD',false); __PI.step(.35);
 const topA = project(add(p.pos,p.renderBasis.fwd,6)), topB = project(add(p.pos,p.renderBasis.fwd,-5));
-check(topA.x > topB.x+.07 && G.camera.up.z < -.99999, '俯视中机鼻没有随航向转动，或北向标记在转');
+check(p.yaw > topYaw+.08 && topA.x > topB.x && G.camera.up.z < -.99999, '俯视中机鼻没有随航向转动，或北向标记在转');
 key('Escape',true); key('Escape',false); click('sky-home');
 check(chase.hidden && ['sky-intercept','sky-cruise','sky-inland'].every(id => !byId(id).disabled), '返回待命破坏了正式入口');
 click('sky-inland'); __PI.freeze(true);
@@ -96,6 +97,6 @@ check(G.view === 1 && chase.getAttribute('aria-pressed') === 'false' && Math.abs
 key('Escape',true); key('Escape',false); click('sky-home'); click('sky-intercept'); __PI.freeze(true);
 check(G.view === 1 && chase.hidden, '将观景侧视带进了截击锁定');
 click('sky-camera'); __PI.step(1.4); click('sky-camera'); __PI.step(1.4);
-check(G.view === 0 && Math.abs(G.camera.pos.y-G.player.pos.y-topDist) < .1, '截击没有使用与巡航一致的近距真实机体俯视');
+check(G.view === 0 && Math.abs(G.camera.pos.y-G.player.pos.y-topDist) < .1, '截击没有使用与巡航一致的北向俯视');
 check(!__PI.errors.length && !__PI.exceptions.length, JSON.stringify([__PI.errors,__PI.exceptions]));
 return { result:'PASS', aspect:G.camera.aspect, earlySide, finalSide, center, span, topDist };

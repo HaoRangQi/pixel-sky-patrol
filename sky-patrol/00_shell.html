@@ -136,15 +136,16 @@
   .sky-location { display: flex; align-items: center; gap: 7px; margin: 12px 0 0 7px; font-size: 11px; line-height: 1.6; letter-spacing: 1px; white-space: nowrap; }
   .sky-location svg { flex: none; width: 12px; height: 14px; }
   #sky-start { display: flex; flex-wrap: wrap; gap: 9px; margin: 22px 0 0 7px; pointer-events: auto; text-shadow: none; }
+  #sky-app[data-mode="title"] #sky-start { width: max-content; max-width: calc(100vw - 120px); }
   #sky-start button { min-height: 42px; padding: 11px 15px; font-size: 12px; font-weight: 600; letter-spacing: 1px; }
   #sky-start .sky-primary { display: inline-flex; align-items: center; gap: 13px; }
   .sky-primary { border-color: #f8d69e; background: #f7cd90; color: #322720; box-shadow: 2px 2px 0 #744d3c; }
   .sky-primary:disabled { color: #684d34; }
   .sky-primary:not(:disabled):hover { background: #ffe1aa; border-color: #fff0ce; }
   .sky-primary:not(:disabled):active { background: #e8b375; }
-  #sky-cruise, #sky-inland { background: rgb(28 29 31 / 86%); border-color: rgb(255 231 195 / 57%); color: #fff0d5; }
-  #sky-cruise:disabled, #sky-inland:disabled { color: #d4c3aa; }
-  #sky-cruise:not(:disabled):hover, #sky-inland:not(:disabled):hover { background: #393530; }
+  #sky-cruise, #sky-inland, #sky-settings { background: rgb(28 29 31 / 86%); border-color: rgb(255 231 195 / 57%); color: #fff0d5; }
+  #sky-cruise:disabled, #sky-inland:disabled, #sky-settings:disabled { color: #d4c3aa; }
+  #sky-cruise:not(:disabled):hover, #sky-inland:not(:disabled):hover, #sky-settings:not(:disabled):hover { background: #393530; }
   #sky-telemetry {
     position: absolute;
     left: 26px;
@@ -278,6 +279,7 @@
     touch-action: pan-y;
   }
   #sky-app[data-mode="paused"] #stage,
+  #sky-app[data-mode="victory"] #stage,
   #sky-app[data-mode="failed"] #stage { touch-action: pan-y; }
   .sky-dialog {
     width: min(100%, 350px);
@@ -304,6 +306,33 @@
   #sky-speed-reset { width: 100%; min-height: 36px; font-size: 12px; }
   .sky-mouse-option { display: flex; align-items: center; gap: 10px; min-height: 40px; margin: 8px 0; font-size: 13px; cursor: pointer; }
   .sky-mouse-option input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+  .sky-wingman-settings { margin-top: 2px; }
+  .sky-difficulty-settings { min-width: 0; margin: 6px 0; padding: 14px 0 5px; border: 0; border-top: 1px solid var(--line); }
+  .sky-difficulty-settings legend { padding: 0 9px 0 0; color: var(--muted); font-size: 12px; }
+  .sky-difficulty-select { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px 12px; }
+  .sky-difficulty-select label { font-size: 13px; }
+  .sky-difficulty-select select { min-width: 118px; height: 34px; padding: 0 8px; border: 1px solid #6d6357; background: #1b1e22; color: #f5e8d4; font: 12px var(--mono); }
+  .sky-difficulty-select select:disabled { opacity: .55; }
+  .sky-difficulty-settings .sky-speed-hint { margin: 6px 0 10px; }
+  .sky-difficulty-advanced { min-width: 0; border-top: 1px dashed var(--line); padding-top: 7px; }
+  .sky-difficulty-advanced summary { min-height: 32px; color: #d8c8b1; font-size: 11px; cursor: pointer; }
+  .sky-flare-row { display: grid; gap: 6px; padding: 8px 0; border-bottom: 1px solid rgb(255 232 195 / 10%); }
+  .sky-flare-row:last-child { border-bottom: 0; }
+  .sky-flare-head { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+  .sky-flare-head output { color: var(--accent); font: 11px var(--mono); }
+  .sky-flare-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sky-flare-controls label { display: grid; gap: 2px; color: var(--muted); font-size: 10px; }
+  .sky-flare-controls input { width: 100%; min-width: 0; height: 32px; margin: 0; accent-color: var(--accent); }
+  .sky-ai-settings { min-width: 0; margin: 2px 0 0; padding: 8px 0 0; border: 0; border-top: 1px dashed var(--line); }
+  .sky-ai-settings legend { padding: 0 9px 0 0; color: var(--muted); font-size: 11px; }
+  .sky-ai-details[hidden] { display: none; }
+  .sky-ai-row { display: grid; gap: 3px; margin: 6px 0; }
+  .sky-ai-row label { color: #cbbfab; font-size: 11px; }
+  .sky-ai-row input { width: 100%; min-width: 0; height: 32px; padding: 0 8px; border: 1px solid #6d6357; background: #1b1e22; color: #f5e8d4; font: 12px var(--mono); }
+  .sky-ai-row input:disabled { opacity: .55; }
+  .sky-ai-actions { display: flex; align-items: center; gap: 10px; margin-top: 7px; }
+  .sky-ai-actions button { min-height: 34px; font-size: 11px; }
+  #sky-ai-status { color: var(--muted); font: 11px/1.4 var(--mono); }
   .sky-result-readings { display: flex; gap: 35px; margin: 23px 0 26px; }
   .sky-result-readings div { display: grid; gap: 5px; }
   .sky-result-readings dt { color: #cbbfab; font-size: 11px; }
@@ -335,6 +364,8 @@
   .sky-key-pair { display: inline-flex; align-items: center; gap: 4px; }
   .sky-key-pair span { color: var(--muted); font: 9px/1 var(--mono); }
   .sky-ammo-cluster { display: flex; align-items: center; gap: 11px; flex: none; white-space: nowrap; }
+  #sky-wingman-status { flex: none; max-width: 210px; white-space: pre-line; color: #b8ded2; font: 12px/1.5 var(--sans); }
+  #sky-wingman-status[hidden] { display: none; }
   .sky-ammo-label { color: var(--muted); font-size: 9px; letter-spacing: 1px; }
   #sky-ammo { display: flex; align-items: center; gap: 3px; color: var(--accent); }
   #sky-ammo svg { display: block; width: 10px; height: 24px; image-rendering: pixelated; }
@@ -428,6 +459,7 @@
     .sky-direction { justify-content: flex-start; }
     .sky-key { font-size: 11px; gap: 6px; }
     .sky-ammo-cluster { grid-column: 2; justify-self: end; gap: 9px; }
+    #sky-wingman-status { grid-column: 1; font-size: 11px; }
     .sky-ammo-label { display: inline; font-size: 9px; }
     #sky-ammo svg { height: 20px; width: 9px; }
     #sky-status { bottom: 5px; max-width: 45%; padding-right: 0; }
@@ -518,6 +550,9 @@
     .sky-dialog p { margin-bottom: 14px; }
     .sky-dialog-actions { gap: 8px; }
     .sky-dialog-actions button { min-height: 40px; padding: 8px; }
+    .sky-ai-row { margin: 4px 0; }
+    .sky-ai-row input { height: 29px; }
+    .sky-ai-actions button { min-height: 30px; }
     .sky-result-readings { margin: 13px 0 16px; }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
@@ -571,11 +606,12 @@
         </svg>
       </h1>
       <p class="sky-brand-cn">天际巡航</p>
-      <p class="sky-location"><svg viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M3 1h6v2h2v6H9v2H7v2H5v-2H3V9H1V3h2Z" fill="currentColor"/><path d="M4 4h4v4H4Z" fill="#8c6656"/></svg>秋日湖谷 · 湖岸巡航</p>
+      <p class="sky-location"><svg viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M3 1h6v2h2v6H9v2H7v2H5v-2H3V9H1V3h2Z" fill="currentColor"/><path d="M4 4h4v4H4Z" fill="#8c6656"/></svg>秋日湖谷 · 防空值班</p>
       <div id="sky-start" aria-label="选择飞行模式">
-        <button id="sky-intercept" class="sky-primary" type="button" disabled>开始截击 <svg width="10" height="12" viewBox="0 0 10 12" fill="none" aria-hidden="true"><path d="M1 1h3v2h2v2h2v2H6v2H4v2H1V8h2V4H1Z" fill="currentColor"/></svg></button>
+        <button id="sky-intercept" class="sky-primary" type="button" disabled>守卫湖谷 <svg width="10" height="12" viewBox="0 0 10 12" fill="none" aria-hidden="true"><path d="M1 1h3v2h2v2h2v2H6v2H4v2H1V8h2V4H1Z" fill="currentColor"/></svg></button>
         <button id="sky-cruise" type="button" disabled>自由巡航</button>
         <button id="sky-inland" type="button" disabled>秋林低飞</button>
+        <button id="sky-settings" type="button" aria-haspopup="dialog" aria-controls="sky-pause" disabled>设置</button>
       </div>
     </div>
 
@@ -589,10 +625,11 @@
     </div>
 
     <div id="sky-combat" hidden aria-label="作战状态">
-      <div class="sky-combat-reading"><span>波次</span><b id="sky-wave">01</b></div>
+      <div class="sky-combat-reading"><span id="sky-wave-label">关卡</span><b id="sky-wave">01</b></div>
       <div class="sky-combat-reading"><span>得分</span><b id="sky-score">00000</b></div>
       <div class="sky-combat-reading"><span>护盾</span><b><span id="sky-shield">100</span>%</b></div>
       <div class="sky-combat-reading"><span>燃油</span><b><span id="sky-fuel">100</span>%</b></div>
+      <div id="sky-armor" class="sky-combat-reading" hidden><span>空投装甲</span><b id="sky-armor-status">待空投</b></div>
     </div>
 
     <aside id="sky-systems" hidden aria-label="机载系统实时监控">
@@ -609,34 +646,110 @@
 
     <div id="bootfallback" role="status">正在准备空域…</div>
 
-    <div id="sky-pause" class="sky-modal" hidden role="dialog" aria-modal="true" aria-labelledby="sky-pause-title" tabindex="-1">
+    <div id="sky-pause" class="sky-modal" hidden role="dialog" aria-modal="true" aria-labelledby="sky-pause-title" aria-describedby="sky-pause-description" tabindex="-1">
       <div class="sky-dialog">
         <h2 id="sky-pause-title">航程暂停</h2>
-        <p>云与远山，等你继续。<br>按 Esc 或选择下方按钮返回飞行。</p>
+        <p id="sky-pause-description">云与远山，等你继续。<br>按 Esc 或选择下方按钮返回飞行。</p>
         <div class="sky-dialog-actions">
           <button id="sky-resume" class="sky-primary" type="button" disabled>继续飞行</button>
           <fieldset class="sky-speed-settings">
             <legend>飞行设置</legend>
             <div class="sky-speed-row">
               <label for="sky-cruise-speed">巡航速度</label>
-              <output id="sky-cruise-speed-value" for="sky-cruise-speed">218 节</output>
-              <input id="sky-cruise-speed" type="range" min="100" max="500" step="1" value="218" aria-describedby="sky-speed-hint" disabled>
+              <output id="sky-cruise-speed-value" for="sky-cruise-speed">300 档 · 实速 100 节</output>
+              <input id="sky-cruise-speed" type="range" min="300" max="1500" step="1" value="300" aria-describedby="sky-speed-hint" disabled>
             </div>
             <div class="sky-speed-row">
               <label for="sky-burn-speed">加力上限</label>
               <output id="sky-burn-speed-value" for="sky-burn-speed">500 节</output>
-              <input id="sky-burn-speed" type="range" min="268" max="500" step="1" value="500" aria-describedby="sky-speed-hint" disabled>
+              <input id="sky-burn-speed" type="range" min="300" max="1500" step="1" value="500" aria-describedby="sky-speed-hint" disabled>
             </div>
-            <p id="sky-speed-hint" class="sky-speed-hint">继续后平滑生效。Shift 加力；巡航 500 节时已达上限。</p>
+            <p id="sky-speed-hint" class="sky-speed-hint">300 档等于原 100 节，500 档起与实速相同。调巡航会保留加力档差；按住 Shift 加力。自动转向到 1200 档才满，取消勾选可手调。</p>
+            <div class="sky-speed-row">
+              <label for="sky-turn-rate">转向速度</label>
+              <output id="sky-turn-rate-value" for="sky-turn-rate">30°/秒 · 随速度</output>
+              <input id="sky-turn-rate" type="range" min="8" max="120" step="1" value="30" disabled>
+            </div>
+            <label class="sky-mouse-option" for="sky-turn-lock"><input id="sky-turn-lock" type="checkbox" checked disabled>转向随速度自动适配</label>
+            <div class="sky-speed-row">
+              <label for="sky-volume">音量</label>
+              <output id="sky-volume-value" for="sky-volume">55%</output>
+              <input id="sky-volume" type="range" min="0" max="100" step="5" value="55" aria-describedby="sky-speed-hint" disabled>
+            </div>
             <div class="sky-speed-row">
               <label for="sky-enemy-speed">敌机速度</label>
               <output id="sky-enemy-speed-value" for="sky-enemy-speed">65%</output>
               <input id="sky-enemy-speed" type="range" min="30" max="120" step="5" value="65" disabled>
             </div>
+            <fieldset class="sky-difficulty-settings">
+              <legend>战斗难度</legend>
+              <div class="sky-difficulty-select">
+                <label for="sky-difficulty">难度预设</label>
+                <select id="sky-difficulty" disabled>
+                  <option value="easy">轻松</option>
+                  <option value="standard" selected>标准</option>
+                  <option value="hard">挑战</option>
+                  <option value="custom">自定义</option>
+                </select>
+              </div>
+              <p id="sky-difficulty-summary" class="sky-speed-hint">标准 · 每关 6/8/10 架 · 改动下次出航生效</p>
+              <details id="sky-difficulty-advanced" class="sky-difficulty-advanced">
+                <summary>逐兵种微调干扰弹</summary>
+                <div class="sky-flare-row">
+                  <div class="sky-flare-head"><span>无人机</span><output id="sky-flare-drone-value" for="sky-flare-drone sky-flare-chance-drone">1 发 · 45%</output></div>
+                  <div class="sky-flare-controls">
+                    <label>数量 <input id="sky-flare-drone" type="range" min="0" max="5" step="1" value="1" aria-label="无人机干扰弹数量" disabled></label>
+                    <label>诱骗成功率 <input id="sky-flare-chance-drone" type="range" min="0" max="100" step="5" value="45" aria-label="无人机干扰弹诱骗成功率" disabled></label>
+                  </div>
+                </div>
+                <div class="sky-flare-row">
+                  <div class="sky-flare-head"><span>战斗机</span><output id="sky-flare-fighter-value" for="sky-flare-fighter sky-flare-chance-fighter">2 发 · 65%</output></div>
+                  <div class="sky-flare-controls">
+                    <label>数量 <input id="sky-flare-fighter" type="range" min="0" max="5" step="1" value="2" aria-label="战斗机干扰弹数量" disabled></label>
+                    <label>诱骗成功率 <input id="sky-flare-chance-fighter" type="range" min="0" max="100" step="5" value="65" aria-label="战斗机干扰弹诱骗成功率" disabled></label>
+                  </div>
+                </div>
+                <div class="sky-flare-row">
+                  <div class="sky-flare-head"><span>运输机</span><output id="sky-flare-transport-value" for="sky-flare-transport sky-flare-chance-transport">3 发 · 75%</output></div>
+                  <div class="sky-flare-controls">
+                    <label>数量 <input id="sky-flare-transport" type="range" min="0" max="5" step="1" value="3" aria-label="运输机干扰弹数量" disabled></label>
+                    <label>诱骗成功率 <input id="sky-flare-chance-transport" type="range" min="0" max="100" step="5" value="75" aria-label="运输机干扰弹诱骗成功率" disabled></label>
+                  </div>
+                </div>
+              </details>
+            </fieldset>
             <label class="sky-mouse-option" for="sky-mouse-steering"><input id="sky-mouse-steering" type="checkbox" disabled>鼠标控制方向</label>
-            <button id="sky-speed-reset" type="button" disabled>恢复默认</button>
+            <button id="sky-speed-reset" type="button" disabled>恢复速度与转向默认</button>
           </fieldset>
-          <div class="sky-dialog-secondary">
+          <fieldset class="sky-speed-settings sky-wingman-settings">
+            <legend>辅助僚机</legend>
+            <label class="sky-mouse-option" for="sky-wingman"><input id="sky-wingman" type="checkbox" disabled>辅助僚机（本地 AI）</label>
+            <p class="sky-speed-hint">开启后本局生成 1 架友军僚机：围绕你伴飞、攻击你的锁定目标、规避碰撞，不会误伤你。默认关闭。</p>
+            <fieldset id="sky-ai-settings" class="sky-ai-settings">
+              <legend>AI 接入（可选，OpenAI 兼容）</legend>
+              <label class="sky-mouse-option" for="sky-ai-enabled"><input id="sky-ai-enabled" type="checkbox" disabled>启用 AI 高层指令</label>
+              <div id="sky-ai-details" hidden>
+                <div class="sky-ai-row">
+                  <label for="sky-ai-endpoint">API 地址</label>
+                  <input id="sky-ai-endpoint" type="url" autocomplete="off" spellcheck="false" placeholder="https://api.example.com/v1" disabled>
+                </div>
+                <div class="sky-ai-row">
+                  <label for="sky-ai-model">模型</label>
+                  <input id="sky-ai-model" type="text" autocomplete="off" spellcheck="false" placeholder="模型名称" disabled>
+                </div>
+                <div class="sky-ai-row">
+                  <label for="sky-ai-key">API Key</label>
+                  <input id="sky-ai-key" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" aria-describedby="sky-ai-key-hint" disabled>
+                </div>
+                <p id="sky-ai-key-hint" class="sky-speed-hint">Key 仅保存在当前页面内存，刷新即清空；不写入本地存储。浏览器直连需服务端允许 CORS。</p>
+                <div class="sky-ai-actions">
+                  <button id="sky-ai-test" type="button" disabled>测试连接</button>
+                  <output id="sky-ai-status" role="status" aria-live="polite">关闭</output>
+                </div>
+              </div>
+            </fieldset>
+          </fieldset>
+          <div id="sky-pause-flight-actions" class="sky-dialog-secondary">
             <button id="sky-restart" type="button" disabled>重新出航</button>
             <button id="sky-home" type="button" disabled>返回待命</button>
           </div>
@@ -647,13 +760,14 @@
     <div id="sky-result" class="sky-modal" hidden role="dialog" aria-modal="true" aria-labelledby="sky-result-title" tabindex="-1">
       <div class="sky-dialog">
         <h2 id="sky-result-title">本次航程结束</h2>
-        <p>夕照之下，航线仍在延伸。</p>
+        <p id="sky-result-message">夕照之下，航线仍在延伸。</p>
         <dl class="sky-result-readings">
           <div><dt>本次得分</dt><dd id="sky-result-score">00000</dd></div>
-          <div><dt>击落目标</dt><dd id="sky-result-kills">00</dd></div>
+          <div><dt>击退目标</dt><dd id="sky-result-kills">00</dd></div>
         </dl>
         <div class="sky-dialog-actions">
           <button id="sky-again" class="sky-primary" type="button" disabled>再次出航</button>
+          <button id="sky-continue-challenge" type="button" hidden disabled>继续迎击</button>
           <button id="sky-result-home" type="button" disabled>返回待命</button>
         </div>
       </div>
@@ -662,15 +776,17 @@
 
   <footer id="sky-controls" aria-label="飞行操作提示">
     <div class="sky-control-keys">
-      <span class="sky-direction" title="A / D 按住2秒，松开后双击同键：180°翻转；重复可翻回"><svg viewBox="0 0 15 17" fill="none" aria-hidden="true"><path d="M3 1v12l3-3 3 5 2-1-3-5h5Z" fill="currentColor"/></svg><span id="sky-direction-label">WASD / 方向键转向</span></span>
+      <span class="sky-direction" title="W / S 调整俯仰，松开保持，R 回平。A / D 按住2秒，松开后双击同键可翻转180°。"><svg viewBox="0 0 15 17" fill="none" aria-hidden="true"><path d="M3 1v12l3-3 3 5 2-1-3-5h5Z" fill="currentColor"/></svg><span id="sky-direction-label">WASD / 方向键转向</span></span>
       <button class="sky-key" data-sky-action="roll" type="button" disabled aria-label="桶滚，Q"><kbd>Q</kbd><span>桶滚</span></button>
+      <button class="sky-key" data-sky-action="recover" type="button" disabled aria-label="平滑恢复水平正飞，R"><kbd>R</kbd><span>回正</span></button>
       <button class="sky-key" data-sky-action="boost" type="button" disabled aria-label="加速，按住Shift；单次激活短加速1.2秒"><kbd>Shift</kbd><span>加速</span></button>
-      <button class="sky-key" data-sky-action="gun" type="button" disabled aria-label="机炮，鼠标左键或 F"><span class="sky-key-pair"><kbd>左键</kbd><span>/</span><kbd>F</kbd></span><span>机炮</span></button>
+      <button class="sky-key" data-sky-action="gun" type="button" disabled aria-label="机炮，鼠标左键或 F"><span class="sky-key-pair"><kbd>左键</kbd><span>/</span><kbd>F</kbd></span><span id="sky-gun-action-label">机炮</span></button>
       <button class="sky-key" data-sky-action="missile" type="button" disabled aria-label="导弹，鼠标右键或 E"><span class="sky-key-pair"><kbd>右键</kbd><span>/</span><kbd>E</kbd></span><span>导弹</span></button>
       <button class="sky-key" data-sky-action="flare" type="button" disabled aria-label="干扰弹，C 或 X"><kbd>C</kbd><span>干扰弹 3</span></button>
       <button class="sky-key" data-sky-action="view" type="button" disabled aria-label="切换视角，Space"><kbd>Space</kbd><span>视角</span></button>
       <button class="sky-key" data-sky-action="pause" type="button" disabled aria-label="暂停，Esc"><kbd>Esc</kbd><span>暂停</span></button>
     </div>
+    <output id="sky-wingman-status" hidden aria-label="僚机状态"></output>
     <div class="sky-ammo-cluster" aria-label="导弹余量">
       <span class="sky-ammo-label">导弹</span>
       <div id="sky-ammo" aria-hidden="true">
